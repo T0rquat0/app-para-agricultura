@@ -1,0 +1,124 @@
+"use client"
+
+import { useState } from "react"
+import { ArrowUpRight, Check, Plus, X } from "lucide-react"
+import type { Project, Service, ServiceStatus } from "@/lib/types"
+import { pricingSummary, projectRevenue } from "@/lib/calculations"
+import { fmtMoney } from "@/lib/format"
+import { saveProject } from "@/lib/storage"
+import { useRefresh } from "@/lib/hooks"
+import { Hint, SectionTitle } from "../chrome"
+import { SecondaryButton } from "../buttons"
+import { ServiceModal, ServicePricingModal } from "../modals"
+
+export function ServicesTab({ project }: { project: Project }) {
+  const refresh = useRefresh()
+  const [showAdd, setShowAdd] = useState(false)
+  const [pricingFor, setPricingFor] = useState<Service | null>(null)
+
+  const services = project.services || []
+  const revenue = projectRevenue(project)
+
+  async function setStatus(serviceId: string, status: ServiceStatus) {
+    const p = { ...project }
+    const s = (p.services || []).find((x) => x.id === serviceId)
+    if (!s) return
+    s.status = status
+    s.updatedAt = new Date().toISOString().slice(0, 10)
+    await saveProject(p)
+    refresh()
+  }
+
+  async function removeService(serviceId: string) {
+    if (!confirm("Remover este serviço?")) return
+    const p = { ...project, services: (project.services || []).filter((s) => s.id !== serviceId) }
+    await saveProject(p)
+    refresh()
+  }
+
+  return (
+    <div>
+      {revenue > 0 && (
+        <div className="mb-3 rounded-2xl bg-card p-3 text-center shadow-sm ring-1 ring-border/60">
+          <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Faturamento estimado</div>
+          <div className="num mt-1 text-lg font-bold text-primary">{fmtMoney(revenue)}</div>
+        </div>
+      )}
+
+      <SectionTitle>Serviços contratados</SectionTitle>
+      {services.length === 0 ? (
+        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border/60">
+          Nenhum serviço cadastrado.
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-card p-1 shadow-sm ring-1 ring-border/60">
+          {services.map((s) => (
+            <div key={s.id} className="border-b border-border/60 px-3 py-3.5 last:border-0">
+              <div className="mb-2.5 flex items-start gap-2">
+                <button onClick={() => setPricingFor(s)} className="min-w-0 flex-1 text-left">
+                  <div className="flex items-center gap-1 text-sm font-bold text-foreground">
+                    {s.name}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{pricingSummary(project, s)}</div>
+                </button>
+                <button
+                  onClick={() => removeService(s.id)}
+                  aria-label="Remover serviço"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <StatusTrack status={s.status} onChange={(st) => setStatus(s.id, st)} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Hint className="mx-0.5 mt-2">
+        Toque no nome pra configurar o preço · toque no status pra avançar Pendente → Em andamento → Concluído.
+      </Hint>
+
+      <div className="mt-3.5">
+        <SecondaryButton className="w-full" onClick={() => setShowAdd(true)}>
+          <Plus className="h-4 w-4" /> Adicionar serviço
+        </SecondaryButton>
+      </div>
+
+      {showAdd && <ServiceModal project={project} onClose={() => setShowAdd(false)} onSaved={refresh} />}
+      {pricingFor && (
+        <ServicePricingModal project={project} service={pricingFor} onClose={() => setPricingFor(null)} onSaved={refresh} />
+      )}
+    </div>
+  )
+}
+
+function StatusTrack({ status, onChange }: { status: ServiceStatus; onChange: (s: ServiceStatus) => void }) {
+  const segs: { key: ServiceStatus; label: string; sel: string }[] = [
+    { key: "pendente", label: "Pendente", sel: "bg-secondary text-secondary-foreground" },
+    { key: "andamento", label: "Andamento", sel: "bg-amber-status text-white" },
+    { key: "concluido", label: "✓ Concluído", sel: "bg-primary text-primary-foreground" },
+  ]
+  return (
+    <div className="flex h-8 overflow-hidden rounded-full border border-border bg-background">
+      {segs.map((seg, i) => (
+        <button
+          key={seg.key}
+          onClick={() => onChange(seg.key)}
+          className={`flex-1 text-[11.5px] font-bold transition-colors ${i > 0 ? "border-l border-border" : ""} ${
+            status === seg.key ? seg.sel : "text-muted-foreground"
+          }`}
+        >
+          {seg.key === "concluido" && status === "concluido" ? (
+            <span className="flex items-center justify-center gap-1">
+              <Check className="h-3 w-3" strokeWidth={3} /> Concluído
+            </span>
+          ) : (
+            seg.label
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
