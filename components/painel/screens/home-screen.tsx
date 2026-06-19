@@ -2,15 +2,16 @@
 
 import { useRef } from "react"
 import { Check, ChevronRight, Download, Map, Moon, Plus, Sun, TrendingUp, Upload } from "lucide-react"
-import { useIndex, useRefresh } from "@/lib/hooks"
+import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
 import { exportBackup, importBackup } from "@/lib/storage"
-import { fmtDate, fmtHa } from "@/lib/format"
+import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { useNav } from "../nav-context"
 import { Logo } from "../logo"
 import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
 
 export function HomeScreen() {
   const { index, isLoading } = useIndex()
+  const { overview } = useFinancialOverview()
   const { openProject, goNewProject, goInvestments, dark, toggleDark } = useNav()
   const refresh = useRefresh()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -27,6 +28,12 @@ export function HomeScreen() {
     const t = Number(p.totalHectares || 0)
     return t > 0 && m >= t
   }).length
+
+  const balance = overview?.balance ?? 0
+  const totalContract = overview?.totalContract ?? 0
+  const totalOpEx = overview?.totalOpEx ?? 0
+  const invested = overview?.invested ?? 0
+  const isPositive = balance >= 0
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -69,9 +76,56 @@ export function HomeScreen() {
         </div>
       </header>
 
+      {/* Card de Saldo — destaque máximo */}
+      <div className="px-4 -mt-1 pt-5">
+        <button
+          onClick={goInvestments}
+          className={`w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] ${
+            isPositive
+              ? "bg-gradient-to-br from-[#1e5c38] to-[#2d7a4f]"
+              : "bg-gradient-to-br from-[#7a1e1e] to-[#a83232]"
+          }`}
+        >
+          {/* Topo */}
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
+                Saldo da operação
+              </p>
+              <p
+                className={`num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight ${
+                  isPositive ? "text-[#7dffb3]" : "text-[#ffaaaa]"
+                }`}
+              >
+                {fmtMoney(balance)}
+              </p>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </span>
+          </div>
+
+          {/* Divisor */}
+          <div className="my-4 h-px bg-white/10" />
+
+          {/* Breakdown */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <BalanceItem label="Faturado" value={fmtMoney(totalContract)} />
+            <BalanceItem label="Gastos" value={fmtMoney(totalOpEx)} dimmed />
+            <BalanceItem label="Investido" value={fmtMoney(invested)} dimmed />
+          </div>
+
+          {/* Rodapé */}
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-[11px] text-white/50">Toque para ver detalhes completos</p>
+            <ChevronRight className="h-4 w-4 text-white/40" />
+          </div>
+        </button>
+      </div>
+
       {/* Conteudo */}
       <div className="flex-1 px-4 pb-24 pt-5">
-        <div className="mb-3.5 flex gap-2">
+        <div className="mb-5 flex gap-2">
           <button
             onClick={() => exportBackup()}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-card py-2.5 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-muted"
@@ -86,23 +140,6 @@ export function HomeScreen() {
           </button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
         </div>
-
-        {/* Atalho investimentos */}
-        <button
-          onClick={goInvestments}
-          className="mb-5 flex w-full items-center gap-3.5 rounded-2xl bg-sand-bg p-4 text-left shadow-sm ring-1 ring-accent/20 transition-transform active:scale-[0.99]"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
-            <TrendingUp className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-accent">Investimentos &amp; visão financeira</span>
-            <span className="block text-xs text-muted-foreground">
-              O que já foi investido nessa área e se está rendendo
-            </span>
-          </span>
-          <ChevronRight className="h-5 w-5 shrink-0 text-accent/60" />
-        </button>
 
         <SectionTitle>Clientes</SectionTitle>
         {isLoading ? (
@@ -143,6 +180,15 @@ function Stat({ label, value, unit }: { label: string; value: string; unit: stri
       <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.1em] text-white/65">{label}</div>
       <div className="num text-[17px] font-bold leading-none">{value}</div>
       <div className="mt-1 text-[10px] text-white/70">{unit}</div>
+    </div>
+  )
+}
+
+function BalanceItem({ label, value, dimmed }: { label: string; value: string; dimmed?: boolean }) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">{label}</p>
+      <p className={`num mt-0.5 text-[12.5px] font-bold ${dimmed ? "text-white/60" : "text-white"}`}>{value}</p>
     </div>
   )
 }
