@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronDown, Plus, X } from "lucide-react"
+import { Check, ChevronDown, Pencil, Plus, X } from "lucide-react"
+import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
 import { mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
 import { fmtDate, fmtHa } from "@/lib/format"
@@ -9,13 +10,15 @@ import { saveProject } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
 import { SecondaryButton, GhostButton } from "../buttons"
-import { ParteModal, TalhaoModal } from "../modals"
+import { EditParteModal, EditTalhaoModal, ParteModal, TalhaoModal } from "../modals"
 
 export function AreasTab({ project }: { project: Project }) {
   const refresh = useRefresh()
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [showTalhao, setShowTalhao] = useState(false)
   const [parteFor, setParteFor] = useState<string | null>(null)
+  const [editingTalhao, setEditingTalhao] = useState<Talhao | null>(null)
+  const [editingParte, setEditingParte] = useState<Area | null>(null)
 
   const mapped = mappedHa(project)
   const pctVal = project.totalHectares ? (mapped / project.totalHectares) * 100 : 0
@@ -86,32 +89,47 @@ export function AreasTab({ project }: { project: Project }) {
 
             return (
               <div key={t.id} className={`overflow-hidden rounded-2xl shadow-sm ring-1 ${isDone ? "bg-green-pale ring-primary/30" : "bg-card ring-border/60"}`}>
-                <button onClick={() => toggle(t.id)} className="flex w-full items-center gap-3 p-4 text-left">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-[15px] font-bold text-foreground">
-                      <span className="truncate">{t.name}</span>
-                      {badge && (
-                        <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
-                          {badge}
-                        </span>
-                      )}
+                {/* Cabeçalho do talhão */}
+                <div className="flex w-full items-center gap-2 p-4">
+                  {/* Área clicável para expandir */}
+                  <button onClick={() => toggle(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-[15px] font-bold text-foreground">
+                        <span className="truncate">{t.name}</span>
+                        {badge && (
+                          <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                            {badge}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {target > 0
+                          ? `${fmtHa(flown)} / ${fmtHa(target)} ha · ${Math.round((flown / target) * 100)}%`
+                          : `${fmtHa(flown)} ha voados`}
+                      </div>
                     </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {target > 0
-                        ? `${fmtHa(flown)} / ${fmtHa(target)} ha · ${Math.round((flown / target) * 100)}%`
-                        : `${fmtHa(flown)} ha voados`}
-                    </div>
-                  </div>
-                  {isDone ? (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="h-4 w-4" strokeWidth={3} />
-                    </span>
-                  ) : (
-                    <Ring pct={ringPct} />
-                  )}
-                  <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                </button>
+                    {isDone ? (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-4 w-4" strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <Ring pct={ringPct} />
+                    )}
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {/* Botão editar talhão */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingTalhao(t) }}
+                    aria-label="Editar talhão"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
                 {target > 0 && <ProgressBar value={(flown / target) * 100} className="mx-4 mb-1 h-1" />}
+
+                {/* Partes voadas (expandido) */}
                 {isOpen && (
                   <div className="border-t border-border px-4 py-2">
                     {partes.length === 0 ? (
@@ -119,15 +137,23 @@ export function AreasTab({ project }: { project: Project }) {
                     ) : (
                       partes.map((a, i) => (
                         <div key={a.id} className="flex items-center justify-between border-b border-border/60 py-2.5 last:border-0">
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="text-[13.5px] font-bold text-foreground">
                               Parte {i + 1}
                               {a.note ? ` — ${a.note}` : ""}
                             </div>
                             <div className="text-[11.5px] text-muted-foreground">{fmtDate(a.date)}</div>
                           </div>
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-1.5">
                             <span className="num text-[13.5px] font-bold text-foreground">{fmtHa(a.hectares)} ha</span>
+                            {/* Botão editar parte */}
+                            <button
+                              onClick={() => setEditingParte(a)}
+                              aria-label="Editar parte"
+                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
                             <DelButton onClick={() => removeArea(a.id)} />
                           </div>
                         </div>
@@ -175,6 +201,7 @@ export function AreasTab({ project }: { project: Project }) {
         </>
       )}
 
+      {/* Modais */}
       {showTalhao && <TalhaoModal project={project} onClose={() => setShowTalhao(false)} onSaved={refresh} />}
       {parteFor && (
         <ParteModal
@@ -182,9 +209,25 @@ export function AreasTab({ project }: { project: Project }) {
           talhaoId={parteFor}
           onClose={() => setParteFor(null)}
           onSaved={() => {
-            setExpanded((prev) => new Set(prev).add(parteFor))
+            setExpanded((prev) => new Set(prev).add(parteFor!))
             refresh()
           }}
+        />
+      )}
+      {editingTalhao && (
+        <EditTalhaoModal
+          project={project}
+          talhao={editingTalhao}
+          onClose={() => setEditingTalhao(null)}
+          onSaved={() => { setEditingTalhao(null); refresh() }}
+        />
+      )}
+      {editingParte && (
+        <EditParteModal
+          project={project}
+          area={editingParte}
+          onClose={() => setEditingParte(null)}
+          onSaved={() => { setEditingParte(null); refresh() }}
         />
       )}
     </div>
