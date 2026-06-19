@@ -1,9 +1,14 @@
 "use client"
 
-import { useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { Download, Loader2 } from "lucide-react"
 import { TopBar } from "./chrome"
 import { exportElementToPdf } from "@/lib/pdf"
+
+// Largura fixa da "folha" (proporcao A4). A captura para PDF sempre acontece
+// nesse tamanho — independente da tela — para o conteudo nunca ser cortado.
+const PAPER_W = 760
+const PAPER_MIN_H = Math.round(PAPER_W * 1.414) // ~1075
 
 // Estrutura comum dos relatorios: barra superior, "folha" A4 pronta para PDF
 // e botao fixo de download.
@@ -23,17 +28,44 @@ export function ReportShell({
   footerNote?: string
 }) {
   const paperRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [paperH, setPaperH] = useState(PAPER_MIN_H)
+
+  // Escala a folha (largura fixa) para caber na largura disponivel da tela.
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const update = () => {
+      const avail = el.clientWidth - 32 // padding lateral
+      setScale(Math.min(1, avail / PAPER_W))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Mede a altura real da folha para reservar o espaco certo apos a escala.
+  useEffect(() => {
+    if (paperRef.current) setPaperH(paperRef.current.offsetHeight)
+  })
 
   async function handleDownload() {
-    if (!paperRef.current) return
+    const paper = paperRef.current
+    if (!paper) return
     setBusy(true)
+    // Captura sempre em tamanho cheio (sem a escala de visualizacao).
+    const prevTransform = paper.style.transform
+    paper.style.transform = "none"
     try {
-      await exportElementToPdf(paperRef.current, filename)
+      await exportElementToPdf(paper, filename)
     } catch (e) {
       console.error("[v0] erro ao gerar PDF", e)
       alert("Não foi possível gerar o PDF. Tente novamente.")
     } finally {
+      paper.style.transform = prevTransform
       setBusy(false)
     }
   }
@@ -41,35 +73,58 @@ export function ReportShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title={title} subtitle={subtitle} onBack={onBack} showDarkToggle={false} />
-      <div className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
-        {/* Folha A4 (proporcao constante em qualquer largura) */}
-        <div
-          ref={paperRef}
-          className="relative mx-auto flex w-full max-w-[460px] flex-col overflow-hidden rounded-2xl bg-white text-[#1a1a1a]"
-          style={{
-            colorScheme: "light",
-            aspectRatio: "1 / 1.414",
-            boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)",
-          }}
-        >
-          {/* Selo / marca d'agua central bem tenue */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
+        {/* Caixa que reserva o espaco da folha ja escalada e a centraliza */}
+        <div className="mx-auto" style={{ width: PAPER_W * scale, height: paperH * scale }}>
+          {/* Folha tamanho documento (proporcao A4). Cresce com o conteudo, nunca corta. */}
+          <div
+            ref={paperRef}
+            className="relative flex flex-col overflow-hidden rounded-2xl bg-white text-[#1a1a1a]"
+            style={{
+              colorScheme: "light",
+              width: PAPER_W,
+              minHeight: PAPER_MIN_H,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+              boxShadow: "0 8px 30px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)",
+            }}
+          >
+          {/* Moldura interna (papel timbrado) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-[7px] rounded-xl"
+            style={{ border: "1px solid rgba(26,66,40,0.16)" }}
+          />
+          {/* Selo / marca d'agua central */}
           <img
             src="/ags-geo-mark-trim.png"
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-[56%] w-[60%] -translate-x-1/2 -translate-y-1/2 select-none"
-            style={{ opacity: 0.04 }}
+            className="pointer-events-none absolute left-1/2 top-1/2 w-[72%] -translate-x-1/2 -translate-y-1/2 select-none"
+            style={{ opacity: 0.05 }}
           />
           {/* Corpo (cresce e empurra o rodape para baixo) */}
-          <div className="relative flex flex-1 flex-col px-7 pb-5">{children}</div>
+          <div className="relative flex flex-1 flex-col px-7 pb-5">
+            {children}
+            {/* Area de assinatura do responsavel tecnico */}
+            <div className="mt-auto pt-10">
+              <div className="mx-auto w-[68%] max-w-[260px] text-center">
+                <div style={{ borderTop: "1.5px solid #9ca3af" }} className="pt-2">
+                  <div className="text-[11px] font-bold text-[#1f2937]">Responsável Técnico</div>
+                  <div className="mt-0.5 text-[9.5px] text-[#6b7280]">AGS GEO · Geoprocessamento com Drone</div>
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Rodape fixo no pe da folha */}
-          <div style={{ borderTop: "2px solid #1A4228" }}>
+          <div className="relative" style={{ borderTop: "2px solid #1A4228" }}>
             <div className="px-7 py-3 text-center">
               <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#374151]">
                 AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA
               </div>
               {footerNote && <div className="mt-0.5 text-[9px] text-[#9ca3af]">{footerNote}</div>}
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -102,15 +157,15 @@ export function ReportHeader({
     <div className="mb-5">
       {/* Faixa de marca (sangra ate as bordas da folha) */}
       <div
-        className="-mx-7 flex items-start justify-between gap-3 px-7 py-5 text-white"
+        className="-mx-7 flex items-start justify-between gap-3 px-7 py-4 text-white"
         style={{ background: "linear-gradient(135deg, #163b22 0%, #225a37 100%)" }}
       >
         <div className="flex items-center gap-3">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white"
             style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
           >
-            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-9 w-9 object-contain" />
+            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-8 w-8 object-contain" />
           </div>
           <div>
             <div className="text-[16px] font-extrabold leading-none tracking-wide">
@@ -136,8 +191,8 @@ export function ReportHeader({
         </div>
       </div>
       {/* Titulo do relatorio */}
-      <div className="border-b border-[#e5e7eb] pb-4 pt-5">
-        <h2 className="text-[20px] font-extrabold leading-tight text-[#111827]">{heading}</h2>
+      <div className="border-b border-[#e5e7eb] pb-3 pt-4">
+        <h2 className="text-[19px] font-extrabold leading-tight text-[#111827]">{heading}</h2>
         {meta && <p className="mt-1 text-[12px] font-medium text-[#6b7280]">{meta}</p>}
       </div>
     </div>
@@ -174,8 +229,8 @@ export function ReportRow({
 
 export function ReportSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="mb-5">
-      <h3 className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#1A4228]">{title}</h3>
+    <div className="mb-4">
+      <h3 className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#1A4228]">{title}</h3>
       {children}
     </div>
   )
