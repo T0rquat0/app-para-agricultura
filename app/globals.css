@@ -121,22 +121,22 @@
   }
 }
 
-@layer utilities {
-  /* Padrao de curvas de nivel (topografia) — identidade de geoprocessamento */
-  .bg-topo {
-    background-color: var(--brand-dark);
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='180' viewBox='0 0 300 180'><g fill='none' stroke='%23ffffff' stroke-opacity='0.08' stroke-width='1'><path d='M-20,40 C60,10 120,70 200,40 C280,10 320,70 380,40'/><path d='M-20,70 C60,40 120,100 200,70 C280,40 320,100 380,70'/><path d='M-20,100 C60,70 120,130 200,100 C280,70 320,130 380,100'/><path d='M-20,130 C60,100 120,160 200,130 C280,100 320,160 380,130'/><path d='M-20,160 C60,130 120,190 200,160 C280,130 320,190 380,160'/></g></svg>");
-    background-size: 380px 180px;
-  }
-  .num {
-    font-family: var(--font-mono);
-    font-feature-settings: "tnum";
-  }
-  .no-scrollbar::-webkit-scrollbar {
+/* Padrao de curvas de nivel (topografia) — identidade de geoprocessamento */
+@utility bg-topo {
+  background-color: var(--brand-dark);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='180' viewBox='0 0 300 180'><g fill='none' stroke='%23ffffff' stroke-opacity='0.08' stroke-width='1'><path d='M-20,40 C60,10 120,70 200,40 C280,10 320,70 380,40'/><path d='M-20,70 C60,40 120,100 200,70 C280,40 320,100 380,70'/><path d='M-20,100 C60,70 120,130 200,100 C280,70 320,130 380,100'/><path d='M-20,130 C60,100 120,160 200,130 C280,100 320,160 380,130'/><path d='M-20,160 C60,130 120,190 200,160 C280,130 320,190 380,160'/></g></svg>");
+  background-size: 380px 180px;
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
     display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
   }
 }

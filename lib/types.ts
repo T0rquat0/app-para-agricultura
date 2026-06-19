@@ -69,10 +69,11 @@ export interface ProjectSummary {
 
 export interface Investment {
   id: string
-  category: string
-  description: string
+  name: string
   value: number
   date: string
+  note?: string
+  createdAt?: string
 }
 
 export interface FinancialOverview {
