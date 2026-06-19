@@ -47,19 +47,18 @@ export function HomeScreen() {
       refresh()
       alert("Backup importado com sucesso.")
     } catch {
-      alert("Esse arquivo não parece ser um backup válido.")
+      alert("Esse arquivo nao parece ser um backup valido.")
     }
   }
 
   async function onDeleteProject(id: string, name: string) {
-    if (!confirm(\`Excluir o projeto de "${name}"? Todos os dados serão removidos permanentemente.\`)) return
+    if (!confirm("Excluir o projeto de " + name + "? Todos os dados serao removidos permanentemente.")) return
     await deleteProjectById(id)
     refresh()
   }
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero */}
       <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-7 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
         <div className="mb-5 flex items-start justify-between">
           <Logo size={44} />
@@ -74,35 +73,30 @@ export function HomeScreen() {
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
           Painel de Geoprocessamento
         </p>
-        <h1 className="mt-1 mb-5 text-[22px] font-extrabold tracking-tight">Visão geral da operação</h1>
+        <h1 className="mt-1 mb-5 text-[22px] font-extrabold tracking-tight">Visao geral da operacao</h1>
         <div className="grid grid-cols-3 gap-2.5">
-          <Stat label="Ha mapeados" value={fmtHa(mapped)} unit={`de ${fmtHa(totalHa)} ha`} />
-          <Stat label="Em campo" value={String(active)} unit={`projeto${active !== 1 ? "s" : ""}`} />
-          <Stat label="Concluídos" value={String(done)} unit={`projeto${done !== 1 ? "s" : ""}`} />
+          <Stat label="Ha mapeados" value={fmtHa(mapped)} unit={"de " + fmtHa(totalHa) + " ha"} />
+          <Stat label="Em campo" value={String(active)} unit={active !== 1 ? "projetos" : "projeto"} />
+          <Stat label="Concluidos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
         </div>
       </header>
 
-      {/* Card de Saldo — destaque máximo */}
       <div className="px-4 -mt-1 pt-5">
         <button
           onClick={goInvestments}
-          className={`w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] ${
-            isPositive
+          className={
+            "w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] " +
+            (isPositive
               ? "bg-gradient-to-br from-[#1e5c38] to-[#2d7a4f]"
-              : "bg-gradient-to-br from-[#7a1e1e] to-[#a83232]"
-          }`}
+              : "bg-gradient-to-br from-[#7a1e1e] to-[#a83232]")
+          }
         >
-          {/* Topo */}
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
-                Saldo da operação
+                Saldo da operacao
               </p>
-              <p
-                className={`num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight ${
-                  isPositive ? "text-[#7dffb3]" : "text-[#ffaaaa]"
-                }`}
-              >
+              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#7dffb3]" : "text-[#ffaaaa]")}>
                 {fmtMoney(balance)}
               </p>
             </div>
@@ -110,18 +104,12 @@ export function HomeScreen() {
               <TrendingUp className="h-5 w-5 text-white" />
             </span>
           </div>
-
-          {/* Divisor */}
           <div className="my-4 h-px bg-white/10" />
-
-          {/* Breakdown */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <BalanceItem label="Faturado" value={fmtMoney(totalContract)} />
             <BalanceItem label="Gastos" value={fmtMoney(totalOpEx)} dimmed />
             <BalanceItem label="Investido" value={fmtMoney(invested)} dimmed />
           </div>
-
-          {/* Rodapé */}
           <div className="mt-4 flex items-center justify-between">
             <p className="text-[11px] text-white/50">Toque para ver detalhes completos</p>
             <ChevronRight className="h-4 w-4 text-white/40" />
@@ -129,7 +117,6 @@ export function HomeScreen() {
         </button>
       </div>
 
-      {/* Conteudo */}
       <div className="flex-1 px-4 pb-24 pt-5">
         <div className="mb-5 flex gap-2">
           <button
@@ -156,18 +143,22 @@ export function HomeScreen() {
           </div>
         ) : index.length === 0 ? (
           <EmptyState icon={<Map className="h-9 w-9 opacity-40" />}>
-            Nenhum projeto cadastrado ainda. Comece criando o levantamento do seu próximo cliente.
+            Nenhum projeto cadastrado ainda. Comece criando o levantamento do seu proximo cliente.
           </EmptyState>
         ) : (
           <div className="space-y-3">
             {index.map((p) => (
-              <ProjectCard key={p.id} summary={p} onClick={() => openProject(p.id)} onDelete={() => onDeleteProject(p.id, p.clientName)} />
+              <ProjectCard
+                key={p.id}
+                summary={p}
+                onClick={() => openProject(p.id)}
+                onDelete={() => onDeleteProject(p.id, p.clientName)}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* FAB */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] px-4 pb-5">
         <button
           onClick={goNewProject}
@@ -194,7 +185,7 @@ function BalanceItem({ label, value, dimmed }: { label: string; value: string; d
   return (
     <div>
       <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">{label}</p>
-      <p className={`num mt-0.5 text-[12.5px] font-bold ${dimmed ? "text-white/60" : "text-white"}`}>{value}</p>
+      <p className={"num mt-0.5 text-[12.5px] font-bold " + (dimmed ? "text-white/60" : "text-white")}>{value}</p>
     </div>
   )
 }
@@ -206,7 +197,7 @@ function ProjectCard({
 }: {
   summary: ReturnType<typeof useIndex>["index"][number]
   onClick: () => void
-  onDelete: () => void
+  onDelete: () => void | Promise<void>
 }) {
   const m = Number(summary.mappedHectares || 0)
   const total = Number(summary.totalHectares || 0)
@@ -214,7 +205,7 @@ function ProjectCard({
   const isDone = total > 0 && m >= total
 
   return (
-    <div className={`relative rounded-2xl shadow-sm ring-1 ${isDone ? "bg-green-pale ring-primary/40" : "bg-card ring-border/60"}`}>
+    <div className={"relative rounded-2xl shadow-sm ring-1 " + (isDone ? "bg-green-pale ring-primary/40" : "bg-card ring-border/60")}>
       <button
         onClick={onClick}
         className="block w-full p-4 text-left transition-opacity active:opacity-70"
@@ -226,7 +217,7 @@ function ProjectCard({
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Check className="h-3 w-3" strokeWidth={3} />
               </span>
-              Concluído
+              Concluido
             </span>
           ) : (
             <span className="num text-[13px] font-bold text-primary">{pctReal.toFixed(0)}%</span>
@@ -234,7 +225,7 @@ function ProjectCard({
         </div>
         {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
         {isDone ? (
-          <div className="mt-2 text-[11px] font-bold text-primary">✓ Levantamento concluído</div>
+          <div className="mt-2 text-[11px] font-bold text-primary">Levantamento concluido</div>
         ) : (
           <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
         )}
