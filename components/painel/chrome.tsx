@@ -70,7 +70,7 @@ export function ProgressBar({ value, className = "" }: { value: number; classNam
   return (
     <div className={`overflow-hidden rounded-full bg-green-light ${className}`}>
       <div
-        className="h-full rounded-full bg-primary transition-[width] duration-500"
+        className="h-full rounded-full bg-cta transition-[width] duration-500"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>

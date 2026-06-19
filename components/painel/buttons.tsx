@@ -10,7 +10,7 @@ export function PrimaryButton({ className, ...props }: ButtonHTMLAttributes<HTML
   return (
     <button
       {...props}
-      className={cn(base, "bg-primary px-5 py-3 text-primary-foreground shadow-sm hover:brightness-105", className)}
+      className={cn(base, "bg-cta px-5 py-3 text-cta-foreground shadow-sm hover:brightness-105", className)}
     />
   )
 }

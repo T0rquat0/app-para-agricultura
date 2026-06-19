@@ -149,7 +149,7 @@ export function InvestmentsScreen() {
       <div className="sticky bottom-0 border-t border-border bg-card/95 px-5 py-4 backdrop-blur">
         <button
           onClick={openNew}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cta py-3.5 text-sm font-bold text-cta-foreground shadow-sm transition-all hover:brightness-105"
         >
           <Plus className="h-[18px] w-[18px]" /> Novo investimento
         </button>

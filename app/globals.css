@@ -17,6 +17,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -57,6 +59,8 @@
   --popover-foreground: #16201a;
   --primary: #2d6a45;
   --primary-foreground: #ffffff;
+  --cta: #2d6a45;
+  --cta-foreground: #ffffff;
   --secondary: #eaf3ed;
   --secondary-foreground: #1a4228;
   --muted: #f2f8f4;
@@ -89,6 +93,8 @@
   --popover-foreground: #e8ede8;
   --primary: #7dbf9a;
   --primary-foreground: #0c160f;
+  --cta: #2f8455;
+  --cta-foreground: #ffffff;
   --secondary: #1e3328;
   --secondary-foreground: #cfe6d8;
   --muted: #182b1f;
