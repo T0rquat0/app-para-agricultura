@@ -1,9 +1,9 @@
 "use client"
 
 import { useRef } from "react"
-import { Check, ChevronRight, Download, Map, Moon, Plus, Sun, TrendingUp, Upload } from "lucide-react"
+import { Check, ChevronRight, Download, Map, Moon, Plus, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
 import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
-import { exportBackup, importBackup } from "@/lib/storage"
+import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { useNav } from "../nav-context"
 import { Logo } from "../logo"
@@ -49,6 +49,12 @@ export function HomeScreen() {
     } catch {
       alert("Esse arquivo não parece ser um backup válido.")
     }
+  }
+
+  async function onDeleteProject(id: string, name: string) {
+    if (!confirm(\`Excluir o projeto de "${name}"? Todos os dados serão removidos permanentemente.\`)) return
+    await deleteProjectById(id)
+    refresh()
   }
 
   return (
@@ -155,7 +161,7 @@ export function HomeScreen() {
         ) : (
           <div className="space-y-3">
             {index.map((p) => (
-              <ProjectCard key={p.id} summary={p} onClick={() => openProject(p.id)} />
+              <ProjectCard key={p.id} summary={p} onClick={() => openProject(p.id)} onDelete={() => onDeleteProject(p.id, p.clientName)} />
             ))}
           </div>
         )}
@@ -196,9 +202,11 @@ function BalanceItem({ label, value, dimmed }: { label: string; value: string; d
 function ProjectCard({
   summary,
   onClick,
+  onDelete,
 }: {
   summary: ReturnType<typeof useIndex>["index"][number]
   onClick: () => void
+  onDelete: () => void
 }) {
   const m = Number(summary.mappedHectares || 0)
   const total = Number(summary.totalHectares || 0)
@@ -206,37 +214,44 @@ function ProjectCard({
   const isDone = total > 0 && m >= total
 
   return (
-    <button
-      onClick={onClick}
-      className={`block w-full rounded-2xl p-4 text-left shadow-sm transition-transform active:scale-[0.99] ${
-        isDone ? "bg-green-pale ring-1 ring-primary/40" : "bg-card ring-1 ring-border/60"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
-        {isDone ? (
-          <span className="flex items-center gap-1.5 text-[13px] font-bold text-primary">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <Check className="h-3 w-3" strokeWidth={3} />
+    <div className={`relative rounded-2xl shadow-sm ring-1 ${isDone ? "bg-green-pale ring-primary/40" : "bg-card ring-border/60"}`}>
+      <button
+        onClick={onClick}
+        className="block w-full p-4 text-left transition-opacity active:opacity-70"
+      >
+        <div className="flex items-center justify-between gap-2 pr-6">
+          <span className="text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
+          {isDone ? (
+            <span className="flex items-center gap-1.5 text-[13px] font-bold text-primary">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <Check className="h-3 w-3" strokeWidth={3} />
+              </span>
+              Concluído
             </span>
-            Concluído
-          </span>
+          ) : (
+            <span className="num text-[13px] font-bold text-primary">{pctReal.toFixed(0)}%</span>
+          )}
+        </div>
+        {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
+        {isDone ? (
+          <div className="mt-2 text-[11px] font-bold text-primary">✓ Levantamento concluído</div>
         ) : (
-          <span className="num text-[13px] font-bold text-primary">{pctReal.toFixed(0)}%</span>
+          <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
         )}
-      </div>
-      {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
-      {isDone ? (
-        <div className="mt-2 text-[11px] font-bold text-primary">✓ Levantamento concluído</div>
-      ) : (
-        <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
-      )}
-      <div className="mt-2 flex justify-between text-[11.5px] text-muted-foreground">
-        <span className="num">
-          {fmtHa(m)} / {fmtHa(total)} ha
-        </span>
-        <span>{fmtDate((summary.updatedAt || summary.createdAt || "").slice(0, 10))}</span>
-      </div>
-    </button>
+        <div className="mt-2 flex justify-between text-[11.5px] text-muted-foreground">
+          <span className="num">
+            {fmtHa(m)} / {fmtHa(total)} ha
+          </span>
+          <span>{fmtDate((summary.updatedAt || summary.createdAt || "").slice(0, 10))}</span>
+        </div>
+      </button>
+      <button
+        onClick={onDelete}
+        aria-label="Excluir projeto"
+        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground opacity-30 transition-all hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
   )
 }
