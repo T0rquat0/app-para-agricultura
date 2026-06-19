@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Manrope, IBM_Plex_Mono } from 'next/font/google'
+import { ServiceWorkerRegister } from '@/components/painel/service-worker-register'
 import './globals.css'
 
 const manrope = Manrope({
@@ -20,10 +21,29 @@ export const metadata: Metadata = {
   description:
     'Painel de levantamentos topográficos com drone da AGS Soluções Agrícolas — gestão de projetos, talhões, serviços, gastos e visão financeira.',
   generator: 'v0.app',
+  applicationName: 'AGS Levantamentos',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'AGS Levantamentos',
+  },
+  icons: {
+    icon: '/icon-512.png',
+    apple: '/icon-512.png',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export const viewport: Viewport = {
   colorScheme: 'light dark',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#1A4228' },
     { media: '(prefers-color-scheme: dark)', color: '#0F150F' },
@@ -39,6 +59,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${manrope.variable} ${plexMono.variable}`}>
       <body className="bg-background font-sans antialiased">
         {children}
+        <ServiceWorkerRegister />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

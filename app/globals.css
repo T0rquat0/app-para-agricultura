@@ -133,6 +133,15 @@
   font-feature-settings: "tnum";
 }
 
+/* Respeita o notch / status bar no modo PWA (standalone) */
+@utility pt-safe {
+  padding-top: calc(env(safe-area-inset-top) + 1.5rem);
+}
+
+@utility pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1.25rem);
+}
+
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

@@ -68,7 +68,7 @@ export function PainelApp() {
       }}
     >
       <div className="min-h-dvh w-full bg-background lg:bg-muted">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
+        <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background pb-safe shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
           {screen === "home" && <HomeScreen />}
           {screen === "newProject" && <NewProjectScreen />}
           {screen === "project" && <ProjectScreen />}
