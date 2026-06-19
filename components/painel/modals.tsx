@@ -3,9 +3,9 @@
 import { useState } from "react"
 import { CATEGORIES, FUEL_CATEGORY, SERVICE_PRESETS } from "@/lib/constants"
 import { genId, todayISO, fmtHa } from "@/lib/format"
-import { isAltimetricName, mappedHa } from "@/lib/calculations"
+import { isAltimetricName, mappedHa, talhaoFlown } from "@/lib/calculations"
 import { addVehicle, saveProject } from "@/lib/storage"
-import type { BillingType, Project, Service } from "@/lib/types"
+import type { Area, BillingType, Project, Service, Talhao } from "@/lib/types"
 import { ModalSheet } from "./modal-sheet"
 import { Field, Hint, Select, TextInput } from "./fields"
 import { PrimaryButton, GhostButton } from "./buttons"
@@ -58,6 +58,60 @@ export function TalhaoModal({ project, onClose, onSaved }: { project: Project; o
   )
 }
 
+// ---- Editar talhão ----
+export function EditTalhaoModal({
+  project,
+  talhao,
+  onClose,
+  onSaved,
+}: {
+  project: Project
+  talhao: Talhao
+  onClose: () => void
+  onSaved: AfterSave
+}) {
+  const [name, setName] = useState(talhao.name)
+  const [identifier, setIdentifier] = useState(talhao.identifier || "")
+  const [target, setTarget] = useState(talhao.targetHectares != null ? String(talhao.targetHectares) : "")
+
+  async function confirm() {
+    if (!name.trim()) {
+      alert("Dê um nome ao talhão.")
+      return
+    }
+    const t = parseFloat(target)
+    const p = { ...project }
+    p.talhoes = (p.talhoes || []).map((x) =>
+      x.id === talhao.id
+        ? { ...x, name: name.trim(), identifier: identifier.trim(), targetHectares: isNaN(t) ? null : t }
+        : x
+    )
+    await saveProject(p)
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <ModalSheet title="Editar talhão" onClose={onClose}>
+      <Field label="Nome (matrícula)">
+        <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Floresta" autoFocus />
+      </Field>
+      <Field label="Identificador (opcional)">
+        <TextInput value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Ex: Estrada, Centro, Matrícula 04" />
+      </Field>
+      <Field label="Tamanho previsto (hectares)">
+        <TextInput value={target} onChange={(e) => setTarget(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 1000" />
+      </Field>
+      <PrimaryButton className="w-full" onClick={confirm}>
+        Salvar alterações
+      </PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>
+        Cancelar
+      </GhostButton>
+    </ModalSheet>
+  )
+}
+
 // ---- Parte voada ----
 export function ParteModal({
   project,
@@ -74,6 +128,11 @@ export function ParteModal({
   const [date, setDate] = useState(todayISO())
   const [note, setNote] = useState("")
 
+  const talhao = (project.talhoes || []).find((t) => t.id === talhaoId)
+  const target = Number(talhao?.targetHectares || 0)
+  const alreadyFlown = talhaoFlown(project, talhaoId)
+  const remaining = target > 0 ? Math.max(0, target - alreadyFlown) : null
+
   async function confirm() {
     const h = parseFloat(ha)
     if (!h || h <= 0) {
@@ -89,8 +148,40 @@ export function ParteModal({
 
   return (
     <ModalSheet title="Adicionar parte voada" onClose={onClose}>
-      <Field label="Hectares">
-        <TextInput value={ha} onChange={(e) => setHa(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 252.0" autoFocus />
+      {/* Resumo do talhão */}
+      {talhao && (
+        <div className="mb-4 rounded-2xl bg-secondary/50 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Talhão: {talhao.name}{talhao.identifier ? ` · ${talhao.identifier}` : ""}
+          </p>
+          {target > 0 ? (
+            <div className="mt-1.5 flex items-baseline gap-3">
+              <span className="text-[13px] text-muted-foreground">
+                Já voados: <span className="font-bold text-foreground">{fmtHa(alreadyFlown)} ha</span>
+              </span>
+              <span className="text-[13px] text-muted-foreground">
+                Restam: <span className={`font-bold ${remaining === 0 ? "text-primary" : "text-foreground"}`}>
+                  {remaining === 0 ? "completo ✓" : `${fmtHa(remaining!)} ha`}
+                </span>
+              </span>
+            </div>
+          ) : (
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Voados até agora: <span className="font-bold text-foreground">{fmtHa(alreadyFlown)} ha</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      <Field label={remaining != null ? `Hectares (máx. sugerido: ${fmtHa(remaining)} ha)` : "Hectares"}>
+        <TextInput
+          value={ha}
+          onChange={(e) => setHa(e.target.value)}
+          type="number"
+          inputMode="decimal"
+          placeholder={remaining != null ? `Ex: ${fmtHa(remaining)}` : "Ex: 252.0"}
+          autoFocus
+        />
       </Field>
       <Field label="Data">
         <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
@@ -100,6 +191,76 @@ export function ParteModal({
       </Field>
       <PrimaryButton className="w-full" onClick={confirm}>
         Salvar parte
+      </PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>
+        Cancelar
+      </GhostButton>
+    </ModalSheet>
+  )
+}
+
+// ---- Editar parte voada ----
+export function EditParteModal({
+  project,
+  area,
+  onClose,
+  onSaved,
+}: {
+  project: Project
+  area: Area
+  onClose: () => void
+  onSaved: AfterSave
+}) {
+  const [ha, setHa] = useState(String(area.hectares))
+  const [date, setDate] = useState(area.date || todayISO())
+  const [note, setNote] = useState(area.note || "")
+
+  const talhao = (project.talhoes || []).find((t) => t.id === area.talhaoId)
+  const target = Number(talhao?.targetHectares || 0)
+  const alreadyFlown = talhaoFlown(project, area.talhaoId) - area.hectares // sem contar esta parte
+  const remaining = target > 0 ? Math.max(0, target - alreadyFlown) : null
+
+  async function confirm() {
+    const h = parseFloat(ha)
+    if (!h || h <= 0) {
+      alert("Informe os hectares dessa parte.")
+      return
+    }
+    const p = { ...project }
+    p.areas = (p.areas || []).map((a) =>
+      a.id === area.id ? { ...a, hectares: h, date: date || todayISO(), note: note.trim() } : a
+    )
+    await saveProject(p)
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <ModalSheet title="Editar parte voada" onClose={onClose}>
+      {talhao && (
+        <div className="mb-4 rounded-2xl bg-secondary/50 px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Talhão: {talhao.name}{talhao.identifier ? ` · ${talhao.identifier}` : ""}
+          </p>
+          {target > 0 && (
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Disponível (sem esta parte): <span className="font-bold text-foreground">{fmtHa(remaining!)} ha</span>
+            </p>
+          )}
+        </div>
+      )}
+
+      <Field label={remaining != null ? `Hectares (máx. sugerido: ${fmtHa(remaining!)} ha)` : "Hectares"}>
+        <TextInput value={ha} onChange={(e) => setHa(e.target.value)} type="number" inputMode="decimal" autoFocus />
+      </Field>
+      <Field label="Data">
+        <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
+      </Field>
+      <Field label="Observação (opcional)">
+        <TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex: lado esquerdo, manhã" />
+      </Field>
+      <PrimaryButton className="w-full" onClick={confirm}>
+        Salvar alterações
       </PrimaryButton>
       <GhostButton className="mt-1.5 w-full" onClick={onClose}>
         Cancelar
@@ -171,9 +332,7 @@ export function ExpenseModal({
       <Field label="Categoria">
         <Select value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+            <option key={c} value={c}>{c}</option>
           ))}
         </Select>
       </Field>
@@ -185,13 +344,9 @@ export function ExpenseModal({
       {isFuel && (
         <Field label="Veículo / equipamento">
           <Select value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
-            <option value="" disabled>
-              Selecionar veículo…
-            </option>
+            <option value="" disabled>Selecionar veículo…</option>
             {vehicles.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
+              <option key={v} value={v}>{v}</option>
             ))}
             <option value="__new__">+ Novo veículo…</option>
           </Select>
@@ -199,7 +354,7 @@ export function ExpenseModal({
       )}
       {isFuel && vehicle === "__new__" && (
         <Field label="Nome do novo veículo">
-          <TextInput value={newVehicle} onChange={(e) => setNewVehicle(e.target.value)} placeholder="Ex: Caminhonete" />
+          <TextInput value={newVehicle} onChange={(e) => setNewVehicle(e.target.value)} placeholder="Ex: L200, Caminhonete" />
         </Field>
       )}
       <Field label="Descrição">
@@ -211,12 +366,8 @@ export function ExpenseModal({
       <Field label="Data">
         <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
       </Field>
-      <PrimaryButton className="w-full" onClick={confirm}>
-        Salvar gasto
-      </PrimaryButton>
-      <GhostButton className="mt-1.5 w-full" onClick={onClose}>
-        Cancelar
-      </GhostButton>
+      <PrimaryButton className="w-full" onClick={confirm}>Salvar gasto</PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
     </ModalSheet>
   )
 }
@@ -248,9 +399,7 @@ export function ServiceModal({ project, onClose, onSaved }: { project: Project; 
         <Field label="Tipo de serviço">
           <Select value={selected} onChange={(e) => setSelected(e.target.value)}>
             {available.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
+              <option key={s} value={s}>{s}</option>
             ))}
             <option value="__custom__">Outro (digitar)</option>
           </Select>
@@ -263,12 +412,8 @@ export function ServiceModal({ project, onClose, onSaved }: { project: Project; 
           <TextInput value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Ex: Mapa de solo" />
         </Field>
       )}
-      <PrimaryButton className="w-full" onClick={confirm}>
-        Adicionar
-      </PrimaryButton>
-      <GhostButton className="mt-1.5 w-full" onClick={onClose}>
-        Cancelar
-      </GhostButton>
+      <PrimaryButton className="w-full" onClick={confirm}>Adicionar</PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
     </ModalSheet>
   )
 }
@@ -328,7 +473,6 @@ export function ServicePricingModal({
           <option value="fixo">Valor fixo (pacote)</option>
         </Select>
       </Field>
-
       {type === "hectare" && (
         <>
           <Field label="Valor por hectare (R$)">
@@ -346,7 +490,6 @@ export function ServicePricingModal({
           )}
         </>
       )}
-
       {type === "metro" && (
         <>
           <Field label="Valor por metro (R$)">
@@ -357,19 +500,13 @@ export function ServicePricingModal({
           </Field>
         </>
       )}
-
       {type === "fixo" && (
         <Field label="Valor total do pacote (R$)">
           <TextInput value={rateFixo} onChange={(e) => setRateFixo(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 12000" />
         </Field>
       )}
-
-      <PrimaryButton className="w-full" onClick={confirm}>
-        Salvar
-      </PrimaryButton>
-      <GhostButton className="mt-1.5 w-full" onClick={onClose}>
-        Cancelar
-      </GhostButton>
+      <PrimaryButton className="w-full" onClick={confirm}>Salvar</PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
     </ModalSheet>
   )
 }
