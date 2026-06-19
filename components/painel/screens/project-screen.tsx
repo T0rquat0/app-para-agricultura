@@ -38,15 +38,17 @@ export function ProjectScreen() {
     <div className="flex flex-1 flex-col">
       <TopBar title={project.clientName} subtitle={project.fazenda || undefined} onBack={goHome} />
 
-      <div className="flex-1 px-4 pb-10 pt-4">
+      <div className="flex-1 px-4 pb-10 pt-5">
         {/* Seletor de abas */}
-        <div className="mb-5 flex gap-1 rounded-xl bg-muted p-1">
+        <div className="mb-5 flex gap-1 rounded-2xl bg-muted p-1 ring-1 ring-border/60">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex-1 rounded-lg py-2 text-[12.5px] font-bold transition-colors ${
-                activeTab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              className={`flex-1 rounded-xl py-2 text-[12.5px] font-bold transition-all ${
+                activeTab === t.key
+                  ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {t.label}

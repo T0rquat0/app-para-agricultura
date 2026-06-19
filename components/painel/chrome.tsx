@@ -19,7 +19,7 @@ export function TopBar({
 }) {
   const { dark, toggleDark } = useNav()
   return (
-    <header className="bg-topo px-5 pb-5 pt-safe text-white">
+    <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-5 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
       <div className="flex items-center gap-3">
         {onBack && (
           <button

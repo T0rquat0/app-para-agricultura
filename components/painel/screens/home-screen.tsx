@@ -47,7 +47,7 @@ export function HomeScreen() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero */}
-      <header className="bg-topo px-5 pb-7 pt-safe text-white">
+      <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-7 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
         <div className="mb-5 flex items-start justify-between">
           <Logo size={44} />
           <button
