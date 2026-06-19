@@ -42,8 +42,12 @@ export function ReportShell({
       <div className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
         <div
           ref={paperRef}
-          className="relative mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 text-[#1a1a1a] shadow-sm ring-1 ring-black/5"
-          style={{ colorScheme: "light" }}
+          className="relative mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 text-[#1a1a1a]"
+          style={{
+            colorScheme: "light",
+            // Sombra/borda em rgba (sem oklab) para nao quebrar a exportacao em PDF (html2canvas)
+            boxShadow: "0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.06)",
+          }}
         >
           {/* Marca d'agua: simbolo AGS GEO (transparente) bem tenue */}
           <img
