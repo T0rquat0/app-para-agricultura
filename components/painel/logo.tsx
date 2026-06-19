@@ -1,7 +1,8 @@
 import Image from "next/image"
 
-// Marca da AGS. Usa o simbolo (engrenagem + trator) recortado da logo real
-// dentro de um badge claro para garantir contraste sobre o verde da marca.
+// Marca da nova area: AGS GEO — Levantamento e Geoprocessamento.
+// Mantem a familia visual da AGS (engrenagem verde + dourado), trocando o
+// trator por um drone/varredura topografica para identificar a frente de tecnologia.
 export function Logo({
   size = 40,
   showText = true,
@@ -20,8 +21,8 @@ export function Logo({
         style={{ width: size, height: size }}
       >
         <Image
-          src="/ags-mark.png"
-          alt="Símbolo da AGS Soluções Agrícolas"
+          src="/ags-geo-mark-trim.png"
+          alt="Símbolo da AGS GEO"
           width={size}
           height={size}
           className="h-full w-full object-contain p-1.5"
@@ -30,9 +31,11 @@ export function Logo({
       </span>
       {showText && (
         <span className="leading-none">
-          <span className={`block text-lg font-extrabold tracking-tight ${titleColor}`}>AGS</span>
-          <span className={`block text-[10.5px] font-semibold uppercase tracking-[0.14em] ${subColor}`}>
-            Soluções Agrícolas
+          <span className={`block text-lg font-extrabold tracking-tight ${titleColor}`}>
+            AGS <span className="text-gold">GEO</span>
+          </span>
+          <span className={`mt-1 block text-[9.5px] font-semibold uppercase tracking-[0.14em] ${subColor}`}>
+            Levantamento e Geoprocessamento
           </span>
         </span>
       )}
@@ -40,16 +43,41 @@ export function Logo({
   )
 }
 
-// Logo completa (simbolo + lettering) em cores originais, para fundos claros.
-export function LogoFull({ width = 160, className }: { width?: number; className?: string }) {
+// Lockup completo (simbolo grande + lettering empilhado), para splash e telas amplas.
+export function LogoFull({
+  size = 96,
+  variant = "light",
+  className,
+}: {
+  size?: number
+  variant?: "light" | "dark"
+  className?: string
+}) {
+  const titleColor = variant === "light" ? "text-white" : "text-brand-dark"
+  const subColor = variant === "light" ? "text-white/75" : "text-muted-foreground"
   return (
-    <Image
-      src="/ags-logo-full.png"
-      alt="AGS Soluções Agrícolas LTDA"
-      width={width}
-      height={Math.round((width * 978) / 1130)}
-      className={className}
-      priority
-    />
+    <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
+      <span
+        className="flex items-center justify-center overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-black/10"
+        style={{ width: size, height: size }}
+      >
+        <Image
+          src="/ags-geo-mark-trim.png"
+          alt="AGS GEO"
+          width={size}
+          height={size}
+          className="h-full w-full object-contain p-2.5"
+          priority
+        />
+      </span>
+      <span className="text-center leading-none">
+        <span className={`block text-2xl font-extrabold tracking-tight ${titleColor}`}>
+          AGS <span className="text-gold">GEO</span>
+        </span>
+        <span className={`mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] ${subColor}`}>
+          Levantamento e Geoprocessamento
+        </span>
+      </span>
+    </div>
   )
 }

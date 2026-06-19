@@ -17,16 +17,16 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'AGS · Painel de Levantamentos',
+  title: 'AGS GEO · Levantamento e Geoprocessamento',
   description:
-    'Painel de levantamentos topográficos com drone da AGS Soluções Agrícolas — gestão de projetos, talhões, serviços, gastos e visão financeira.',
+    'AGS GEO — divisão de levantamento e geoprocessamento com drone da AGS Soluções Agrícolas. Gestão de projetos, talhões, serviços, gastos e visão financeira.',
   generator: 'v0.app',
-  applicationName: 'AGS Levantamentos',
+  applicationName: 'AGS GEO',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'AGS Levantamentos',
+    title: 'AGS GEO',
   },
   icons: {
     icon: [

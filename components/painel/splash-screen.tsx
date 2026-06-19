@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { LogoFull } from "./logo"
+import Image from "next/image"
 
 // Tela de abertura: identidade AGS com varredura de drone / radar topografico.
 // Aparece no "cold start" do app, faz fade e some.
@@ -23,7 +23,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         leaving ? "ags-splash-out" : ""
       }`}
       role="status"
-      aria-label="Carregando AGS Soluções Agrícolas"
+      aria-label="Carregando AGS GEO"
     >
       {/* brilho radial suave */}
       <div
@@ -55,17 +55,26 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           }}
         />
 
-        {/* cartao branco com a logo real */}
+        {/* cartao branco com o simbolo AGS GEO */}
         <div className="ags-rise relative flex h-32 w-32 items-center justify-center rounded-3xl bg-white shadow-2xl ring-1 ring-black/10">
-          <LogoFull width={104} className="h-auto w-[104px]" />
+          <Image
+            src="/ags-geo-mark-trim.png"
+            alt="AGS GEO"
+            width={104}
+            height={104}
+            className="h-auto w-[100px]"
+            priority
+          />
         </div>
       </div>
 
       {/* Wordmark */}
       <div className="ags-rise mt-7 text-center" style={{ animationDelay: "0.15s" }}>
-        <div className="text-2xl font-extrabold tracking-tight text-white">AGS Soluções Agrícolas</div>
-        <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-[#E4D6A7]">
-          Geoprocessamento com Drone
+        <div className="text-3xl font-extrabold tracking-tight text-white">
+          AGS <span className="text-[#E3B53D]">GEO</span>
+        </div>
+        <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#E4D6A7]">
+          Levantamento e Geoprocessamento
         </div>
       </div>
 

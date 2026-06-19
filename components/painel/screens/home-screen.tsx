@@ -59,7 +59,7 @@ export function HomeScreen() {
           </button>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-          Painel de Levantamentos
+          Painel de Geoprocessamento
         </p>
         <h1 className="mt-1 mb-5 text-[22px] font-extrabold tracking-tight">Visão geral da operação</h1>
         <div className="grid grid-cols-3 gap-2.5">

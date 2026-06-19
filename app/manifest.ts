@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AGS · Painel de Levantamentos",
-    short_name: "AGS Levantamentos",
+    name: "AGS GEO · Levantamento e Geoprocessamento",
+    short_name: "AGS GEO",
     description:
-      "Painel de levantamentos topográficos com drone da AGS Soluções Agrícolas — projetos, talhões, serviços, gastos e visão financeira.",
+      "AGS GEO — divisão de levantamento e geoprocessamento com drone da AGS Soluções Agrícolas. Projetos, talhões, serviços, gastos e visão financeira.",
     start_url: "/",
     scope: "/",
     display: "standalone",

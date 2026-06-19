@@ -91,7 +91,7 @@ export function ReportClientScreen() {
       </ReportSection>
 
       <p className="mt-6 text-center text-[10px] leading-relaxed text-[#9ca3af]">
-        Documento gerado pelo Painel de Levantamentos AGS Soluções Agrícolas.
+        Documento gerado por AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA.
         <br />
         Valores sujeitos a confirmação contratual.
       </p>

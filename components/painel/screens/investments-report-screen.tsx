@@ -55,7 +55,7 @@ export function InvestmentsReportScreen() {
       </ReportSection>
 
       <p className="mt-6 text-center text-[10px] leading-relaxed text-[#9ca3af]">
-        Documento interno — Painel de Levantamentos AGS Soluções Agrícolas.
+        Documento interno — AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA.
       </p>
     </ReportShell>
   )

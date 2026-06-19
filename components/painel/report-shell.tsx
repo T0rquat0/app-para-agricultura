@@ -45,9 +45,9 @@ export function ReportShell({
           className="relative mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 text-[#1a1a1a] shadow-sm ring-1 ring-black/5"
           style={{ colorScheme: "light" }}
         >
-          {/* Marca d'agua (fundo branco do logo some sobre o papel branco) */}
+          {/* Marca d'agua: simbolo AGS GEO (transparente) bem tenue */}
           <img
-            src="/ags-mark.png"
+            src="/ags-geo-mark-trim.png"
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute -right-10 bottom-8 w-72 select-none opacity-[0.06]"
@@ -76,15 +76,15 @@ export function ReportHeader({ heading, meta }: { heading: string; meta?: string
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <img
-            src="/ags-mark.png"
-            alt="AGS"
-            className="h-10 w-10 shrink-0 rounded-lg object-contain ring-1 ring-black/5"
+            src="/ags-geo-mark-trim.png"
+            alt="AGS GEO"
+            className="h-11 w-11 shrink-0 object-contain"
           />
           <div>
-            <div className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#1A4228]">
-              AGS Soluções Agrícolas
+            <div className="text-[13px] font-extrabold uppercase tracking-[0.16em] text-[#1A4228]">
+              AGS <span className="text-[#C99700]">GEO</span>
             </div>
-            <div className="text-[10px] font-medium text-[#6b7280]">Geoprocessamento com Drone</div>
+            <div className="text-[10px] font-medium text-[#6b7280]">Levantamento e Geoprocessamento</div>
           </div>
         </div>
         <div className="text-right text-[10px] text-[#6b7280]">

@@ -35,6 +35,7 @@
   --color-green-pale: var(--green-pale);
   --color-green-light: var(--green-light);
   --color-amber-status: var(--amber-status);
+  --color-gold: var(--gold);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -74,6 +75,7 @@
   --green-pale: #f2f8f4;
   --green-light: #eaf3ed;
   --amber-status: #7a4d0f;
+  --gold: #d4a017;
 }
 
 .dark {
@@ -105,6 +107,7 @@
   --green-pale: #152119;
   --green-light: #1e3328;
   --amber-status: #c08a3a;
+  --gold: #e3b53d;
 }
 
 @layer base {
