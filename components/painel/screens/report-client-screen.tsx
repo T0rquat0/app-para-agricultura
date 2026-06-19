@@ -13,7 +13,7 @@ import {
   talhaoBadge,
   ungroupedAreas,
 } from "@/lib/calculations"
-import { ReportShell, ReportHeader, ReportRow, ReportSection } from "../report-shell"
+import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
 
 export function ReportClientScreen() {
   const { currentProjectId, goReport } = useNav()
@@ -40,8 +40,10 @@ export function ReportClientScreen() {
       subtitle={project.clientName}
       filename={`relatorio_${slug(project.clientName)}`}
       onBack={() => goReport("project")}
+      footerNote="Valores sujeitos a confirmação contratual."
     >
       <ReportHeader
+        docType="Relatório do Cliente"
         heading={project.clientName}
         meta={project.fazenda ? `${project.fazenda} · ${fmtHa(total)} ha contratados` : `${fmtHa(total)} ha contratados`}
       />
@@ -87,14 +89,8 @@ export function ReportClientScreen() {
       </ReportSection>
 
       <ReportSection title="Resumo financeiro">
-        <ReportRow label="Valor total dos serviços" value={fmtMoney(revenue)} strong accent />
+        <ReportTotal label="Valor total dos serviços" value={fmtMoney(revenue)} />
       </ReportSection>
-
-      <p className="mt-6 text-center text-[10px] leading-relaxed text-[#9ca3af]">
-        Documento gerado por AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA.
-        <br />
-        Valores sujeitos a confirmação contratual.
-      </p>
     </ReportShell>
   )
 }

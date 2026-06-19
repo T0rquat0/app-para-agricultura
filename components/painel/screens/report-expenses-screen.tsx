@@ -4,7 +4,7 @@ import { useNav } from "../nav-context"
 import { useProject } from "@/lib/hooks"
 import { fmtDate, fmtMoney, slug } from "@/lib/format"
 import { projectRevenue, totalExpenses } from "@/lib/calculations"
-import { ReportShell, ReportHeader, ReportRow, ReportSection } from "../report-shell"
+import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
 
 export function ReportExpensesScreen() {
   const { currentProjectId, goReport } = useNav()
@@ -35,8 +35,13 @@ export function ReportExpensesScreen() {
       subtitle={project.clientName}
       filename={`gastos_${slug(project.clientName)}`}
       onBack={() => goReport("project")}
+      footerNote="Documento interno — uso gerencial."
     >
-      <ReportHeader heading="Relatório de Gastos" meta={`${project.clientName}${project.fazenda ? ` · ${project.fazenda}` : ""}`} />
+      <ReportHeader
+        docType="Relatório de Gastos"
+        heading={project.clientName}
+        meta={project.fazenda || "Custos do projeto"}
+      />
 
       <ReportSection title="Resumo">
         <ReportRow label="Faturamento previsto" value={fmtMoney(revenue)} />
