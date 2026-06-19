@@ -42,10 +42,17 @@ export function ReportShell({
       <div className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
         <div
           ref={paperRef}
-          className="mx-auto w-full max-w-[440px] rounded-2xl bg-white p-6 text-[#1a1a1a] shadow-sm ring-1 ring-black/5"
+          className="relative mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl bg-white p-6 text-[#1a1a1a] shadow-sm ring-1 ring-black/5"
           style={{ colorScheme: "light" }}
         >
-          {children}
+          {/* Marca d'agua (fundo branco do logo some sobre o papel branco) */}
+          <img
+            src="/ags-mark.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-10 bottom-8 w-72 select-none opacity-[0.06]"
+          />
+          <div className="relative">{children}</div>
         </div>
       </div>
       <div className="sticky bottom-0 border-t border-border bg-card/95 px-5 py-4 backdrop-blur">
@@ -66,12 +73,19 @@ export function ReportShell({
 export function ReportHeader({ heading, meta }: { heading: string; meta?: string }) {
   return (
     <div className="mb-5 border-b-2 border-[#1A4228] pb-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#1A4228]">
-            AGS Soluções Agrícolas
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/ags-mark.png"
+            alt="AGS"
+            className="h-10 w-10 shrink-0 rounded-lg object-contain ring-1 ring-black/5"
+          />
+          <div>
+            <div className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#1A4228]">
+              AGS Soluções Agrícolas
+            </div>
+            <div className="text-[10px] font-medium text-[#6b7280]">Geoprocessamento com Drone</div>
           </div>
-          <div className="text-[10px] font-medium text-[#6b7280]">Geoprocessamento com Drone</div>
         </div>
         <div className="text-right text-[10px] text-[#6b7280]">
           {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}

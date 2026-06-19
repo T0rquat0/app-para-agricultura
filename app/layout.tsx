@@ -29,8 +29,11 @@ export const metadata: Metadata = {
     title: 'AGS Levantamentos',
   },
   icons: {
-    icon: '/icon-512.png',
-    apple: '/icon-512.png',
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/apple-icon.png',
   },
   formatDetection: {
     telephone: false,
@@ -56,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} ${plexMono.variable}`}>
+    <html lang="pt-BR" className={`${manrope.variable} ${plexMono.variable} bg-background`}>
       <body className="bg-background font-sans antialiased">
         {children}
         <ServiceWorkerRegister />

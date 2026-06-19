@@ -1,5 +1,7 @@
 import Image from "next/image"
 
+// Marca da AGS. Usa o simbolo (engrenagem + trator) recortado da logo real
+// dentro de um badge claro para garantir contraste sobre o verde da marca.
 export function Logo({
   size = 40,
   showText = true,
@@ -9,28 +11,45 @@ export function Logo({
   showText?: boolean
   variant?: "light" | "dark"
 }) {
-  const textColor = variant === "light" ? "text-white" : "text-brand-dark"
+  const titleColor = variant === "light" ? "text-white" : "text-brand-dark"
+  const subColor = variant === "light" ? "text-white/70" : "text-muted-foreground"
   return (
     <div className="flex items-center gap-3">
       <span
-        className="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/95 shadow-sm ring-1 ring-black/5"
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/10"
         style={{ width: size, height: size }}
       >
         <Image
-          src="/ags-logo.png"
-          alt="Logotipo da AGS Soluções Agrícolas"
+          src="/ags-mark.png"
+          alt="Símbolo da AGS Soluções Agrícolas"
           width={size}
           height={size}
-          className="h-full w-full object-contain p-1"
+          className="h-full w-full object-contain p-1.5"
           priority
         />
       </span>
       {showText && (
-        <span className={`leading-none ${textColor}`}>
-          <span className="block text-lg font-extrabold tracking-tight">AGS</span>
-          <span className="block text-[11px] font-semibold opacity-70">Soluções Agrícolas</span>
+        <span className="leading-none">
+          <span className={`block text-lg font-extrabold tracking-tight ${titleColor}`}>AGS</span>
+          <span className={`block text-[10.5px] font-semibold uppercase tracking-[0.14em] ${subColor}`}>
+            Soluções Agrícolas
+          </span>
         </span>
       )}
     </div>
+  )
+}
+
+// Logo completa (simbolo + lettering) em cores originais, para fundos claros.
+export function LogoFull({ width = 160, className }: { width?: number; className?: string }) {
+  return (
+    <Image
+      src="/ags-logo-full.png"
+      alt="AGS Soluções Agrícolas LTDA"
+      width={width}
+      height={Math.round((width * 978) / 1130)}
+      className={className}
+      priority
+    />
   )
 }

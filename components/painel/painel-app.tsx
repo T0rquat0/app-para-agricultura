@@ -9,12 +9,34 @@ import { ReportClientScreen } from "./screens/report-client-screen"
 import { ReportExpensesScreen } from "./screens/report-expenses-screen"
 import { InvestmentsScreen } from "./screens/investments-screen"
 import { InvestmentsReportScreen } from "./screens/investments-report-screen"
+import { SplashScreen } from "./splash-screen"
 
 export function PainelApp() {
   const [screen, setScreen] = useState<Screen>("home")
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>("areas")
   const [dark, setDark] = useState(false)
+  const [showSplash, setShowSplash] = useState(false)
+
+  // Splash apenas no "cold start" (uma vez por sessao), para nao atrapalhar a navegacao
+  useEffect(() => {
+    try {
+      if (!window.sessionStorage.getItem("ags-splash-shown")) {
+        setShowSplash(true)
+      }
+    } catch {
+      setShowSplash(true)
+    }
+  }, [])
+
+  const dismissSplash = useCallback(() => {
+    setShowSplash(false)
+    try {
+      window.sessionStorage.setItem("ags-splash-shown", "1")
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   // Tema (preferencia do sistema na primeira carga)
   useEffect(() => {
@@ -67,6 +89,7 @@ export function PainelApp() {
         toggleDark,
       }}
     >
+      {showSplash && <SplashScreen onDone={dismissSplash} />}
       <div className="min-h-dvh w-full bg-background lg:bg-muted">
         <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background pb-safe shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
           {screen === "home" && <HomeScreen />}

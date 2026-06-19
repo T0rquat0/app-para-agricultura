@@ -149,3 +149,69 @@
     display: none;
   }
 }
+
+/* ---- Splash / abertura estilo varredura de drone ---- */
+@keyframes ags-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ags-ping-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes ags-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ags-fade-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes ags-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ags-sweep {
+  animation: ags-sweep 2.4s linear infinite;
+}
+.ags-ring {
+  animation: ags-ping-ring 1.8s ease-out infinite;
+}
+.ags-rise {
+  animation: ags-rise 0.7s ease-out both;
+}
+.ags-splash-out {
+  animation: ags-fade-out 0.5s ease-in forwards;
+}
+.ags-bar {
+  animation: ags-bar 1.3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ags-sweep,
+  .ags-ring,
+  .ags-rise,
+  .ags-bar {
+    animation: none;
+  }
+}
