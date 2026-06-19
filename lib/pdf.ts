@@ -30,7 +30,19 @@ function sanitizeColors(root: HTMLElement) {
 
     // Fundos translucidos definidos via color-mix.
     if (OKLAB_RE.test(cs.backgroundColor)) el.style.backgroundColor = "transparent"
+
+    // Cor do texto em oklab: mapeia pela luminosidade (claro -> branco, escuro -> cinza).
+    if (OKLAB_RE.test(cs.color)) {
+      el.style.color = isLightOk(cs.color) ? "#ffffff" : "#1f2937"
+    }
   }
+}
+
+// Extrai a luminosidade (primeiro valor de oklab/oklch) para decidir branco x escuro.
+function isLightOk(value: string): boolean {
+  const m = value.match(/okl(?:ab|ch)\(\s*([0-9.]+)/i)
+  const l = m ? Number.parseFloat(m[1]) : 1
+  return l >= 0.6
 }
 
 export async function exportElementToPdf(el: HTMLElement, filename: string) {

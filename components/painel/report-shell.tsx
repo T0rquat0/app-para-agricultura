@@ -116,7 +116,9 @@ export function ReportHeader({
             <div className="text-[16px] font-extrabold leading-none tracking-wide">
               AGS <span style={{ color: "#E3B53D" }}>GEO</span>
             </div>
-            <div className="mt-1 text-[10px] font-medium text-white/75">Levantamento e Geoprocessamento</div>
+            <div className="mt-1 text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.78)" }}>
+              Levantamento e Geoprocessamento
+            </div>
           </div>
         </div>
         <div className="text-right">
@@ -128,7 +130,9 @@ export function ReportHeader({
               {docType}
             </div>
           )}
-          <div className="text-[9.5px] text-white/80">{date}</div>
+          <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.82)" }}>
+            {date}
+          </div>
         </div>
       </div>
       {/* Titulo do relatorio */}

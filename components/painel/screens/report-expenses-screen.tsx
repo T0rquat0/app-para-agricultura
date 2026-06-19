@@ -82,12 +82,8 @@ export function ReportExpensesScreen() {
       </ReportSection>
 
       <ReportSection title="Total">
-        <ReportRow label="Total de gastos" value={fmtMoney(opex)} strong accent />
+        <ReportTotal label="Total de gastos" value={fmtMoney(opex)} />
       </ReportSection>
-
-      <p className="mt-6 text-center text-[10px] leading-relaxed text-[#9ca3af]">
-        Documento interno — AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA.
-      </p>
     </ReportShell>
   )
 }

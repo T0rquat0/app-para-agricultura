@@ -4,7 +4,7 @@ import { useNav } from "../nav-context"
 import { useFinancialOverview, useInvestments } from "@/lib/hooks"
 import { totalInvested } from "@/lib/storage"
 import { fmtDate, fmtMoney } from "@/lib/format"
-import { ReportShell, ReportHeader, ReportRow, ReportSection } from "../report-shell"
+import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
 
 export function InvestmentsReportScreen() {
   const { goInvestments } = useNav()
@@ -20,8 +20,18 @@ export function InvestmentsReportScreen() {
   const sorted = investments.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
 
   return (
-    <ReportShell title="Relatório financeiro" subtitle="Divisão de levantamento" filename="relatorio_financeiro_ags" onBack={goInvestments}>
-      <ReportHeader heading="Relatório Financeiro" meta="Divisão de Geoprocessamento com Drone" />
+    <ReportShell
+      title="Relatório financeiro"
+      subtitle="Divisão de levantamento"
+      filename="relatorio_financeiro_ags"
+      onBack={goInvestments}
+      footerNote="Documento interno — uso gerencial."
+    >
+      <ReportHeader
+        docType="Relatório Financeiro"
+        heading="Visão Consolidada"
+        meta="Divisão de Geoprocessamento com Drone"
+      />
 
       <ReportSection title="Visão geral">
         <ReportRow label="Projetos ativos" value={String(projectCount)} />
@@ -51,12 +61,8 @@ export function InvestmentsReportScreen() {
       </ReportSection>
 
       <ReportSection title="Total investido">
-        <ReportRow label="Soma dos aportes" value={fmtMoney(invested)} strong accent />
+        <ReportTotal label="Soma dos aportes" value={fmtMoney(invested)} />
       </ReportSection>
-
-      <p className="mt-6 text-center text-[10px] leading-relaxed text-[#9ca3af]">
-        Documento interno — AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA.
-      </p>
     </ReportShell>
   )
 }
