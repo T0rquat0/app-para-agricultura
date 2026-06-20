@@ -27,39 +27,32 @@ function isLightOk(value: string): boolean {
   return l >= 0.6
 }
 
-async function downloadBlob(blob: Blob, filename: string): Promise<void> {
-  const url = URL.createObjectURL(blob)
-  try {
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.style.display = "none"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    await new Promise((r) => setTimeout(r, 1500))
-  } finally {
-    URL.revokeObjectURL(url)
-  }
+// Cria um link de download invisível e clica nele — funciona na maioria dos browsers
+function triggerDownload(url: string, filename: string) {
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.style.display = "none"
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
-export async function exportElementToPdf(el: HTMLElement, filename: string) {
+export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
   const mod = await import("html2pdf.js")
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
 
-  // Usa a largura e altura REAIS do elemento para nao cortar nada
   const elW = el.offsetWidth || 760
   const elH = Math.max(el.scrollHeight, el.offsetHeight) || 1075
 
-  // Converte px -> mm (96dpi: 1px = 0.2646mm)
   const PX_TO_MM = 0.2646
-  const pageW = Math.ceil(elW * PX_TO_MM) + 2   // +2mm folga lateral
-  const pageH = Math.ceil(elH * PX_TO_MM) + 4   // +4mm folga vertical
+  const pageW = Math.ceil(elW * PX_TO_MM) + 4
+  const pageH = Math.ceil(elH * PX_TO_MM) + 8
 
   const opts = {
-    margin: [2, 1, 2, 1],
+    margin: [4, 2, 4, 2],
     filename: fname,
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: {
@@ -67,27 +60,45 @@ export async function exportElementToPdf(el: HTMLElement, filename: string) {
       useCORS: true,
       backgroundColor: "#ffffff",
       width: elW,
-      height: elH,
       windowWidth: elW,
+      height: elH,
       windowHeight: elH,
       onclone: (_doc: Document, element?: HTMLElement) => {
         try { sanitizeColors(element ?? _doc.body) } catch { /* nunca bloquear */ }
       },
     },
-    // Pagina do tamanho exato do conteudo — sem cortes
     jsPDF: { unit: "mm", format: [pageW, pageH], orientation: "portrait" },
     pagebreak: { mode: ["avoid-all", "css"] },
   }
 
-  // Gera blob do PDF
+  // Gera o blob
   const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
+  const url = URL.createObjectURL(blob)
 
-  // Tenta download direto (funciona no Android e iOS 16+)
   try {
-    await downloadBlob(blob, fname)
-  } catch {
-    // Fallback para iOS antigo: abre em nova aba para salvar via Share Sheet
-    const url = URL.createObjectURL(blob)
-    window.open(url, "_blank")
+    // Tenta download direto via <a download> — funciona no Android e browsers modernos
+    triggerDownload(url, fname)
+
+    // No iOS Safari, o <a download> não funciona para blob URLs
+    // Detectamos se o download não iniciou e abrimos na aba atual como fallback
+    await new Promise<void>((resolve) => {
+      // Dá 800ms para o download iniciar; se não iniciar (iOS), navega para o blob
+      const timer = setTimeout(() => {
+        // Fallback iOS: navega na aba atual para o blob (usuário usa Share Sheet para salvar)
+        window.location.href = url
+        resolve()
+      }, 800)
+
+      // Se o documento perder foco, o download iniciou — cancela o fallback
+      const onBlur = () => {
+        clearTimeout(timer)
+        window.removeEventListener("blur", onBlur)
+        resolve()
+      }
+      window.addEventListener("blur", onBlur)
+    })
+  } finally {
+    // Revoga após 10s para dar tempo de download
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
   }
 }
