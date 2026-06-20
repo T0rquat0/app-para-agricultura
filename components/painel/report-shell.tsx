@@ -49,32 +49,13 @@ export function ReportShell({
 
   // Mede a altura real da folha para reservar o espaco certo apos a escala.
   useEffect(() => {
-    if (paperRef.current) setPaperH(paperRef.current.offsetHeight)
+    if (paperRef.current) setPaperH(Math.max(paperRef.current.offsetHeight, paperRef.current.scrollHeight))
   })
 
   async function handleDownload() {
     const paper = paperRef.current
     if (!paper) return
     setBusy(true)
-
-    // Mostra overlay de loading ANTES de mexer no layout
-    // para o usuario nao ver a tela distorcida durante a captura
-    const overlay = document.createElement("div")
-    overlay.style.cssText = [
-      "position:fixed","inset:0","z-index:99999",
-      "background:rgba(0,0,0,0.85)",
-      "display:flex","align-items:center","justify-content:center",
-      "flex-direction:column","gap:12px",
-    ].join(";")
-    overlay.innerHTML = `
-      <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
-      <p style="color:#fff;font-family:sans-serif;font-size:14px;font-weight:600">Gerando PDF…</p>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-    `
-    document.body.appendChild(overlay)
-
-    // Aguarda o overlay aparecer antes de distorcer o layout
-    await new Promise<void>((r) => setTimeout(r, 80))
 
     const prevTransform = paper.style.transform
     const prevBodyMinWidth = document.body.style.minWidth
@@ -99,10 +80,11 @@ export function ReportShell({
       document.body.style.minWidth = prevBodyMinWidth
       document.body.style.overflowX = prevBodyOverflow
       if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
-      document.body.removeChild(overlay)
       setBusy(false)
     }
-  }  return (
+  }
+
+  return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title={title} subtitle={subtitle} onBack={onBack} showDarkToggle={false} />
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
@@ -187,45 +169,43 @@ export function ReportHeader({
   const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
   return (
     <div className="mb-5">
-      {/* Faixa de marca */}
+      {/* Faixa de marca (sangra ate as bordas da folha) */}
       <div
-        className="-mx-7 px-7 py-5 text-white"
+        className="-mx-7 flex items-start justify-between gap-3 px-7 py-4 text-white"
         style={{ background: "linear-gradient(135deg, #163b22 0%, #225a37 100%)" }}
       >
-        {/* Linha 1: logo + nome da empresa */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white"
             style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
           >
-            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-7 w-7 object-contain" />
+            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-8 w-8 object-contain" />
           </div>
           <div>
-            <div className="text-[15px] font-extrabold leading-none tracking-wide">
+            <div className="text-[16px] font-extrabold leading-none tracking-wide">
               AGS <span style={{ color: "#E3B53D" }}>GEO</span>
             </div>
-            <div className="mt-0.5 text-[9.5px] font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>
+            <div className="mt-1 text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.78)" }}>
               Levantamento e Geoprocessamento
             </div>
           </div>
         </div>
-        {/* Linha 2: tipo e data centralizados */}
-        <div className="text-center">
+        <div className="text-right">
           {docType && (
             <div
-              className="inline-block rounded-full px-3 py-1 text-[8.5px] font-bold uppercase tracking-[0.12em] mb-1"
-              style={{ background: "rgba(255,255,255,0.18)" }}
+              className="mb-1.5 inline-block rounded-full px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-[0.1em]"
+              style={{ background: "rgba(255,255,255,0.16)" }}
             >
               {docType}
             </div>
           )}
-          <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.80)" }}>
+          <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.82)" }}>
             {date}
           </div>
         </div>
       </div>
       {/* Titulo do relatorio */}
-      <div className="border-b border-[#e5e7eb] pb-3 pt-4 text-center">
+      <div className="border-b border-[#e5e7eb] pb-3 pt-4">
         <h2 className="text-[19px] font-extrabold leading-tight text-[#111827]">{heading}</h2>
         {meta && <p className="mt-1 text-[12px] font-medium text-[#6b7280]">{meta}</p>}
       </div>
