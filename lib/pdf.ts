@@ -34,16 +34,10 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const elW = el.offsetWidth || 760
-  // Buffer generoso de 300px para garantir que nada seja cortado
-  const elH = Math.max(el.scrollHeight, el.offsetHeight, 1075) + 300
-
-  // 1px CSS = 0.2646mm a 96dpi
-  const PX_TO_MM = 0.2646
-  const pageW = Math.ceil(elW * PX_TO_MM) + 4
-  const pageH = Math.ceil(elH * PX_TO_MM)
 
   const opts = {
-    margin: [2, 2, 2, 2],
+    // Margem padrao A4 (top, right, bottom, left) em mm
+    margin: [10, 10, 10, 10],
     filename: fname,
     image: { type: "jpeg", quality: 0.97 },
     html2canvas: {
@@ -58,14 +52,16 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
         try { sanitizeColors(element ?? _doc.body) } catch { /* ok */ }
       },
     },
-    // Pagina exatamente do tamanho do conteudo + buffer
-    // Sem height/windowHeight fixos para o html2canvas medir sozinho
+    // A4 padrao — todos os visualizadores de PDF no celular
+    // encaixam A4 na largura da tela automaticamente
     jsPDF: {
       unit: "mm",
-      format: [pageW, pageH],
+      format: "a4",
       orientation: "portrait",
       compress: true,
     },
+    // Evita cortar conteudo no meio de uma secao
+    pagebreak: { mode: "avoid-all" },
   }
 
   const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
