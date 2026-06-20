@@ -49,7 +49,7 @@ export function ReportShell({
 
   // Mede a altura real da folha para reservar o espaco certo apos a escala.
   useEffect(() => {
-    if (paperRef.current) setPaperH(paperRef.current.offsetHeight)
+    if (paperRef.current) setPaperH(Math.max(paperRef.current.offsetHeight, paperRef.current.scrollHeight))
   })
 
   async function handleDownload() {
@@ -75,11 +75,11 @@ export function ReportShell({
       <TopBar title={title} subtitle={subtitle} onBack={onBack} showDarkToggle={false} />
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
         {/* Caixa que reserva o espaco da folha ja escalada e a centraliza */}
-        <div className="mx-auto" style={{ width: PAPER_W * scale, height: paperH * scale }}>
+        <div className="mx-auto overflow-hidden rounded-2xl" style={{ width: PAPER_W * scale, height: paperH * scale }}>
           {/* Folha tamanho documento (proporcao A4). Cresce com o conteudo, nunca corta. */}
           <div
             ref={paperRef}
-            className="relative flex flex-col overflow-hidden rounded-2xl bg-white text-[#1a1a1a]"
+            className="relative flex flex-col rounded-2xl bg-white text-[#1a1a1a]"
             style={{
               colorScheme: "light",
               width: PAPER_W,
