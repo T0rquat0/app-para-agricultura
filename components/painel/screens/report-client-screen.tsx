@@ -15,7 +15,6 @@ import {
 } from "@/lib/calculations"
 import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
 
-// Mapeamento de serviço → produtos que serão entregues
 const SERVICE_DELIVERABLES: Record<string, string[]> = {
   "Levantamento Altimétrico": [
     "Modelo Digital de Terreno (MDT) em formato GeoTIFF",
@@ -53,6 +52,8 @@ function getDeliverables(serviceName: string): string[] {
   return ["Entrega técnica conforme escopo contratado"]
 }
 
+const Divider = () => <div style={{ height: 1, background: "#f0f0f0", margin: "20px 0" }} />
+
 export function ReportClientScreen() {
   const { currentProjectId, goReport } = useNav()
   const { project } = useProject(currentProjectId)
@@ -87,7 +88,7 @@ export function ReportClientScreen() {
         meta={project.fazenda ? `${project.fazenda} · ${fmtHa(total)} ha contratados` : `${fmtHa(total)} ha contratados`}
       />
 
-      {/* 1. DADOS DO PROJETO */}
+      {/* DADOS DO PROJETO */}
       <ReportSection title="Dados do projeto">
         <ReportRow label="Proprietário / Cliente" value={project.clientName} />
         {project.fazenda && <ReportRow label="Fazenda / Empreendimento" value={project.fazenda} />}
@@ -97,140 +98,120 @@ export function ReportClientScreen() {
         <ReportRow label="Progresso geral" value={`${progress.toFixed(1)}%`} strong />
       </ReportSection>
 
-      {/* 2. TECNOLOGIA E EQUIPAMENTOS */}
-      <ReportSection title="Tecnologia e equipamentos utilizados">
-        <div style={{ marginBottom: 6 }}>
-          <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#374151]" style={{ marginBottom: 4 }}>
-            Coleta de dados em campo
-          </div>
+      <Divider />
+
+      {/* EQUIPAMENTOS */}
+      <ReportSection title="Equipamentos e tecnologia">
+        <div className="grid grid-cols-2 gap-3 pt-1">
           {[
-            "Drone DJI Matrice 4E com câmera RGB de alta resolução",
-            "Base RTK D-RTK 3 Enterprise para posicionamento centimétrico",
-            "Sensores GNSS RTK de precisão para georreferenciamento",
-            "Voos operacionais conforme regulamentações ANAC / DECEA",
+            { icon: "🛩️", label: "Drone", value: "DJI Matrice 4E" },
+            { icon: "📡", label: "Posicionamento", value: "RTK D-RTK 3 Enterprise" },
+            { icon: "🗺️", label: "Fotogrametria", value: "Metashape Professional" },
+            { icon: "📐", label: "Cartografia", value: "AgroCad Civil + QGIS" },
           ].map((item, i) => (
-            <div key={i} className="flex items-start gap-2 py-1" style={{ borderBottom: "1px solid #f5f5f5" }}>
-              <span style={{ color: "#1A4228", marginTop: 1, flexShrink: 0 }}>▸</span>
-              <span className="text-[12.5px] text-[#374151]">{item}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#374151]" style={{ marginBottom: 4 }}>
-            Processamento e cartografia
-          </div>
-          {[
-            "Agisoft Metashape Professional — fotogrametria e geração de nuvem de pontos",
-            "AgroCad Civil — projeto de curvas de nível e drenagem",
-            "QGIS — análise geoespacial e entrega de shapefiles",
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-2 py-1" style={{ borderBottom: "1px solid #f5f5f5" }}>
-              <span style={{ color: "#1A4228", marginTop: 1, flexShrink: 0 }}>▸</span>
-              <span className="text-[12.5px] text-[#374151]">{item}</span>
+            <div key={i} className="rounded-xl p-3" style={{ background: "#f8faf9", border: "1px solid #e8f0ec" }}>
+              <div className="text-[15px]">{item.icon}</div>
+              <div className="mt-1 text-[9.5px] font-bold uppercase tracking-wide text-[#6b7280]">{item.label}</div>
+              <div className="mt-0.5 text-[11.5px] font-bold text-[#1a1a1a]">{item.value}</div>
             </div>
           ))}
         </div>
       </ReportSection>
 
-      {/* 3. PROGRESSO DO MAPEAMENTO POR TALHÃO */}
+      <Divider />
+
+      {/* PROGRESSO POR TALHÃO */}
       {talhoes.length > 0 && (
-        <ReportSection title="Progresso por talhão / matrícula">
-          {talhoes.map((t) => {
-            const flown = talhaoFlown(project, t.id)
-            const badge = talhaoBadge(project, t)
-            const label = badge ? `${t.name} (${badge})` : t.name
-            const target = t.targetHectares != null ? ` / ${fmtHa(t.targetHectares)} ha` : ""
-            const tPct = t.targetHectares ? Math.min(100, (flown / Number(t.targetHectares)) * 100) : null
-            return (
-              <div key={t.id} className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #f1f1f1" }}>
-                <span className="text-[13px] text-[#4b5563]">{label}</span>
-                <span className="text-[13px] tabular-nums font-semibold text-[#1a1a1a]">
-                  {`${fmtHa(flown)} ha${target}`}
-                  {tPct !== null && (
-                    <span className={`ml-2 text-[11px] font-bold ${tPct >= 100 ? "text-[#1A4228]" : "text-[#6b7280]"}`}>
-                      {tPct >= 100 ? "✓" : `${tPct.toFixed(0)}%`}
+        <>
+          <ReportSection title="Progresso por talhão / matrícula">
+            {talhoes.map((t) => {
+              const flown = talhaoFlown(project, t.id)
+              const badge = talhaoBadge(project, t)
+              const label = badge ? `${t.name} (${badge})` : t.name
+              const target = t.targetHectares != null ? ` / ${fmtHa(t.targetHectares)} ha` : ""
+              const tPct = t.targetHectares ? Math.min(100, (flown / Number(t.targetHectares)) * 100) : null
+              return (
+                <div key={t.id} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #f1f1f1" }}>
+                  <span className="text-[13px] text-[#4b5563]">{label}</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[13px] tabular-nums font-semibold text-[#1a1a1a]">
+                      {`${fmtHa(flown)} ha${target}`}
                     </span>
-                  )}
-                </span>
-              </div>
-            )
-          })}
-          {loose.length > 0 && (
-            <ReportRow
-              label="Áreas sem talhão"
-              value={`${fmtHa(loose.reduce((s, a) => s + Number(a.hectares || 0), 0))} ha`}
-            />
-          )}
-        </ReportSection>
-      )}
-
-      {/* 4. ESCOPO E PRODUTOS A ENTREGAR */}
-      {services.length > 0 && (
-        <ReportSection title="Escopo dos serviços e produtos a entregar">
-          {services.map((s, i) => (
-            <div key={s.id} style={{ marginBottom: i < services.length - 1 ? 10 : 0, paddingBottom: i < services.length - 1 ? 10 : 0, borderBottom: i < services.length - 1 ? "1px solid #f1f1f1" : "none" }}>
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-bold text-[#1a1a1a]">{s.name}</span>
-                <span
-                  className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
-                  style={{
-                    background: s.status === "concluido" ? "#eef6f0" : s.status === "andamento" ? "#fef9ec" : "#f3f4f6",
-                    color: s.status === "concluido" ? "#1A4228" : s.status === "andamento" ? "#92400e" : "#6b7280",
-                  }}
-                >
-                  {s.status === "concluido" ? "✓ Concluído" : s.status === "andamento" ? "Em andamento" : "Pendente"}
-                </span>
-              </div>
-              <div className="mt-1.5 space-y-1">
-                {getDeliverables(s.name).map((d, j) => (
-                  <div key={j} className="flex items-start gap-2">
-                    <span className="text-[10px]" style={{ color: "#1A4228", marginTop: 1, flexShrink: 0 }}>▸</span>
-                    <span className="text-[11.5px] text-[#6b7280]">{d}</span>
+                    {tPct !== null && (
+                      <span className={`text-[11px] font-bold w-8 text-right ${tPct >= 100 ? "text-[#1A4228]" : "text-[#9ca3af]"}`}>
+                        {tPct >= 100 ? "✓" : `${tPct.toFixed(0)}%`}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-              {s.clientNote && (
-                <div className="mt-2 rounded-lg px-3 py-2" style={{ background: "#f0f7f3", border: "1px solid #cfe7d8" }}>
-                  <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "#1A4228" }}>Nota: </span>
-                  <span className="text-[11.5px]" style={{ color: "#374151" }}>{s.clientNote}</span>
                 </div>
-              )}
-            </div>
-          ))}
-        </ReportSection>
+              )
+            })}
+            {loose.length > 0 && (
+              <ReportRow
+                label="Áreas sem talhão"
+                value={`${fmtHa(loose.reduce((s, a) => s + Number(a.hectares || 0), 0))} ha`}
+              />
+            )}
+          </ReportSection>
+          <Divider />
+        </>
       )}
 
-      {/* 5. RESUMO FINANCEIRO */}
+      {/* ESCOPO E PRODUTOS */}
+      {services.length > 0 && (
+        <>
+          <ReportSection title="Serviços e produtos a entregar">
+            <div className="space-y-5 pt-1">
+              {services.map((s) => (
+                <div key={s.id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[14px] font-extrabold text-[#1a1a1a]">{s.name}</span>
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
+                      style={{
+                        background: s.status === "concluido" ? "#eef6f0" : s.status === "andamento" ? "#fef9ec" : "#f3f4f6",
+                        color: s.status === "concluido" ? "#1A4228" : s.status === "andamento" ? "#92400e" : "#6b7280",
+                      }}
+                    >
+                      {s.status === "concluido" ? "✓ Concluído" : s.status === "andamento" ? "Em andamento" : "Pendente"}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {getDeliverables(s.name).map((d, j) => (
+                      <div key={j} className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: "#1A4228" }}>▸</span>
+                        <span className="text-[12px] text-[#6b7280] leading-relaxed">{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {s.clientNote && (
+                    <div className="mt-2.5 rounded-xl px-3 py-2.5" style={{ background: "#f0f7f3", border: "1px solid #cfe7d8" }}>
+                      <span className="text-[11px] font-bold text-[#1A4228]">Observação: </span>
+                      <span className="text-[12px] text-[#374151]">{s.clientNote}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ReportSection>
+          <Divider />
+        </>
+      )}
+
+      {/* RESUMO FINANCEIRO */}
       <ReportSection title="Resumo financeiro">
-        {services.map((s) => (
-          <div key={s.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-[#1a1a1a]">{s.name}</span>
+        <div className="space-y-1 mb-4">
+          {services.map((s) => (
+            <div key={s.id} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #f1f1f1" }}>
+              <div>
+                <div className="text-[13px] font-semibold text-[#1a1a1a]">{s.name}</div>
+                <div className="mt-0.5 text-[11px] text-[#9ca3af]">{pricingSummary(project, s)}</div>
+              </div>
               <span className="text-[13px] font-bold tabular-nums text-[#1A4228]">{fmtMoney(serviceRevenue(project, s))}</span>
             </div>
-            <div className="mt-0.5 text-[11px] text-[#6b7280]">{pricingSummary(project, s)}</div>
-          </div>
-        ))}
-        <div className="mt-3">
-          <ReportTotal label="Valor total dos serviços" value={fmtMoney(revenue)} />
-        </div>
-      </ReportSection>
-
-      {/* 6. METODOLOGIA */}
-      <ReportSection title="Metodologia de trabalho">
-        <div className="space-y-1.5">
-          {[
-            { fase: "1. Planejamento de voo", desc: "Definição de rotas, GSD alvo e configuração da missão autônoma no DJI Pilot 2." },
-            { fase: "2. Coleta em campo", desc: "Voos com o DJI Matrice 4E, posicionamento RTK centimétrico via D-RTK 3 Enterprise. Área dividida em seções para controle de bateria." },
-            { fase: "3. Fotogrametria", desc: "Processamento das imagens no Agisoft Metashape Professional: alinhamento, nuvem densa, classificação de pontos (solo/vegetação) e geração do MDT." },
-            { fase: "4. Cartografia", desc: "Geração de curvas de nível, projeto de drenagem e linhas de plantio no AgroCad Civil. Exportação em DXF e shapefile via QGIS." },
-          ].map((item, i) => (
-            <div key={i} className="py-2" style={{ borderBottom: "1px solid #f5f5f5" }}>
-              <div className="text-[12px] font-bold text-[#1A4228]">{item.fase}</div>
-              <div className="mt-0.5 text-[11.5px] text-[#6b7280] leading-relaxed">{item.desc}</div>
-            </div>
           ))}
         </div>
+        <ReportTotal label="Valor total dos serviços" value={fmtMoney(revenue)} />
       </ReportSection>
 
     </ReportShell>
