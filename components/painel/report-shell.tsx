@@ -60,16 +60,23 @@ export function ReportShell({
     // Clona o papel em tamanho cheio fora da tela visivel.
     // Isso evita a pagina em branco causada pelo elemento estar
     // fora da viewport quando o transform e removido no mobile.
+    // Clona o papel em tamanho cheio.
+    // Precisa estar na viewport (opacity > 0) para o html2canvas renderizar.
+    // Fica invisivel para o usuario mas visivel para o canvas.
     const clone = paper.cloneNode(true) as HTMLElement
     clone.style.transform = "none"
     clone.style.transformOrigin = "top left"
     clone.style.position = "fixed"
-    clone.style.top = "-99999px"
-    clone.style.left = "0px"
+    clone.style.top = "0"
+    clone.style.left = "0"
     clone.style.width = `${PAPER_W}px`
-    clone.style.zIndex = "-9999"
+    clone.style.zIndex = "9999"
+    clone.style.opacity = "0.01"
     clone.style.pointerEvents = "none"
     document.body.appendChild(clone)
+
+    // Garante que o clone foi renderizado antes de capturar
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
     try {
       await exportElementToPdf(clone, filename)
