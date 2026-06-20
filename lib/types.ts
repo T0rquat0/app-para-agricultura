@@ -29,6 +29,7 @@ export interface Service {
   billingType: BillingType
   rate: number
   quantity: number | null
+  clientNote?: string
   updatedAt?: string
   createdAt?: string
 }
