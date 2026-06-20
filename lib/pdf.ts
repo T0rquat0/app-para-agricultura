@@ -27,83 +27,82 @@ function isLightOk(value: string): boolean {
   return l >= 0.6
 }
 
-function isIOS(): boolean {
-  if (typeof navigator === "undefined") return false
-  return (
-    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  )
-}
-
 export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
   const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
 
-  // No iOS, abre a janela ANTES do async (enquanto ainda está no contexto do click)
-  // para não ser bloqueado pelo Safari. Mostra mensagem de espera.
-  let iosWin: Window | null = null
-  if (isIOS()) {
-    iosWin = window.open("", "_blank")
-    if (iosWin) {
-      iosWin.document.write(
-        `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f5">` +
-        `<div style="text-align:center;color:#555"><div style="font-size:32px;margin-bottom:16px">⏳</div>` +
-        `<p style="font-size:16px;font-weight:600">Gerando PDF…</p>` +
-        `<p style="font-size:13px;color:#888">Aguarde alguns segundos</p></div></body></html>`
-      )
-    }
-  }
+  const mod = await import("html2pdf.js")
+  const html2pdf = (mod as { default: any }).default || (mod as any)
 
-  try {
-    const mod = await import("html2pdf.js")
-    const html2pdf = (mod as { default: any }).default || (mod as any)
+  const elW = el.offsetWidth || 760
+  const elH = Math.max(el.scrollHeight, el.offsetHeight) || 1075
 
-    const elW = el.offsetWidth || 760
-    const elH = Math.max(el.scrollHeight, el.offsetHeight) || 1075
+  // Converte px para mm (96dpi)
+  const PX_TO_MM = 25.4 / 96
+  const pageW = elW * PX_TO_MM
+  const pageH = elH * PX_TO_MM
 
-    const PX_TO_MM = 0.2646
-    const pageW = Math.ceil(elW * PX_TO_MM) + 4
-    const pageH = Math.ceil(elH * PX_TO_MM) + 8
-
-    const opts = {
-      margin: [4, 2, 4, 2],
-      filename: fname,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        width: elW,
-        windowWidth: elW,
-        height: elH,
-        windowHeight: elH,
-        onclone: (_doc: Document, element?: HTMLElement) => {
-          try { sanitizeColors(element ?? _doc.body) } catch { /* nunca bloquear */ }
-        },
+  const opts = {
+    // Sem margem — o proprio elemento ja tem padding interno
+    margin: 0,
+    filename: fname,
+    image: { type: "jpeg", quality: 0.97 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      width: elW,
+      windowWidth: elW,
+      height: elH,
+      windowHeight: elH,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (_doc: Document, element?: HTMLElement) => {
+        try { sanitizeColors(element ?? _doc.body) } catch { /* ok */ }
       },
-      jsPDF: { unit: "mm", format: [pageW, pageH], orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css"] },
-    }
-
-    const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
-    const url = URL.createObjectURL(blob)
-
-    if (iosWin) {
-      // iOS: navega a janela já aberta para o PDF (Share Sheet aparece automaticamente)
-      iosWin.location.href = url
-    } else {
-      // Desktop / Android: download direto via <a download>
-      const a = document.createElement("a")
-      a.href = url
-      a.download = fname
-      a.style.display = "none"
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 10000)
-    }
-  } catch (err) {
-    // Se algo falhou, fecha a janela iOS para não deixar aba em branco
-    if (iosWin) iosWin.close()
-    throw err
+    },
+    // Pagina com dimensoes exatas do conteudo — evita pagina em branco extra
+    jsPDF: {
+      unit: "mm",
+      format: [pageW, pageH],
+      orientation: "portrait",
+      compress: true,
+    },
+    // Sem quebra de pagina automatica — o PDF tem exatamente 1 pagina
+    pagebreak: { mode: [] },
   }
+
+  const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
+  const file = new File([blob], fname, { type: "application/pdf" })
+
+  // iOS Safari: usa Web Share API para compartilhar o arquivo diretamente
+  // (WhatsApp, email, Arquivos, etc) — sem popup em branco
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.share &&
+    navigator.canShare &&
+    navigator.canShare({ files: [file] })
+  ) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: fname,
+      })
+      return
+    } catch (err: any) {
+      // Usuário cancelou o compartilhamento — nao e erro
+      if (err?.name === "AbortError") return
+      // Qualquer outro erro: cai no fallback abaixo
+    }
+  }
+
+  // Desktop / Android: download direto via <a download>
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = fname
+  a.style.display = "none"
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
