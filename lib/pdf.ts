@@ -36,10 +36,10 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const elW = el.offsetWidth || 760
   const elH = Math.max(el.scrollHeight, el.offsetHeight) || 1075
 
-  // Converte px para mm (96dpi)
+  // Converte px para mm (96dpi) com buffer de 40px para evitar corte
   const PX_TO_MM = 25.4 / 96
   const pageW = elW * PX_TO_MM
-  const pageH = elH * PX_TO_MM
+  const pageH = (elH + 40) * PX_TO_MM
 
   const opts = {
     // Sem margem — o proprio elemento ja tem padding interno
@@ -67,8 +67,8 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
       orientation: "portrait",
       compress: true,
     },
-    // Sem quebra de pagina automatica — o PDF tem exatamente 1 pagina
-    pagebreak: { mode: [] },
+    // Evita quebras automaticas de pagina no meio do conteudo
+    pagebreak: { mode: 'avoid-all' },
   }
 
   const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
