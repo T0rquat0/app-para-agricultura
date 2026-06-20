@@ -57,20 +57,37 @@ export function ReportShell({
     if (!paper) return
     setBusy(true)
 
+    // Mostra overlay de loading ANTES de mexer no layout
+    // para o usuario nao ver a tela distorcida durante a captura
+    const overlay = document.createElement("div")
+    overlay.style.cssText = [
+      "position:fixed","inset:0","z-index:99999",
+      "background:rgba(0,0,0,0.85)",
+      "display:flex","align-items:center","justify-content:center",
+      "flex-direction:column","gap:12px",
+    ].join(";")
+    overlay.innerHTML = `
+      <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite"></div>
+      <p style="color:#fff;font-family:sans-serif;font-size:14px;font-weight:600">Gerando PDF…</p>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `
+    document.body.appendChild(overlay)
+
+    // Aguarda o overlay aparecer antes de distorcer o layout
+    await new Promise<void>((r) => setTimeout(r, 80))
+
     const prevTransform = paper.style.transform
     const prevBodyMinWidth = document.body.style.minWidth
     const prevBodyOverflow = document.body.style.overflowX
     const scrollEl = scrollRef.current
     const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : ""
 
-    // Remove escala e forca 760px no body para html2canvas capturar sem cortar
     paper.style.transform = "none"
     document.body.style.minWidth = `${PAPER_W}px`
     document.body.style.overflowX = "visible"
     if (scrollEl) scrollEl.style.overflow = "visible"
 
-    // Aguarda layout estabilizar completamente antes de capturar
-    await new Promise<void>((r) => setTimeout(r, 150))
+    await new Promise<void>((r) => setTimeout(r, 400))
 
     try {
       await exportElementToPdf(paper, filename)
@@ -82,10 +99,10 @@ export function ReportShell({
       document.body.style.minWidth = prevBodyMinWidth
       document.body.style.overflowX = prevBodyOverflow
       if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
+      document.body.removeChild(overlay)
       setBusy(false)
     }
-  }
-  return (
+  }  return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title={title} subtitle={subtitle} onBack={onBack} showDarkToggle={false} />
       <div ref={scrollRef} className="flex-1 overflow-y-auto bg-muted px-4 py-5 pb-28">
