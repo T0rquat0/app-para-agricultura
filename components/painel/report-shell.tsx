@@ -56,16 +56,28 @@ export function ReportShell({
     const paper = paperRef.current
     if (!paper) return
     setBusy(true)
-    // Captura sempre em tamanho cheio (sem a escala de visualizacao).
-    const prevTransform = paper.style.transform
-    paper.style.transform = "none"
+
+    // Clona o papel em tamanho cheio fora da tela visivel.
+    // Isso evita a pagina em branco causada pelo elemento estar
+    // fora da viewport quando o transform e removido no mobile.
+    const clone = paper.cloneNode(true) as HTMLElement
+    clone.style.transform = "none"
+    clone.style.transformOrigin = "top left"
+    clone.style.position = "fixed"
+    clone.style.top = "-99999px"
+    clone.style.left = "0px"
+    clone.style.width = `${PAPER_W}px`
+    clone.style.zIndex = "-9999"
+    clone.style.pointerEvents = "none"
+    document.body.appendChild(clone)
+
     try {
-      await exportElementToPdf(paper, filename)
+      await exportElementToPdf(clone, filename)
     } catch (e) {
       console.error("[v0] erro ao gerar PDF", e)
-      alert("Não foi possível gerar o PDF. Tente novamente.")
+      alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
-      paper.style.transform = prevTransform
+      document.body.removeChild(clone)
       setBusy(false)
     }
   }
