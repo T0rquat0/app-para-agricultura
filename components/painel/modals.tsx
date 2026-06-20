@@ -437,6 +437,7 @@ export function ServicePricingModal({
   const [rateM, setRateM] = useState(service.billingType === "metro" && service.rate ? String(service.rate) : "")
   const [qtyM, setQtyM] = useState(service.billingType === "metro" && service.quantity != null ? String(service.quantity) : "")
   const [rateFixo, setRateFixo] = useState(service.billingType === "fixo" && service.rate ? String(service.rate) : "")
+  const [clientNote, setClientNote] = useState(service.clientNote || "")
 
   async function confirm() {
     const p = { ...project }
@@ -459,6 +460,7 @@ export function ServicePricingModal({
       s.rate = parseFloat(rateFixo) || 0
       s.quantity = null
     }
+    s.clientNote = clientNote.trim() || undefined
     await saveProject(p)
     onSaved()
     onClose()
@@ -505,6 +507,15 @@ export function ServicePricingModal({
           <TextInput value={rateFixo} onChange={(e) => setRateFixo(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 12000" />
         </Field>
       )}
+      <Field label="Observação para o cliente (aparece no relatório)" hint="Ex: Inclui processamento completo em Metashape com nuvem de pontos classificada.">
+        <textarea
+          value={clientNote}
+          onChange={(e) => setClientNote(e.target.value)}
+          placeholder="Descreva o que será entregue especificamente para este cliente..."
+          rows={3}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+        />
+      </Field>
       <PrimaryButton className="w-full" onClick={confirm}>Salvar</PrimaryButton>
       <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
     </ModalSheet>
