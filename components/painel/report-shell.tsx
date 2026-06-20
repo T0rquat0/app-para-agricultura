@@ -60,9 +60,8 @@ export function ReportShell({
     // Clona o papel em tamanho cheio fora da tela visivel.
     // Isso evita a pagina em branco causada pelo elemento estar
     // fora da viewport quando o transform e removido no mobile.
-    // Clona o papel em tamanho cheio.
-    // Precisa estar na viewport (opacity > 0) para o html2canvas renderizar.
-    // Fica invisivel para o usuario mas visivel para o canvas.
+    // Clona o papel em tamanho cheio com opacity 1 para o html2canvas capturar corretamente.
+    // Um overlay escuro cobre o clone para o usuario nao ver durante a geracao.
     const clone = paper.cloneNode(true) as HTMLElement
     clone.style.transform = "none"
     clone.style.transformOrigin = "top left"
@@ -70,12 +69,31 @@ export function ReportShell({
     clone.style.top = "0"
     clone.style.left = "0"
     clone.style.width = `${PAPER_W}px`
-    clone.style.zIndex = "9999"
-    clone.style.opacity = "0.01"
+    clone.style.zIndex = "9998"
+    clone.style.opacity = "1"
     clone.style.pointerEvents = "none"
-    document.body.appendChild(clone)
 
-    // Garante que o clone foi renderizado antes de capturar
+    // Overlay que cobre o clone visualmente mas nao interfere na captura
+    const overlay = document.createElement("div")
+    overlay.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:9999",
+      "background:rgba(0,0,0,0.7)",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "pointer-events:none",
+    ].join(";")
+    overlay.innerHTML = `<div style="color:#fff;font-family:sans-serif;font-size:15px;font-weight:600;text-align:center">
+      <div style="font-size:28px;margin-bottom:10px">⏳</div>
+      Gerando PDF…
+    </div>`
+
+    document.body.appendChild(clone)
+    document.body.appendChild(overlay)
+
+    // Aguarda 2 frames para garantir renderizacao completa
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
     try {
@@ -85,6 +103,7 @@ export function ReportShell({
       alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
       document.body.removeChild(clone)
+      document.body.removeChild(overlay)
       setBusy(false)
     }
   }
