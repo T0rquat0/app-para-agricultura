@@ -69,7 +69,8 @@ export function ReportShell({
     document.body.style.overflowX = "visible"
     if (scrollEl) scrollEl.style.overflow = "visible"
 
-    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    // Aguarda layout estabilizar completamente antes de capturar
+    await new Promise<void>((r) => setTimeout(r, 150))
 
     try {
       await exportElementToPdf(paper, filename)
