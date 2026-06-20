@@ -1,6 +1,5 @@
 "use client"
 
-import type React from "react"
 mport { useNav } from "../nav-context"
 import { useProject } from "@/lib/hooks"
 import { fmtHa, fmtMoney, slug } from "@/lib/format"
@@ -103,54 +102,31 @@ export function ReportClientScreen() {
 
       {/* EQUIPAMENTOS */}
       <ReportSection title="Equipamentos e tecnologia">
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          {([
-            {
-              label: "Aeronave",
-              value: "DJI Matrice 4E",
-              sub: "Câmera RGB profissional",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4228" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-                </svg>
-              ),
-            },
-            {
-              label: "Posicionamento",
-              value: "D-RTK 3 Enterprise",
-              sub: "Precisão centimétrica RTK",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4228" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 7.76a6 6 0 0 0 0 8.49"/><path d="M20.07 4.93a10 10 0 0 1 0 14.14"/><path d="M3.93 4.93a10 10 0 0 0 0 14.14"/>
-                </svg>
-              ),
-            },
-            {
-              label: "Fotogrametria",
-              value: "Metashape Professional",
-              sub: "Nuvem de pontos e MDT",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4228" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-                </svg>
-              ),
-            },
-            {
-              label: "Cartografia",
-              value: "AgroCad + QGIS",
-              sub: "Curvas de nível e drenagem",
-              icon: (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A4228" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 14h7v7h-7z"/>
-                </svg>
-              ),
-            },
-          ] as Array<{ label: string; value: string; sub: string; icon: React.ReactNode }>).map((item, i) => (
-            <div key={i} className="rounded-xl p-3" style={{ background: "#f8faf9", border: "1px solid #e8f0ec" }}>
-              <div className="mb-2">{item.icon}</div>
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-[#6b7280]">{item.label}</div>
-              <div className="mt-0.5 text-[12px] font-extrabold text-[#1a1a1a]">{item.value}</div>
-              <div className="mt-0.5 text-[10px] text-[#9ca3af]">{item.sub}</div>
+        <div className="pt-1">
+          <div className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "#374151" }}>
+            Coleta de dados em campo
+          </div>
+          {[
+            { label: "Aeronave", value: "DJI Matrice 4E — câmera RGB de alta resolução" },
+            { label: "Posicionamento", value: "Base RTK D-RTK 3 Enterprise — precisão centimétrica" },
+            { label: "Regulamentação", value: "Voos autorizados conforme ANAC / DECEA" },
+          ].map((item, i) => (
+            <div key={i} className="flex justify-between py-2" style={{ borderBottom: "1px solid #f1f1f1" }}>
+              <span className="text-[12px] font-semibold" style={{ color: "#374151", minWidth: 110 }}>{item.label}</span>
+              <span className="text-[12px] text-right" style={{ color: "#6b7280" }}>{item.value}</span>
+            </div>
+          ))}
+          <div className="mb-2 mt-4 text-[10.5px] font-bold uppercase tracking-[0.12em]" style={{ color: "#374151" }}>
+            Processamento e cartografia
+          </div>
+          {[
+            { label: "Fotogrametria", value: "Agisoft Metashape Professional" },
+            { label: "Cartografia", value: "AgroCad Civil — curvas de nível e drenagem" },
+            { label: "Geoespacial", value: "QGIS — shapefiles e análise territorial" },
+          ].map((item, i) => (
+            <div key={i} className="flex justify-between py-2" style={{ borderBottom: "1px solid #f1f1f1" }}>
+              <span className="text-[12px] font-semibold" style={{ color: "#374151", minWidth: 110 }}>{item.label}</span>
+              <span className="text-[12px] text-right" style={{ color: "#6b7280" }}>{item.value}</span>
             </div>
           ))}
         </div>
