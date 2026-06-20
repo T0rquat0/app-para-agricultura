@@ -57,57 +57,33 @@ export function ReportShell({
     if (!paper) return
     setBusy(true)
 
-    // Clona o papel em tamanho cheio fora da tela visivel.
-    // Isso evita a pagina em branco causada pelo elemento estar
-    // fora da viewport quando o transform e removido no mobile.
-    // Clona o papel em tamanho cheio com opacity 1 para o html2canvas capturar corretamente.
-    // Um overlay escuro cobre o clone para o usuario nao ver durante a geracao.
-    const clone = paper.cloneNode(true) as HTMLElement
-    clone.style.transform = "none"
-    clone.style.transformOrigin = "top left"
-    clone.style.position = "fixed"
-    clone.style.top = "0"
-    clone.style.left = "0"
-    clone.style.width = `${PAPER_W}px`
-    clone.style.zIndex = "9998"
-    clone.style.opacity = "1"
-    clone.style.pointerEvents = "none"
+    const prevTransform = paper.style.transform
+    const prevBodyMinWidth = document.body.style.minWidth
+    const prevBodyOverflow = document.body.style.overflowX
+    const scrollEl = scrollRef.current
+    const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : ""
 
-    // Overlay que cobre o clone visualmente mas nao interfere na captura
-    const overlay = document.createElement("div")
-    overlay.style.cssText = [
-      "position:fixed",
-      "inset:0",
-      "z-index:9999",
-      "background:rgba(0,0,0,0.7)",
-      "display:flex",
-      "align-items:center",
-      "justify-content:center",
-      "pointer-events:none",
-    ].join(";")
-    overlay.innerHTML = `<div style="color:#fff;font-family:sans-serif;font-size:15px;font-weight:600;text-align:center">
-      <div style="font-size:28px;margin-bottom:10px">⏳</div>
-      Gerando PDF…
-    </div>`
+    // Remove escala e forca 760px no body para html2canvas capturar sem cortar
+    paper.style.transform = "none"
+    document.body.style.minWidth = `${PAPER_W}px`
+    document.body.style.overflowX = "visible"
+    if (scrollEl) scrollEl.style.overflow = "visible"
 
-    document.body.appendChild(clone)
-    document.body.appendChild(overlay)
-
-    // Aguarda 2 frames para garantir renderizacao completa
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
     try {
-      await exportElementToPdf(clone, filename)
+      await exportElementToPdf(paper, filename)
     } catch (e) {
       console.error("[v0] erro ao gerar PDF", e)
       alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
-      document.body.removeChild(clone)
-      document.body.removeChild(overlay)
+      paper.style.transform = prevTransform
+      document.body.style.minWidth = prevBodyMinWidth
+      document.body.style.overflowX = prevBodyOverflow
+      if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
       setBusy(false)
     }
   }
-
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title={title} subtitle={subtitle} onBack={onBack} showDarkToggle={false} />
@@ -193,43 +169,45 @@ export function ReportHeader({
   const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
   return (
     <div className="mb-5">
-      {/* Faixa de marca (sangra ate as bordas da folha) */}
+      {/* Faixa de marca */}
       <div
-        className="-mx-7 flex items-start justify-between gap-3 px-7 py-4 text-white"
+        className="-mx-7 px-7 py-5 text-white"
         style={{ background: "linear-gradient(135deg, #163b22 0%, #225a37 100%)" }}
       >
-        <div className="flex items-center gap-3">
+        {/* Linha 1: logo + nome da empresa */}
+        <div className="flex items-center gap-3 mb-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white"
             style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
           >
-            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-8 w-8 object-contain" />
+            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-7 w-7 object-contain" />
           </div>
           <div>
-            <div className="text-[16px] font-extrabold leading-none tracking-wide">
+            <div className="text-[15px] font-extrabold leading-none tracking-wide">
               AGS <span style={{ color: "#E3B53D" }}>GEO</span>
             </div>
-            <div className="mt-1 text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.78)" }}>
+            <div className="mt-0.5 text-[9.5px] font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>
               Levantamento e Geoprocessamento
             </div>
           </div>
         </div>
-        <div className="text-right">
+        {/* Linha 2: tipo e data centralizados */}
+        <div className="text-center">
           {docType && (
             <div
-              className="mb-1.5 inline-block rounded-full px-2.5 py-1 text-[8.5px] font-bold uppercase tracking-[0.1em]"
-              style={{ background: "rgba(255,255,255,0.16)" }}
+              className="inline-block rounded-full px-3 py-1 text-[8.5px] font-bold uppercase tracking-[0.12em] mb-1"
+              style={{ background: "rgba(255,255,255,0.18)" }}
             >
               {docType}
             </div>
           )}
-          <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.82)" }}>
+          <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.80)" }}>
             {date}
           </div>
         </div>
       </div>
       {/* Titulo do relatorio */}
-      <div className="border-b border-[#e5e7eb] pb-3 pt-4">
+      <div className="border-b border-[#e5e7eb] pb-3 pt-4 text-center">
         <h2 className="text-[19px] font-extrabold leading-tight text-[#111827]">{heading}</h2>
         {meta && <p className="mt-1 text-[12px] font-medium text-[#6b7280]">{meta}</p>}
       </div>
