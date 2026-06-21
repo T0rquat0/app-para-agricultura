@@ -34,10 +34,18 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const elW = el.offsetWidth || 760
+  const elH = Math.max(el.scrollHeight, el.offsetHeight, 1075)
+
+  // Largura A4 (210mm) para que o celular preencha a tela automaticamente.
+  // Altura calculada proporcionalmente para caber todo o conteudo em 1 pagina.
+  const A4_W_MM = 210
+  const PX_TO_MM = 0.2646
+  const contentW_mm = elW * PX_TO_MM         // largura do elemento em mm
+  const ratio = A4_W_MM / contentW_mm        // fator de escala para A4
+  const pageH_mm = Math.ceil(elH * PX_TO_MM * ratio) + 10  // altura proporcional + buffer
 
   const opts = {
-    // Margem padrao A4 (top, right, bottom, left) em mm
-    margin: [10, 10, 10, 10],
+    margin: 0,
     filename: fname,
     image: { type: "jpeg", quality: 0.97 },
     html2canvas: {
@@ -52,22 +60,20 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
         try { sanitizeColors(element ?? _doc.body) } catch { /* ok */ }
       },
     },
-    // A4 padrao — todos os visualizadores de PDF no celular
-    // encaixam A4 na largura da tela automaticamente
+    // Largura A4 + altura exata do conteudo = 1 pagina unica
+    // O celular escala A4 para preencher a tela, user so rola para baixo
     jsPDF: {
       unit: "mm",
-      format: "a4",
+      format: [A4_W_MM, pageH_mm],
       orientation: "portrait",
       compress: true,
     },
-    // Evita cortar conteudo no meio de uma secao
-    pagebreak: { mode: "avoid-all" },
   }
 
   const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
   const file = new File([blob], fname, { type: "application/pdf" })
 
-  // iOS: Web Share API — abre painel nativo (WhatsApp, Arquivos, email)
+  // iOS: Web Share API
   if (
     typeof navigator !== "undefined" &&
     navigator.share &&
