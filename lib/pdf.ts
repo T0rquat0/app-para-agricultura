@@ -31,19 +31,17 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
 
   const mod = await import("html2pdf.js")
-  const html2pdf = (mod as { default: any }).default || (mod as any)
+  const html2pdf = (mod as any).default || mod
 
   const elW = el.offsetWidth || 760
   const elH = el.scrollHeight || el.offsetHeight || 1075
 
-  // Dimensao exata do conteudo em mm (sem A4, sem pagina extra)
-  // Celular abre PDF e ve tudo numa unica pagina proporcional
   const PX_TO_MM = 0.2646
-  const pageW = Math.round(elW * PX_TO_MM)
-  const pageH = Math.round(elH * PX_TO_MM) + 4
+  const pageW = Math.ceil(elW * PX_TO_MM) + 2
+  const pageH = Math.ceil(elH * PX_TO_MM) + 20
 
   const opts = {
-    margin: 0,
+    margin: [6, 0, 6, 0],
     filename: fname,
     image: { type: "jpeg", quality: 0.97 },
     html2canvas: {
@@ -67,7 +65,20 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     },
   }
 
-  const blob: Blob = await html2pdf().set(opts).from(el).outputPdf("blob")
+  // Gera PDF e acessa o objeto jsPDF para remover paginas em branco
+  const pdfObj = await html2pdf()
+    .set(opts)
+    .from(el)
+    .toPdf()
+    .get("pdf")
+
+  // Remove todas as paginas em branco extras (apos a pagina 1)
+  const totalPages: number = pdfObj.internal.getNumberOfPages()
+  for (let i = totalPages; i > 1; i--) {
+    pdfObj.deletePage(i)
+  }
+
+  const blob: Blob = pdfObj.output("blob")
   const file = new File([blob], fname, { type: "application/pdf" })
 
   // iOS: Web Share API
