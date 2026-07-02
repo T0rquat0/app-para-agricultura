@@ -34,14 +34,12 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const html2pdf = (mod as any).default || mod
 
   const elW = el.offsetWidth || 760
-  const elH = el.scrollHeight || el.offsetHeight || 1075
 
   const PX_TO_MM = 0.2646
   const pageW = Math.ceil(elW * PX_TO_MM) + 2
-  const pageH = Math.ceil(elH * PX_TO_MM) + 20
 
   const opts = {
-    margin: [6, 0, 6, 0],
+    margin: 0,
     filename: fname,
     image: { type: "jpeg", quality: 0.97 },
     html2canvas: {
@@ -50,7 +48,6 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
       backgroundColor: "#ffffff",
       width: elW,
       windowWidth: elW,
-      height: elH,
       scrollX: 0,
       scrollY: 0,
       onclone: (_doc: Document, element?: HTMLElement) => {
@@ -59,20 +56,30 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     },
     jsPDF: {
       unit: "mm",
-      format: [pageW, pageH],
+      format: [pageW, pageW * 2], // altura generosa, sera ajustada
       orientation: "portrait",
       compress: true,
     },
   }
 
-  // Gera PDF e acessa o objeto jsPDF para remover paginas em branco
-  const pdfObj = await html2pdf()
-    .set(opts)
-    .from(el)
-    .toPdf()
-    .get("pdf")
+  // Primeiro pega o canvas para medir a altura real renderizada
+  const canvas = await html2pdf().set(opts).from(el).toCanvas()
+  const imgH_mm = pageW * (canvas.height / canvas.width)
 
-  // Remove todas as paginas em branco extras (apos a pagina 1)
+  // Agora gera o PDF com as dimensoes exatas do canvas
+  const finalOpts = {
+    ...opts,
+    jsPDF: {
+      unit: "mm",
+      format: [pageW, imgH_mm + 2],
+      orientation: "portrait",
+      compress: true,
+    },
+  }
+
+  const pdfObj = await html2pdf().set(finalOpts).from(el).toPdf().get("pdf")
+
+  // Garante que so tem 1 pagina
   const totalPages: number = pdfObj.internal.getNumberOfPages()
   for (let i = totalPages; i > 1; i--) {
     pdfObj.deletePage(i)
