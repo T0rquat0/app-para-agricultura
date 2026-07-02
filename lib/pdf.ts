@@ -34,15 +34,22 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const elW = el.offsetWidth || 760
-  const elH = Math.max(el.scrollHeight, el.offsetHeight, 1075)
+
+  // Mede a altura real do conteudo usando o ultimo filho do elemento
+  // para evitar capturar espaco em branco do minHeight
+  const lastChild = el.lastElementChild as HTMLElement | null
+  const lastBottom = lastChild
+    ? lastChild.getBoundingClientRect().bottom - el.getBoundingClientRect().top
+    : el.scrollHeight
+  const elH = Math.ceil(lastBottom) + 32 // 32px de padding no final
 
   // Largura A4 (210mm) para que o celular preencha a tela automaticamente.
   // Altura calculada proporcionalmente para caber todo o conteudo em 1 pagina.
   const A4_W_MM = 210
   const PX_TO_MM = 0.2646
-  const contentW_mm = elW * PX_TO_MM         // largura do elemento em mm
-  const ratio = A4_W_MM / contentW_mm        // fator de escala para A4
-  const pageH_mm = Math.ceil(elH * PX_TO_MM * ratio) + 10  // altura proporcional + buffer
+  const contentW_mm = elW * PX_TO_MM
+  const ratio = A4_W_MM / contentW_mm
+  const pageH_mm = Math.ceil(elH * PX_TO_MM * ratio) + 5
 
   const opts = {
     margin: 0,
