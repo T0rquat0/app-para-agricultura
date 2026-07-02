@@ -64,6 +64,7 @@ export function ReportShell({
     const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : ""
 
     paper.style.transform = "none"
+    paper.style.minHeight = "0"
     document.body.style.minWidth = `${PAPER_W}px`
     document.body.style.overflowX = "visible"
     if (scrollEl) scrollEl.style.overflow = "visible"
@@ -77,6 +78,7 @@ export function ReportShell({
       alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
       paper.style.transform = prevTransform
+      paper.style.minHeight = ""
       document.body.style.minWidth = prevBodyMinWidth
       document.body.style.overflowX = prevBodyOverflow
       if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
