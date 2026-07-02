@@ -34,22 +34,13 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const elW = el.offsetWidth || 760
+  const elH = el.scrollHeight || el.offsetHeight || 1075
 
-  // Mede a altura real do conteudo usando o ultimo filho do elemento
-  // para evitar capturar espaco em branco do minHeight
-  const lastChild = el.lastElementChild as HTMLElement | null
-  const lastBottom = lastChild
-    ? lastChild.getBoundingClientRect().bottom - el.getBoundingClientRect().top
-    : el.scrollHeight
-  const elH = Math.ceil(lastBottom) + 32 // 32px de padding no final
-
-  // Largura A4 (210mm) para que o celular preencha a tela automaticamente.
-  // Altura calculada proporcionalmente para caber todo o conteudo em 1 pagina.
-  const A4_W_MM = 210
+  // Dimensao exata do conteudo em mm (sem A4, sem pagina extra)
+  // Celular abre PDF e ve tudo numa unica pagina proporcional
   const PX_TO_MM = 0.2646
-  const contentW_mm = elW * PX_TO_MM
-  const ratio = A4_W_MM / contentW_mm
-  const pageH_mm = Math.ceil(elH * PX_TO_MM * ratio) + 5
+  const pageW = Math.round(elW * PX_TO_MM)
+  const pageH = Math.round(elH * PX_TO_MM) + 4
 
   const opts = {
     margin: 0,
@@ -61,17 +52,16 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
       backgroundColor: "#ffffff",
       width: elW,
       windowWidth: elW,
+      height: elH,
       scrollX: 0,
       scrollY: 0,
       onclone: (_doc: Document, element?: HTMLElement) => {
         try { sanitizeColors(element ?? _doc.body) } catch { /* ok */ }
       },
     },
-    // Largura A4 + altura exata do conteudo = 1 pagina unica
-    // O celular escala A4 para preencher a tela, user so rola para baixo
     jsPDF: {
       unit: "mm",
-      format: [A4_W_MM, pageH_mm],
+      format: [pageW, pageH],
       orientation: "portrait",
       compress: true,
     },
@@ -95,7 +85,7 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     }
   }
 
-  // Android / Desktop: download direto
+  // Android / Desktop
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
