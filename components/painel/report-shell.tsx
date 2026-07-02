@@ -69,7 +69,14 @@ export function ReportShell({
     document.body.style.overflowX = "visible"
     if (scrollEl) scrollEl.style.overflow = "visible"
 
+    // Aguarda reflow completo para medir altura real do conteudo
     await new Promise<void>((r) => setTimeout(r, 400))
+
+    // Forca altura do elemento para o conteudo real (sem minHeight)
+    const realH = paper.scrollHeight
+    paper.style.height = `${realH}px`
+
+    await new Promise<void>((r) => setTimeout(r, 50))
 
     try {
       await exportElementToPdf(paper, filename)
@@ -79,6 +86,7 @@ export function ReportShell({
     } finally {
       paper.style.transform = prevTransform
       paper.style.minHeight = ""
+      paper.style.height = ""
       document.body.style.minWidth = prevBodyMinWidth
       document.body.style.overflowX = prevBodyOverflow
       if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
