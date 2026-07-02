@@ -64,12 +64,12 @@ export function ReportShell({
     const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : ""
 
     paper.style.transform = "none"
-    paper.style.minHeight = "0"
+    // setProperty com important garante remocao do minHeight mesmo com re-render React
+    paper.style.setProperty("min-height", "0", "important")
     document.body.style.minWidth = `${PAPER_W}px`
     document.body.style.overflowX = "visible"
     if (scrollEl) scrollEl.style.overflow = "visible"
 
-    // Aguarda reflow completo — o elemento agora tem altura real sem minHeight
     await new Promise<void>((r) => setTimeout(r, 400))
 
     try {
@@ -79,7 +79,7 @@ export function ReportShell({
       alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
       paper.style.transform = prevTransform
-      paper.style.minHeight = ""
+      paper.style.removeProperty("min-height")
       document.body.style.minWidth = prevBodyMinWidth
       document.body.style.overflowX = prevBodyOverflow
       if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
