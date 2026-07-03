@@ -25,31 +25,31 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       role="status"
       aria-label="Carregando AGS GEO"
     >
-      {/* brilho radial suave */}
+      {/* brilho radial suave — verde RTK */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className="pointer-events-none absolute inset-0 opacity-70"
         style={{
-          background: "radial-gradient(circle at 50% 42%, rgba(160,200,120,0.18), transparent 60%)",
+          background: "radial-gradient(circle at 50% 42%, rgba(47,212,138,0.16), transparent 62%)",
         }}
       />
 
       {/* Emblema central com varredura */}
       <div className="relative flex h-64 w-64 items-center justify-center">
         {/* aneis de radar pulsando */}
-        <span className="ags-ring absolute h-44 w-44 rounded-full border border-[#C9A227]/50" />
+        <span className="ags-ring absolute h-44 w-44 rounded-full border border-[#2FD48A]/50" />
         <span
-          className="ags-ring absolute h-44 w-44 rounded-full border border-[#C9A227]/40"
+          className="ags-ring absolute h-44 w-44 rounded-full border border-[#3AA0E6]/35"
           style={{ animationDelay: "0.9s" }}
         />
 
         {/* anel fixo */}
-        <span className="absolute h-52 w-52 rounded-full border border-white/15" />
+        <span className="absolute h-52 w-52 rounded-full border border-white/12" />
 
         {/* varredura giratoria (setor luminoso) */}
         <span
           className="ags-sweep absolute h-52 w-52 rounded-full"
           style={{
-            background: "conic-gradient(from 0deg, rgba(201,162,39,0.55), rgba(201,162,39,0) 90deg)",
+            background: "conic-gradient(from 0deg, rgba(47,212,138,0.55), rgba(47,212,138,0) 90deg)",
             maskImage: "radial-gradient(circle, transparent 60%, #000 61%, #000 100%)",
             WebkitMaskImage: "radial-gradient(circle, transparent 60%, #000 61%, #000 100%)",
           }}
@@ -71,16 +71,16 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       {/* Wordmark */}
       <div className="ags-rise mt-7 text-center" style={{ animationDelay: "0.15s" }}>
         <div className="text-3xl font-extrabold tracking-tight text-white">
-          AGS <span className="text-[#E3B53D]">GEO</span>
+          AGS <span className="text-[#2FD48A]">GEO</span>
         </div>
-        <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#E4D6A7]">
-          Levantamento e Geoprocessamento
+        <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#9FE7C4]">
+          Inteligência Geoespacial
         </div>
       </div>
 
       {/* Barra de carregamento */}
-      <div className="ags-rise mt-8 h-1 w-44 overflow-hidden rounded-full bg-white/15" style={{ animationDelay: "0.3s" }}>
-        <div className="ags-bar h-full w-1/2 rounded-full bg-[#C9A227]" />
+      <div className="ags-rise mt-8 h-1 w-44 overflow-hidden rounded-full bg-white/12" style={{ animationDelay: "0.3s" }}>
+        <div className="ags-bar h-full w-1/2 rounded-full bg-[#2FD48A]" />
       </div>
     </div>
   )

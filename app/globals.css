@@ -47,73 +47,80 @@
   --radius-3xl: calc(var(--radius) * 2.2);
 }
 
+/* ============================================================
+   AGS GEO — Identidade "Inteligência Geoespacial"
+   Paleta: grafite + verde RTK (precisão) + azul satélite
+   Tema CLARO = documento técnico limpo
+   Tema ESCURO = centro de operações (herói da marca)
+   ============================================================ */
+
 :root {
   color-scheme: light;
   --radius: 0.9rem;
 
-  --background: #eef2ec;
-  --foreground: #16201a;
+  --background: #eef1f3;
+  --foreground: #0e1518;
   --card: #ffffff;
-  --card-foreground: #16201a;
+  --card-foreground: #0e1518;
   --popover: #ffffff;
-  --popover-foreground: #16201a;
-  --primary: #2d6a45;
+  --popover-foreground: #0e1518;
+  --primary: #0e9e63;
   --primary-foreground: #ffffff;
-  --cta: #2d6a45;
+  --cta: #0e9e63;
   --cta-foreground: #ffffff;
-  --secondary: #eaf3ed;
-  --secondary-foreground: #1a4228;
-  --muted: #f2f8f4;
-  --muted-foreground: #6b776a;
-  --accent: #b8935a;
-  --accent-foreground: #2a2316;
-  --destructive: #a0403a;
-  --border: #dde5db;
-  --input: #dde5db;
-  --ring: #2d6a45;
+  --secondary: #e6eef1;
+  --secondary-foreground: #123640;
+  --muted: #f2f6f7;
+  --muted-foreground: #63727a;
+  --accent: #1f77bf;
+  --accent-foreground: #ffffff;
+  --destructive: #b0453f;
+  --border: #dae2e6;
+  --input: #dae2e6;
+  --ring: #0e9e63;
 
-  --brand-dark: #1a4228;
-  --brand: #2d6a45;
-  --sand: #b8935a;
-  --sand-bg: #fbf7ef;
-  --green-pale: #f2f8f4;
-  --green-light: #eaf3ed;
-  --amber-status: #7a4d0f;
-  --gold: #d4a017;
+  --brand-dark: #0c231a;
+  --brand: #0e9e63;
+  --sand: #1f77bf;
+  --sand-bg: #eef4f9;
+  --green-pale: #eef6f2;
+  --green-light: #e2efe9;
+  --amber-status: #8a5a12;
+  --gold: #0e9e63;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0f150f;
-  --foreground: #e8ede8;
-  --card: #18211a;
-  --card-foreground: #e8ede8;
-  --popover: #18211a;
-  --popover-foreground: #e8ede8;
-  --primary: #7dbf9a;
-  --primary-foreground: #0c160f;
-  --cta: #2f8455;
-  --cta-foreground: #ffffff;
-  --secondary: #1e3328;
-  --secondary-foreground: #cfe6d8;
-  --muted: #182b1f;
-  --muted-foreground: #8a9a88;
-  --accent: #d4aa78;
-  --accent-foreground: #1a1407;
-  --destructive: #e07070;
-  --border: #2a382b;
-  --input: #2a382b;
-  --ring: #7dbf9a;
+  --background: #0a0e11;
+  --foreground: #e6edf2;
+  --card: #111820;
+  --card-foreground: #e6edf2;
+  --popover: #111820;
+  --popover-foreground: #e6edf2;
+  --primary: #2fd48a;
+  --primary-foreground: #04130c;
+  --cta: #17b877;
+  --cta-foreground: #04140c;
+  --secondary: #13212b;
+  --secondary-foreground: #cfe6f0;
+  --muted: #0f171d;
+  --muted-foreground: #8496a0;
+  --accent: #3aa0e6;
+  --accent-foreground: #04121d;
+  --destructive: #e5675f;
+  --border: #1e2a33;
+  --input: #1e2a33;
+  --ring: #2fd48a;
 
-  --brand-dark: #0c160f;
-  --brand: #7dbf9a;
-  --sand: #d4aa78;
-  --sand-bg: #241d12;
-  --green-pale: #152119;
-  --green-light: #1e3328;
-  --amber-status: #c08a3a;
-  --gold: #e3b53d;
+  --brand-dark: #06100b;
+  --brand: #2fd48a;
+  --sand: #3aa0e6;
+  --sand-bg: #0e1922;
+  --green-pale: #0f1b16;
+  --green-light: #14241d;
+  --amber-status: #d9a441;
+  --gold: #2fd48a;
 }
 
 @layer base {
