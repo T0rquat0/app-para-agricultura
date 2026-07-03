@@ -212,23 +212,12 @@ function ProjectCard({
       >
         <div className="flex items-center justify-between gap-2 pr-6">
           <span className="text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
-          {isDone ? (
-            <span className="flex items-center gap-1.5 text-[13px] font-bold text-primary">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <Check className="h-3 w-3" strokeWidth={3} />
-              </span>
-              Concluido
-            </span>
-          ) : (
-            <span className="num text-[13px] font-bold text-primary">{pctReal.toFixed(0)}%</span>
-          )}
+          <span className={"num text-[13px] font-bold " + (isDone ? "text-primary" : "text-primary")}>
+            {isDone ? "✓ " : ""}{pctReal.toFixed(0)}%
+          </span>
         </div>
         {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
-        {isDone ? (
-          <div className="mt-2 text-[11px] font-bold text-primary">Levantamento concluido</div>
-        ) : (
-          <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
-        )}
+        <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
         <div className="mt-2 flex justify-between text-[11.5px] text-muted-foreground">
           <span className="num">
             {fmtHa(m)} / {fmtHa(total)} ha
