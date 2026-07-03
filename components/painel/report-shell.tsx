@@ -49,7 +49,7 @@ export function ReportShell({
 
   // Mede a altura real da folha para reservar o espaco certo apos a escala.
   useEffect(() => {
-    if (paperRef.current) setPaperH(Math.max(paperRef.current.offsetHeight, paperRef.current.scrollHeight))
+    if (paperRef.current) setPaperH(paperRef.current.offsetHeight)
   })
 
   async function handleDownload() {
@@ -57,32 +57,41 @@ export function ReportShell({
     if (!paper) return
     setBusy(true)
 
-    const prevTransform = paper.style.transform
-    const prevBodyMinWidth = document.body.style.minWidth
-    const prevBodyOverflow = document.body.style.overflowX
-    const scrollEl = scrollRef.current
-    const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : ""
+    // Espera React terminar o re-render do setBusy
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
-    paper.style.transform = "none"
-    // setProperty com important garante remocao do minHeight mesmo com re-render React
-    paper.style.setProperty("min-height", "0", "important")
-    document.body.style.minWidth = `${PAPER_W}px`
-    document.body.style.overflowX = "visible"
-    if (scrollEl) scrollEl.style.overflow = "visible"
+    // Clona fora do React — minHeight=0 nao sera resetado por re-renders
+    const clone = paper.cloneNode(true) as HTMLElement
+    clone.style.transform = "none"
+    clone.style.transformOrigin = "top left"
+    clone.style.minHeight = "0"
+    clone.style.height = "auto"
+    clone.style.width = `${PAPER_W}px`
+    clone.style.position = "fixed"
+    clone.style.top = "0"
+    clone.style.left = "0"
+    clone.style.zIndex = "9998"
+    clone.style.opacity = "1"
+    clone.style.pointerEvents = "none"
 
-    await new Promise<void>((r) => setTimeout(r, 400))
+    // Overlay escuro cobre o clone enquanto captura
+    const overlay = document.createElement("div")
+    overlay.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);pointer-events:none"
+
+    document.body.appendChild(clone)
+    document.body.appendChild(overlay)
+
+    // Aguarda layout do clone estabilizar
+    await new Promise<void>((r) => setTimeout(r, 300))
 
     try {
-      await exportElementToPdf(paper, filename)
+      await exportElementToPdf(clone, filename)
     } catch (e) {
       console.error("[v0] erro ao gerar PDF", e)
       alert("Nao foi possivel gerar o PDF. Tente novamente.")
     } finally {
-      paper.style.transform = prevTransform
-      paper.style.removeProperty("min-height")
-      document.body.style.minWidth = prevBodyMinWidth
-      document.body.style.overflowX = prevBodyOverflow
-      if (scrollEl) scrollEl.style.overflow = prevScrollOverflow
+      document.body.removeChild(clone)
+      document.body.removeChild(overlay)
       setBusy(false)
     }
   }
@@ -96,7 +105,7 @@ export function ReportShell({
           {/* Folha tamanho documento (proporcao A4). Cresce com o conteudo, nunca corta. */}
           <div
             ref={paperRef}
-            className="relative flex flex-col rounded-2xl bg-white text-[#1a1a1a]"
+            className="relative flex flex-col overflow-hidden rounded-2xl bg-white text-[#1a1a1a]"
             style={{
               colorScheme: "light",
               width: PAPER_W,
