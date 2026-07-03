@@ -1,15 +1,16 @@
 "use client"
 
-import { useEffect } from "react"
-import { FileText, Wallet } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Pencil } from "lucide-react"
 import { useNav, type Tab } from "../nav-context"
-import { useProject } from "@/lib/hooks"
+import { useProject, useRefresh } from "@/lib/hooks"
 import { TopBar, SectionTitle } from "../chrome"
 import { SecondaryButton } from "../buttons"
 import { AreasTab } from "../tabs/areas-tab"
 import { ServicesTab } from "../tabs/services-tab"
 import { ExpensesTab } from "../tabs/expenses-tab"
 import { TimelineTab } from "../tabs/timeline-tab"
+import { EditProjectModal } from "../modals"
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "areas", label: "Áreas" },
@@ -21,6 +22,8 @@ const TABS: { key: Tab; label: string }[] = [
 export function ProjectScreen() {
   const { currentProjectId, activeTab, setTab, goHome, goReport } = useNav()
   const { project, isLoading } = useProject(currentProjectId)
+  const refresh = useRefresh()
+  const [editingProject, setEditingProject] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !project) goHome()
@@ -36,7 +39,16 @@ export function ProjectScreen() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <TopBar title={project.clientName} subtitle={project.fazenda || undefined} onBack={goHome} />
+      <div className="relative">
+        <TopBar title={project.clientName} subtitle={project.fazenda || undefined} onBack={goHome} />
+        <button
+          onClick={() => setEditingProject(true)}
+          aria-label="Editar projeto"
+          className="absolute right-4 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       <div className="flex-1 px-4 pb-10 pt-5">
         {/* Seletor de abas */}
@@ -61,16 +73,24 @@ export function ProjectScreen() {
         {activeTab === "expenses" && <ExpensesTab project={project} />}
         {activeTab === "timeline" && <TimelineTab project={project} />}
 
-        <SectionTitle className="mt-7">Relatórios</SectionTitle>
-        <div className="flex flex-col gap-2.5">
-          <SecondaryButton className="w-full justify-start" onClick={() => goReport("reportClient")}>
-            <FileText className="h-4 w-4 text-primary" /> Relatório de progresso (cliente)
+        <SectionTitle className="mt-6">Relatórios</SectionTitle>
+        <div className="space-y-2.5">
+          <SecondaryButton className="w-full" onClick={() => goReport("client")}>
+            <span>📄</span> Relatório de progresso (cliente)
           </SecondaryButton>
-          <SecondaryButton className="w-full justify-start" onClick={() => goReport("reportExpenses")}>
-            <Wallet className="h-4 w-4 text-accent" /> Relatório de gastos (interno)
+          <SecondaryButton className="w-full" onClick={() => goReport("expenses")}>
+            <span>🧾</span> Relatório de gastos (interno)
           </SecondaryButton>
         </div>
       </div>
+
+      {editingProject && (
+        <EditProjectModal
+          project={project}
+          onClose={() => setEditingProject(false)}
+          onSaved={() => { setEditingProject(false); refresh() }}
+        />
+      )}
     </div>
   )
 }
