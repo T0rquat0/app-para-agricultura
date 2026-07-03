@@ -205,7 +205,7 @@ function ProjectCard({
   const isDone = total > 0 && m >= total
 
   return (
-    <div className={"relative rounded-2xl shadow-sm ring-1 " + (isDone ? "bg-green-pale ring-primary/40" : "bg-card ring-border/60")}>
+    <div className={"relative rounded-2xl shadow-sm " + (isDone ? "bg-card ring-2 ring-primary" : "bg-card ring-1 ring-border/60")}>
       <button
         onClick={onClick}
         className="block w-full p-4 text-left transition-opacity active:opacity-70"
