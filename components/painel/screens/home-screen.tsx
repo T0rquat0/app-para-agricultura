@@ -205,7 +205,10 @@ function ProjectCard({
   const isDone = total > 0 && m >= total
 
   return (
-    <div className={"relative rounded-2xl shadow-sm " + (isDone ? "bg-card ring-2 ring-primary" : "bg-card ring-1 ring-border/60")}>
+    <div
+      className="relative rounded-2xl shadow-sm bg-card"
+      style={isDone ? { boxShadow: "0 0 0 2px var(--color-primary)" } : { boxShadow: "0 0 0 1px var(--color-border)" }}
+    >
       <button
         onClick={onClick}
         className="block w-full p-4 text-left transition-opacity active:opacity-70"
