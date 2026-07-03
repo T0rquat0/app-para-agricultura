@@ -39,16 +39,15 @@ export function ProjectScreen() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="relative">
-        <TopBar title={project.clientName} subtitle={project.fazenda || undefined} onBack={goHome} />
+      <TopBar title={project.clientName} subtitle={project.fazenda || undefined} onBack={goHome}>
         <button
           onClick={() => setEditingProject(true)}
           aria-label="Editar projeto"
-          className="absolute right-4 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
         >
           <Pencil className="h-3.5 w-3.5" />
         </button>
-      </div>
+      </TopBar>
 
       <div className="flex-1 px-4 pb-10 pt-5">
         {/* Seletor de abas */}
