@@ -69,7 +69,7 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const blob: Blob = pdfObj.output("blob")
   const file = new File([blob], fname, { type: "application/pdf" })
 
-  // iOS: Web Share API — compartilha direto (WhatsApp, Arquivos, etc)
+  // iOS: Web Share API
   if (
     typeof navigator !== "undefined" &&
     navigator.share &&
@@ -84,7 +84,7 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     }
   }
 
-  // Android / Desktop: download direto
+  // Android / Desktop
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
