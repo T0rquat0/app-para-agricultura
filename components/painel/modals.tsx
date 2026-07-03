@@ -437,7 +437,6 @@ export function ServicePricingModal({
   const [rateM, setRateM] = useState(service.billingType === "metro" && service.rate ? String(service.rate) : "")
   const [qtyM, setQtyM] = useState(service.billingType === "metro" && service.quantity != null ? String(service.quantity) : "")
   const [rateFixo, setRateFixo] = useState(service.billingType === "fixo" && service.rate ? String(service.rate) : "")
-  const [clientNote, setClientNote] = useState(service.clientNote || "")
 
   async function confirm() {
     const p = { ...project }
@@ -460,7 +459,6 @@ export function ServicePricingModal({
       s.rate = parseFloat(rateFixo) || 0
       s.quantity = null
     }
-    s.clientNote = clientNote.trim() || undefined
     await saveProject(p)
     onSaved()
     onClose()
@@ -507,16 +505,49 @@ export function ServicePricingModal({
           <TextInput value={rateFixo} onChange={(e) => setRateFixo(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 12000" />
         </Field>
       )}
-      <Field label="Observação para o cliente (aparece no relatório)" hint="Ex: Inclui processamento completo em Metashape com nuvem de pontos classificada.">
-        <textarea
-          value={clientNote}
-          onChange={(e) => setClientNote(e.target.value)}
-          placeholder="Descreva o que será entregue especificamente para este cliente..."
-          rows={3}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-        />
-      </Field>
       <PrimaryButton className="w-full" onClick={confirm}>Salvar</PrimaryButton>
+      <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
+    </ModalSheet>
+  )
+}
+
+// ---- Editar dados do projeto ----
+export function EditProjectModal({
+  project,
+  onClose,
+  onSaved,
+}: {
+  project: Project
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [clientName, setClientName] = useState(project.clientName)
+  const [fazenda, setFazenda] = useState(project.fazenda || "")
+  const [total, setTotal] = useState(project.totalHectares ? String(project.totalHectares) : "")
+
+  async function confirm() {
+    const name = clientName.trim()
+    if (!name) { alert("Informe o nome do cliente."); return }
+    const t = parseFloat(total)
+    if (!t || t <= 0) { alert("Informe a área total em hectares."); return }
+    const p = { ...project, clientName: name, fazenda: fazenda.trim(), totalHectares: t }
+    await saveProject(p)
+    onSaved()
+    onClose()
+  }
+
+  return (
+    <ModalSheet title="Editar projeto" onClose={onClose}>
+      <Field label="Nome do cliente">
+        <TextInput value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Ex: Fábio Fukuda" autoFocus />
+      </Field>
+      <Field label="Fazenda / local (opcional)">
+        <TextInput value={fazenda} onChange={(e) => setFazenda(e.target.value)} placeholder="Ex: Fazenda Ipoeira" />
+      </Field>
+      <Field label="Área total contratada (hectares)">
+        <TextInput value={total} onChange={(e) => setTotal(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 6500" />
+      </Field>
+      <PrimaryButton className="w-full" onClick={confirm}>Salvar alterações</PrimaryButton>
       <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
     </ModalSheet>
   )
