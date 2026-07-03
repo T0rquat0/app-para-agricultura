@@ -28,67 +28,48 @@ function isLightOk(value: string): boolean {
 }
 
 export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
+  const mod = await import("html2pdf.js")
+  const html2pdf = (mod as { default: any }).default || (mod as any)
+
   const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
 
-  const mod = await import("html2pdf.js")
-  const html2pdf = (mod as any).default || mod
-
   const elW = el.offsetWidth || 760
+  const elH = el.scrollHeight || el.offsetHeight || 1075
 
   const PX_TO_MM = 0.2646
-  const pageW = Math.ceil(elW * PX_TO_MM) + 2
+  const pageW = Math.ceil(elW * PX_TO_MM) + 4
+  const pageH = Math.ceil(elH * PX_TO_MM) + 8
 
   const opts = {
-    margin: 0,
+    margin: [4, 2, 4, 2],
     filename: fname,
-    image: { type: "jpeg", quality: 0.97 },
+    image: { type: "jpeg", quality: 0.98 },
     html2canvas: {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       width: elW,
       windowWidth: elW,
-      scrollX: 0,
-      scrollY: 0,
+      height: elH,
+      windowHeight: elH,
       onclone: (_doc: Document, element?: HTMLElement) => {
-        try { sanitizeColors(element ?? _doc.body) } catch { /* ok */ }
+        try { sanitizeColors(element ?? _doc.body) } catch { /* nunca bloquear */ }
       },
     },
-    jsPDF: {
-      unit: "mm",
-      format: [pageW, pageW * 2], // altura generosa, sera ajustada
-      orientation: "portrait",
-      compress: true,
-    },
+    jsPDF: { unit: "mm", format: [pageW, pageH], orientation: "portrait" },
+    pagebreak: { mode: ["avoid-all", "css"] },
   }
 
-  // Primeiro pega o canvas para medir a altura real renderizada
-  const canvas = await html2pdf().set(opts).from(el).toCanvas()
-  const imgH_mm = pageW * (canvas.height / canvas.width)
-
-  // Agora gera o PDF com as dimensoes exatas do canvas
-  const finalOpts = {
-    ...opts,
-    jsPDF: {
-      unit: "mm",
-      format: [pageW, imgH_mm + 2],
-      orientation: "portrait",
-      compress: true,
-    },
-  }
-
-  const pdfObj = await html2pdf().set(finalOpts).from(el).toPdf().get("pdf")
-
-  // Garante que so tem 1 pagina
+  // Gera PDF e remove paginas em branco extras
+  const pdfObj = await html2pdf().set(opts).from(el).toPdf().get("pdf")
   const totalPages: number = pdfObj.internal.getNumberOfPages()
   for (let i = totalPages; i > 1; i--) {
     pdfObj.deletePage(i)
   }
-
   const blob: Blob = pdfObj.output("blob")
   const file = new File([blob], fname, { type: "application/pdf" })
 
-  // iOS: Web Share API
+  // iOS: Web Share API — compartilha direto (WhatsApp, Arquivos, etc)
   if (
     typeof navigator !== "undefined" &&
     navigator.share &&
@@ -103,7 +84,7 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     }
   }
 
-  // Android / Desktop
+  // Android / Desktop: download direto
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
