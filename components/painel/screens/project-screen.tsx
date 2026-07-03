@@ -75,10 +75,10 @@ export function ProjectScreen() {
 
         <SectionTitle className="mt-6">Relatórios</SectionTitle>
         <div className="space-y-2.5">
-          <SecondaryButton className="w-full" onClick={() => goReport("client")}>
+          <SecondaryButton className="w-full" onClick={() => goReport("reportClient")}>
             <span>📄</span> Relatório de progresso (cliente)
           </SecondaryButton>
-          <SecondaryButton className="w-full" onClick={() => goReport("expenses")}>
+          <SecondaryButton className="w-full" onClick={() => goReport("reportExpenses")}>
             <span>🧾</span> Relatório de gastos (interno)
           </SecondaryButton>
         </div>
