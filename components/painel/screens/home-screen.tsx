@@ -202,7 +202,7 @@ function ProjectCard({
   const m = Number(summary.mappedHectares || 0)
   const total = Number(summary.totalHectares || 0)
   const pctReal = total > 0 ? (m / total) * 100 : 0
-  const isDone = total > 0 && m >= total
+  const isDone = total > 0 && m >= total - 0.01
 
   return (
     <div
