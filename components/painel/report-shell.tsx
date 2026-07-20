@@ -126,9 +126,9 @@ export function ReportShell({
             className="pointer-events-none absolute inset-[7px] rounded-xl"
             style={{ border: `1px solid ${DOC_GREEN}29` }}
           />
-          {/* Selo / marca d'agua central (logo oficial AGS) */}
+          {/* Selo / marca d'agua central (logo oficial AGS GEO) */}
           <img
-            src="/ags-mark.png"
+            src="/ags-geo-mark-trim.png"
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/2 w-[55%] -translate-x-1/2 -translate-y-1/2 select-none"
@@ -202,7 +202,7 @@ export function ReportHeader({
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white"
             style={{ border: "1px solid rgba(255,255,255,0.5)" }}
           >
-            <img src="/ags-mark.png" alt="AGS Soluções Agrícolas" className="h-9 w-9 object-contain" />
+            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-9 w-9 object-contain" />
           </div>
           <div>
             <div className="text-[16px] font-extrabold leading-none tracking-wide">
