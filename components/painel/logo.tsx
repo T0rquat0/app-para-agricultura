@@ -1,8 +1,8 @@
 import Image from "next/image"
 
-// Marca da nova area: AGS GEO — Levantamento e Geoprocessamento.
-// Mantem a familia visual da AGS (engrenagem verde + dourado), trocando o
-// trator por um drone/varredura topografica para identificar a frente de tecnologia.
+// Marca AGS GEO — Inteligência Geoespacial.
+// Simbolo: engrenagem + drone + curvas do terreno + pin, em verde RTK (#2FD48A)
+// com arco de varredura em azul satelite (#3AA0E6). Miolo grafite p/ tema escuro.
 export function Logo({
   size = 40,
   showText = true,
@@ -17,15 +17,15 @@ export function Logo({
   return (
     <div className="flex items-center gap-3">
       <span
-        className="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/10"
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#0A0E11] shadow-sm ring-1 ring-primary/25"
         style={{ width: size, height: size }}
       >
         <Image
-          src="/ags-geo-mark-trim.png"
+          src="/ags-geo-mark-rtk.png"
           alt="Símbolo da AGS GEO"
           width={size}
           height={size}
-          className="h-full w-full object-contain p-1.5"
+          className="h-full w-full object-contain p-1"
           priority
         />
       </span>
@@ -58,15 +58,15 @@ export function LogoFull({
   return (
     <div className={`flex flex-col items-center gap-3 ${className ?? ""}`}>
       <span
-        className="flex items-center justify-center overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-black/10"
+        className="flex items-center justify-center overflow-hidden rounded-3xl bg-[#0A0E11] shadow-md ring-1 ring-primary/25"
         style={{ width: size, height: size }}
       >
         <Image
-          src="/ags-geo-mark-trim.png"
+          src="/ags-geo-mark-rtk.png"
           alt="AGS GEO"
           width={size}
           height={size}
-          className="h-full w-full object-contain p-2.5"
+          className="h-full w-full object-contain p-2"
           priority
         />
       </span>
