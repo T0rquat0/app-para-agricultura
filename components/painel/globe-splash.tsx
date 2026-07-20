@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { geoOrthographic, geoDistance, geoGraticule10, geoPath, geoEquirectangular } from "d3-geo"
+import { geoOrthographic, geoGraticule10, geoPath, geoEquirectangular } from "d3-geo"
 import { feature } from "topojson-client"
 import land110m from "world-atlas/land-110m.json"
 
@@ -23,8 +23,19 @@ const CLOUD_END = 3550
 const TOTAL = 3550
 
 const TAU = Math.PI * 2
+const DEG2RAD = Math.PI / 180
 
-type P = { lon: number; lat: number; ox: number; oy: number; depth: number }
+// Pontos guardam trig pre-calculada (cos/sin de lon e lat) para que o loop de
+// animacao seja so multiplicacoes — nenhum calculo trigonometrico por ponto/frame.
+type P = {
+  cosLat: number
+  sinLat: number
+  cosLon: number
+  sinLon: number
+  ox: number
+  oy: number
+  depth: number
+}
 
 function easeOutCubic(x: number) {
   return 1 - Math.pow(1 - x, 3)
@@ -84,9 +95,13 @@ export function GlobeSplash() {
 
       const pts: P[] = []
       const push = (lon: number, lat: number) => {
+        const lonR = lon * DEG2RAD
+        const latR = lat * DEG2RAD
         pts.push({
-          lon,
-          lat,
+          cosLat: Math.cos(latR),
+          sinLat: Math.sin(latR),
+          cosLon: Math.cos(lonR),
+          sinLon: Math.sin(lonR),
           ox: (Math.random() - 0.5) * 2,
           oy: (Math.random() - 0.5) * 2,
           depth: Math.random(),
@@ -171,10 +186,6 @@ export function GlobeSplash() {
       const structAlpha = 1 - cp // graticula / contorno somem
       const spread = baseScale * 0.5
 
-      const centerLon = -projection.rotate()[0]
-      const centerLat = -projection.rotate()[1]
-      const center: [number, number] = [centerLon, centerLat]
-
       // brilho de fundo (atmosfera)
       const glow = ctx!.createRadialGradient(cx, cy, scale * 0.2, cx, cy, scale * 1.5)
       glow.addColorStop(0, "rgba(47,212,138,0.16)")
@@ -210,25 +221,40 @@ export function GlobeSplash() {
       }
 
       // --- pontos de terra ---
+      // Projecao ortografica feita a mao: com a trig pre-calculada por ponto e os
+      // senos/cossenos da rotacao computados UMA vez por frame, cada ponto custa so
+      // algumas multiplicacoes (sem geoDistance/projection por ponto = sem travar).
       ctx!.fillStyle = "#2FD48A"
-      const halfPi = Math.PI / 2
+      const lam = lambda * DEG2RAD
+      const ph = phi * DEG2RAD
+      const cosLam = Math.cos(lam)
+      const sinLam = Math.sin(lam)
+      const cosPh = Math.cos(ph)
+      const sinPh = Math.sin(ph)
+      const sizeZoom = 1 + z * 0.9
+      const cloudAlphaMul = cp > 0 ? 1 - cp * 0.15 : 1
       for (let i = 0; i < points!.length; i++) {
         const p = points![i]
-        const dist = geoDistance([p.lon, p.lat], center)
-        if (dist > halfPi) continue
-        const xy = projection([p.lon, p.lat])
-        if (!xy) continue
-        let x = xy[0]
-        let y = xy[1]
-        const facing = 1 - dist / halfPi // 1 no centro, 0 na borda
+        // rotacao em longitude (giro do globo)
+        const cosLonP = p.cosLon * cosLam - p.sinLon * sinLam
+        const sinLonP = p.sinLon * cosLam + p.cosLon * sinLam
+        const vx = p.cosLat * cosLonP
+        const vy = p.cosLat * sinLonP
+        const vz = p.sinLat
+        // rotacao em latitude (inclina p/ o foco)
+        const x3 = vx * cosPh - vz * sinPh
+        if (x3 <= 0) continue // costas do globo — nao desenha
+        const facing = x3 // 1 no centro, ~0 na borda
+        let x = cx + scale * vy
+        let y = cy - scale * (vz * cosPh + vx * sinPh)
 
         if (cp > 0) {
           x += cpE * p.ox * spread * (0.5 + p.depth)
           y += cpE * (p.oy * spread * (0.5 + p.depth) - p.depth * 26)
         }
 
-        const size = (0.7 + facing * 1.4) * (1 + z * 0.9)
-        ctx!.globalAlpha = (0.28 + facing * 0.72) * (cp > 0 ? 1 - cp * 0.15 : 1)
+        const size = (0.7 + facing * 1.4) * sizeZoom
+        ctx!.globalAlpha = (0.28 + facing * 0.72) * cloudAlphaMul
         ctx!.fillRect(x - size / 2, y - size / 2, size, size)
       }
       ctx!.globalAlpha = 1
