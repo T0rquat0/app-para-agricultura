@@ -152,7 +152,7 @@ export function ReportClientScreen() {
                       {`${fmtHa(flown)} ha${target}`}
                     </span>
                     {tPct !== null && (
-                      <span className={`text-[11px] font-bold w-8 text-right ${tPct >= 100 ? "text-[#1A4228]" : "text-[#9ca3af]"}`}>
+                      <span className={`text-[11px] font-bold w-8 text-right ${tPct >= 100 ? "text-[#0C3A26]" : "text-[#9ca3af]"}`}>
                         {tPct >= 100 ? "✓" : `${tPct.toFixed(0)}%`}
                       </span>
                     )}
@@ -184,7 +184,7 @@ export function ReportClientScreen() {
                       className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
                       style={{
                         background: s.status === "concluido" ? "#eef6f0" : s.status === "andamento" ? "#fef9ec" : "#f3f4f6",
-                        color: s.status === "concluido" ? "#1A4228" : s.status === "andamento" ? "#92400e" : "#6b7280",
+                        color: s.status === "concluido" ? "#0C3A26" : s.status === "andamento" ? "#92400e" : "#6b7280",
                       }}
                     >
                       {s.status === "concluido" ? "✓ Concluído" : s.status === "andamento" ? "Em andamento" : "Pendente"}
@@ -193,14 +193,14 @@ export function ReportClientScreen() {
                   <div className="space-y-1.5">
                     {getDeliverables(s.name).map((d, j) => (
                       <div key={j} className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: "#1A4228" }}>▸</span>
+                        <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: "#0C3A26" }}>▸</span>
                         <span className="text-[12px] text-[#6b7280] leading-relaxed">{d}</span>
                       </div>
                     ))}
                   </div>
                   {s.clientNote && (
                     <div className="mt-2.5 rounded-xl px-3 py-2.5" style={{ background: "#f0f7f3", border: "1px solid #cfe7d8" }}>
-                      <span className="text-[11px] font-bold text-[#1A4228]">Observação: </span>
+                      <span className="text-[11px] font-bold text-[#0C3A26]">Observação: </span>
                       <span className="text-[12px] text-[#374151]">{s.clientNote}</span>
                     </div>
                   )}
@@ -221,7 +221,7 @@ export function ReportClientScreen() {
                 <div className="text-[13px] font-semibold text-[#1a1a1a]">{s.name}</div>
                 <div className="mt-0.5 text-[11px] text-[#9ca3af]">{pricingSummary(project, s)}</div>
               </div>
-              <span className="text-[13px] font-bold tabular-nums text-[#1A4228]">{fmtMoney(serviceRevenue(project, s))}</span>
+              <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(serviceRevenue(project, s))}</span>
             </div>
           ))}
         </div>
