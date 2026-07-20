@@ -107,18 +107,11 @@ export function GlobeSplash() {
           depth: Math.random(),
         })
       }
-      // 1) globo inteiro — densidade alta em todos os paises (loop otimizado aguenta)
-      const step = 0.95
+      // Uma unica grade UNIFORME no mundo todo: todos os continentes ficam
+      // com a mesma densidade (nada de uma regiao mais cheia que as outras).
+      const step = 0.6
       for (let lat = -82; lat <= 84; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
-          if (isLand(lon, lat)) push(lon, lat)
-        }
-      }
-      // 2) area ampla do zoom (norte da America do Sul) — bem densa,
-      //    cobre toda a regiao visivel durante o zoom p/ nao ter buracos
-      const zStep = 0.3
-      for (let lat = -24; lat <= 26; lat += zStep) {
-        for (let lon = -88; lon <= -34; lon += zStep) {
           if (isLand(lon, lat)) push(lon, lat)
         }
       }
@@ -253,8 +246,10 @@ export function GlobeSplash() {
           y += cpE * (p.oy * spread * (0.5 + p.depth) - p.depth * 26)
         }
 
-        const size = (0.7 + facing * 1.4) * sizeZoom
-        ctx!.globalAlpha = (0.28 + facing * 0.72) * cloudAlphaMul
+        // pontos um pouco maiores/mais brilhantes p/ preencher a terra de forma
+        // homogenea em todos os continentes (leitura de massa cheia)
+        const size = (1.0 + facing * 1.5) * sizeZoom
+        ctx!.globalAlpha = (0.5 + facing * 0.5) * cloudAlphaMul
         ctx!.fillRect(x - size / 2, y - size / 2, size, size)
       }
       ctx!.globalAlpha = 1
