@@ -65,14 +65,14 @@ export function GlobeSplash() {
         })
       }
       // 1) globo inteiro (resolucao media) — leve o suficiente p/ mobile
-      const step = 2.3
+      const step = 1.7
       for (let lat = -78; lat <= 80; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
         }
       }
-      // 2) foco Roraima / Guiana / Venezuela (mais denso p/ o zoom)
-      const fStep = 0.7
+      // 2) foco Roraima / Guiana / Venezuela (nuvem bem densa p/ o zoom)
+      const fStep = 0.32
       for (let lat = -12; lat <= 16; lat += fStep) {
         for (let lon = -78; lon <= -44; lon += fStep) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
