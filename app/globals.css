@@ -222,12 +222,20 @@
 .ags-bar {
   animation: ags-bar 1.3s ease-in-out infinite;
 }
+.ags-wordmark {
+  opacity: 0;
+  animation: ags-rise 0.8s ease-out 2.4s both;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ags-sweep,
   .ags-ring,
   .ags-rise,
-  .ags-bar {
+  .ags-bar,
+  .ags-wordmark {
     animation: none;
+  }
+  .ags-wordmark {
+    opacity: 1;
   }
 }
