@@ -15,31 +15,6 @@ const DOC_GREEN = "#0C3A26"
 const DOC_GREEN_2 = "#12694A"
 const RTK = "#0E9E63"
 
-// Emblema vetorial limpo para o documento (mira/reticulo topografico + pin
-// central). Le bem em qualquer tamanho e como marca d'agua translucida —
-// bem melhor que o PNG detalhado, que borrava.
-function ReportMark({ color, accent }: { color: string; accent?: string }) {
-  const pin = accent ?? color
-  return (
-    <svg viewBox="0 0 100 100" fill="none" className="h-full w-full" aria-hidden="true">
-      {/* circulo externo */}
-      <circle cx="50" cy="50" r="44" stroke={color} strokeWidth="2.5" />
-      {/* circulo interno tracejado (varredura) */}
-      <circle cx="50" cy="50" r="31" stroke={color} strokeWidth="1.5" strokeDasharray="4 5" opacity="0.7" />
-      {/* reticulo (crosshair) */}
-      <path d="M50 4 V20 M50 80 V96 M4 50 H20 M80 50 H96" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-      {/* pin de localizacao central */}
-      <path
-        d="M50 32 C42 32 36 38 36 46 C36 56 50 68 50 68 C50 68 64 56 64 46 C64 38 58 32 50 32 Z"
-        stroke={pin}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="50" cy="46" r="5" fill={pin} />
-    </svg>
-  )
-}
-
 // Estrutura comum dos relatorios: barra superior, "folha" A4 pronta para PDF
 // e botao fixo de download.
 export function ReportShell({
@@ -151,14 +126,14 @@ export function ReportShell({
             className="pointer-events-none absolute inset-[7px] rounded-xl"
             style={{ border: `1px solid ${DOC_GREEN}29` }}
           />
-          {/* Selo / marca d'agua central (emblema vetorial limpo) */}
-          <div
+          {/* Selo / marca d'agua central (logo oficial AGS) */}
+          <img
+            src="/ags-mark.png"
+            alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 w-[58%] -translate-x-1/2 -translate-y-1/2 select-none"
-            style={{ opacity: 0.05 }}
-          >
-            <ReportMark color={DOC_GREEN} />
-          </div>
+            className="pointer-events-none absolute left-1/2 top-1/2 w-[55%] -translate-x-1/2 -translate-y-1/2 select-none"
+            style={{ opacity: 0.06 }}
+          />
           {/* Corpo (cresce e empurra o rodape para baixo) */}
           <div className="relative flex flex-1 flex-col px-7 pb-5">
             {children}
@@ -224,12 +199,10 @@ export function ReportHeader({
       >
         <div className="flex items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)" }}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white"
+            style={{ border: "1px solid rgba(255,255,255,0.5)" }}
           >
-            <div className="h-7 w-7">
-              <ReportMark color="#ffffff" accent={RTK} />
-            </div>
+            <img src="/ags-mark.png" alt="AGS Soluções Agrícolas" className="h-9 w-9 object-contain" />
           </div>
           <div>
             <div className="text-[16px] font-extrabold leading-none tracking-wide">
