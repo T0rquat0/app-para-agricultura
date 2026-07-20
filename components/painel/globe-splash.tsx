@@ -64,17 +64,18 @@ export function GlobeSplash() {
           depth: Math.random(),
         })
       }
-      // 1) globo inteiro (resolucao media) — leve o suficiente p/ mobile
-      const step = 1.7
-      for (let lat = -78; lat <= 80; lat += step) {
+      // 1) globo inteiro (resolucao media) — so aparece no globo pequeno girando
+      const step = 1.5
+      for (let lat = -82; lat <= 84; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
         }
       }
-      // 2) foco Roraima / Guiana / Venezuela (nuvem bem densa p/ o zoom)
-      const fStep = 0.32
-      for (let lat = -12; lat <= 16; lat += fStep) {
-        for (let lon = -78; lon <= -44; lon += fStep) {
+      // 2) area ampla do zoom (norte da America do Sul) — bem densa,
+      //    cobre toda a regiao visivel durante o zoom p/ nao ter buracos
+      const zStep = 0.3
+      for (let lat = -24; lat <= 26; lat += zStep) {
+        for (let lon = -88; lon <= -34; lon += zStep) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
         }
       }
