@@ -64,15 +64,15 @@ export function GlobeSplash() {
           depth: Math.random(),
         })
       }
-      // 1) globo inteiro (resolucao media)
-      const step = 1.8
+      // 1) globo inteiro (resolucao media) — leve o suficiente p/ mobile
+      const step = 2.3
       for (let lat = -78; lat <= 80; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
         }
       }
-      // 2) foco Roraima / Guiana / Venezuela (bem mais denso p/ o zoom)
-      const fStep = 0.55
+      // 2) foco Roraima / Guiana / Venezuela (mais denso p/ o zoom)
+      const fStep = 0.7
       for (let lat = -12; lat <= 16; lat += fStep) {
         for (let lon = -78; lon <= -44; lon += fStep) {
           if (geoContains(land, [lon, lat])) push(lon, lat)
@@ -83,7 +83,8 @@ export function GlobeSplash() {
     const points = pointsRef.current
 
     let raf = 0
-    let start = 0
+    let elapsed = 0
+    let last = 0
     let dpr = 1
     let w = 0
     let h = 0
@@ -112,8 +113,14 @@ export function GlobeSplash() {
     const path = geoPath(projection, ctx!)
 
     function frame(now: number) {
-      if (!start) start = now
-      const t = now - start
+      if (!last) last = now
+      let dt = now - last
+      last = now
+      // se o frame atrasou muito (aba em 2o plano / carga lenta / throttling),
+      // avanca so um passo pequeno em vez de "pular" a animacao inteira
+      if (dt > 60) dt = 16
+      elapsed += dt
+      const t = elapsed
 
       ctx!.clearRect(0, 0, w, h)
 
