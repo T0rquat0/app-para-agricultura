@@ -107,8 +107,8 @@ export function GlobeSplash() {
           depth: Math.random(),
         })
       }
-      // 1) globo inteiro (resolucao media) — so aparece no globo pequeno girando
-      const step = 1.5
+      // 1) globo inteiro — densidade alta em todos os paises (loop otimizado aguenta)
+      const step = 0.95
       for (let lat = -82; lat <= 84; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
           if (isLand(lon, lat)) push(lon, lat)

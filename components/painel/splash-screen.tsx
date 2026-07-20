@@ -28,10 +28,18 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
       {/* Globo animado em canvas (fundo cinematografico) */}
       <GlobeSplash />
 
+      {/* Scrim: escurece a base p/ o nome da empresa se destacar sobre a nuvem */}
+      <div
+        className="ags-wordmark pointer-events-none absolute inset-x-0 bottom-0 h-64"
+        style={{
+          background: "linear-gradient(to top, #05090c 8%, rgba(5,9,12,0.85) 38%, rgba(5,9,12,0) 100%)",
+        }}
+      />
+
       {/* Camada de conteudo */}
       <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-end pb-16">
         {/* Wordmark surge ao final da aproximacao */}
-        <div className="ags-wordmark text-center">
+        <div className="ags-wordmark text-center [text-shadow:0_2px_12px_rgba(0,0,0,0.85)]">
           <div className="text-3xl font-extrabold tracking-tight text-white">
             AGS <span className="text-[#2FD48A]">GEO</span>
           </div>
