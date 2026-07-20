@@ -9,8 +9,9 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    const hold = setTimeout(() => setLeaving(true), 3350)
-    const done = setTimeout(onDone, 3900)
+    // segura ~2s depois que o nome surge (aos ~2,4s) p/ dar tempo de ler
+    const hold = setTimeout(() => setLeaving(true), 5000)
+    const done = setTimeout(onDone, 5550)
     return () => {
       clearTimeout(hold)
       clearTimeout(done)
