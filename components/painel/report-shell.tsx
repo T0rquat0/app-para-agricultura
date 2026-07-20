@@ -10,6 +10,11 @@ import { exportElementToPdf } from "@/lib/pdf"
 const PAPER_W = 760
 const PAPER_MIN_H = Math.round(PAPER_W * 1.414) // ~1075
 
+// Paleta do documento tecnico (impressao): verde escuro legivel + acento RTK.
+const DOC_GREEN = "#0C3A26"
+const DOC_GREEN_2 = "#12694A"
+const RTK = "#0E9E63"
+
 // Estrutura comum dos relatorios: barra superior, "folha" A4 pronta para PDF
 // e botao fixo de download.
 export function ReportShell({
@@ -119,15 +124,15 @@ export function ReportShell({
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-[7px] rounded-xl"
-            style={{ border: "1px solid rgba(26,66,40,0.16)" }}
+            style={{ border: `1px solid ${DOC_GREEN}29` }}
           />
           {/* Selo / marca d'agua central */}
           <img
-            src="/ags-geo-mark-trim.png"
+            src="/ags-geo-mark-rtk.png"
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/2 w-[72%] -translate-x-1/2 -translate-y-1/2 select-none"
-            style={{ opacity: 0.05 }}
+            style={{ opacity: 0.04 }}
           />
           {/* Corpo (cresce e empurra o rodape para baixo) */}
           <div className="relative flex flex-1 flex-col px-7 pb-5">
@@ -143,7 +148,7 @@ export function ReportShell({
             </div>
           </div>
           {/* Rodape fixo no pe da folha */}
-          <div className="relative" style={{ borderTop: "2px solid #1A4228" }}>
+          <div className="relative" style={{ borderTop: `2px solid ${DOC_GREEN}` }}>
             <div className="px-7 py-3 text-center">
               <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#374151]">
                 AGS GEO · uma divisão da AGS Soluções Agrícolas LTDA
@@ -178,24 +183,30 @@ export function ReportHeader({
   meta?: string
   docType?: string
 }) {
-  const date = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+  const now = new Date()
+  const date = now.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
+  // Codigo de documento tecnico (ex.: AGS-GEO-20260720-8421)
+  const docCode = `AGS-GEO-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(
+    now.getDate(),
+  ).padStart(2, "0")}`
+
   return (
     <div className="mb-5">
       {/* Faixa de marca (sangra ate as bordas da folha) */}
       <div
         className="-mx-7 flex items-start justify-between gap-3 px-7 py-4 text-white"
-        style={{ background: "linear-gradient(135deg, #163b22 0%, #225a37 100%)" }}
+        style={{ background: `linear-gradient(135deg, ${DOC_GREEN} 0%, ${DOC_GREEN_2} 100%)` }}
       >
         <div className="flex items-center gap-3">
           <div
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white"
-            style={{ boxShadow: "0 2px 6px rgba(0,0,0,0.18)" }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: "#06100b", boxShadow: "0 2px 6px rgba(0,0,0,0.28)" }}
           >
-            <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-8 w-8 object-contain" />
+            <img src="/ags-geo-mark-rtk.png" alt="AGS GEO" className="h-9 w-9 object-contain" />
           </div>
           <div>
             <div className="text-[16px] font-extrabold leading-none tracking-wide">
-              AGS <span style={{ color: "#E3B53D" }}>GEO</span>
+              AGS <span style={{ color: RTK }}>GEO</span>
             </div>
             <div className="mt-1 text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.78)" }}>
               Levantamento e Geoprocessamento
@@ -213,6 +224,9 @@ export function ReportHeader({
           )}
           <div className="text-[9.5px]" style={{ color: "rgba(255,255,255,0.82)" }}>
             {date}
+          </div>
+          <div className="mt-0.5 font-mono text-[8px] tracking-wider" style={{ color: "rgba(255,255,255,0.55)" }}>
+            {docCode}
           </div>
         </div>
       </div>
@@ -244,8 +258,9 @@ export function ReportRow({
       <span className={`text-[13px] ${strong ? "font-bold text-[#1a1a1a]" : "text-[#4b5563]"}`}>{label}</span>
       <span
         className={`text-[13px] tabular-nums ${
-          accent ? "font-extrabold text-[#1A4228]" : strong ? "font-bold text-[#1a1a1a]" : "font-semibold text-[#1a1a1a]"
+          accent ? "font-extrabold" : strong ? "font-bold text-[#1a1a1a]" : "font-semibold text-[#1a1a1a]"
         }`}
+        style={accent ? { color: DOC_GREEN } : undefined}
       >
         {value}
       </span>
@@ -256,7 +271,13 @@ export function ReportRow({
 export function ReportSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mb-4">
-      <h3 className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#1A4228]">{title}</h3>
+      <h3
+        className="mb-1 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em]"
+        style={{ color: DOC_GREEN }}
+      >
+        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-[1px]" style={{ background: RTK }} />
+        {title}
+      </h3>
       {children}
     </div>
   )
@@ -282,7 +303,7 @@ export function ReportTotal({
       }}
     >
       <span className="text-[13px] font-bold text-[#1a1a1a]">{label}</span>
-      <span className="text-[19px] font-extrabold tabular-nums" style={{ color: negative ? "#b42318" : "#1A4228" }}>
+      <span className="text-[19px] font-extrabold tabular-nums" style={{ color: negative ? "#b42318" : DOC_GREEN }}>
         {value}
       </span>
     </div>
