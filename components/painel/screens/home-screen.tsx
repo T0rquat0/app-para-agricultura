@@ -87,8 +87,8 @@ export function HomeScreen() {
           className={
             "w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] " +
             (isPositive
-              ? "bg-gradient-to-br from-[#1e5c38] to-[#2d7a4f]"
-              : "bg-gradient-to-br from-[#7a1e1e] to-[#a83232]")
+              ? "bg-gradient-to-br from-[#0c3a26] to-[#12694a]"
+              : "bg-gradient-to-br from-[#4a1414] to-[#8a2626]")
           }
         >
           <div className="flex items-start justify-between">
@@ -96,7 +96,7 @@ export function HomeScreen() {
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
                 Saldo da operacao
               </p>
-              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#7dffb3]" : "text-[#ffaaaa]")}>
+              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#5fe3a0]" : "text-[#ffaaaa]")}>
                 {fmtMoney(balance)}
               </p>
             </div>
