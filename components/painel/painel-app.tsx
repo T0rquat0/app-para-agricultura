@@ -19,9 +19,14 @@ export function PainelApp() {
   const [showSplash, setShowSplash] = useState(false)
 
   // Splash apenas no "cold start" (uma vez por sessao), para nao atrapalhar a navegacao
-  // DEV: trava de sessao desativada temporariamente p/ a splash aparecer em todo reload.
   useEffect(() => {
-    setShowSplash(true)
+    try {
+      if (!window.sessionStorage.getItem("ags-splash-shown")) {
+        setShowSplash(true)
+      }
+    } catch {
+      setShowSplash(true)
+    }
   }, [])
 
   const dismissSplash = useCallback(() => {
