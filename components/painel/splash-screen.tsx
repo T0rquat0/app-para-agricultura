@@ -74,7 +74,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           AGS <span className="text-[#2FD48A]">GEO</span>
         </div>
         <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#9FE7C4]">
-          Inteligência Geoespacial
+          Levantamento e Geoprocessamento
         </div>
       </div>
 
