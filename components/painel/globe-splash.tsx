@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { geoOrthographic, geoDistance, geoGraticule10, geoPath, geoContains } from "d3-geo"
+import { geoOrthographic, geoDistance, geoGraticule10, geoPath, geoEquirectangular } from "d3-geo"
 import { feature } from "topojson-client"
 import land110m from "world-atlas/land-110m.json"
 
@@ -54,6 +54,34 @@ export function GlobeSplash() {
       // topojson -> feature de terra (MultiPolygon unico)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const land = feature(land110m as any, (land110m as any).objects.land) as any
+
+      // Rasteriza a terra UMA vez numa grade equiretangular e consulta pixels (O(1)).
+      // Muito mais rapido que geoContains por ponto — evita travar a thread no load.
+      const RW = 1024
+      const RH = 512
+      const off = document.createElement("canvas")
+      off.width = RW
+      off.height = RH
+      const octx = off.getContext("2d", { willReadFrequently: true })!
+      const eq = geoEquirectangular().fitSize([RW, RH], { type: "Sphere" })
+      const opath = geoPath(eq, octx)
+      octx.fillStyle = "#fff"
+      octx.beginPath()
+      opath(land)
+      octx.fill()
+      const mask = octx.getImageData(0, 0, RW, RH).data
+      const isLand = (lon: number, lat: number) => {
+        const xy = eq([lon, lat])
+        if (!xy) return false
+        let px = Math.floor(xy[0])
+        let py = Math.floor(xy[1])
+        if (px < 0) px = 0
+        else if (px >= RW) px = RW - 1
+        if (py < 0) py = 0
+        else if (py >= RH) py = RH - 1
+        return mask[(py * RW + px) * 4 + 3] > 128
+      }
+
       const pts: P[] = []
       const push = (lon: number, lat: number) => {
         pts.push({
@@ -68,7 +96,7 @@ export function GlobeSplash() {
       const step = 1.5
       for (let lat = -82; lat <= 84; lat += step) {
         for (let lon = -180; lon <= 180; lon += step) {
-          if (geoContains(land, [lon, lat])) push(lon, lat)
+          if (isLand(lon, lat)) push(lon, lat)
         }
       }
       // 2) area ampla do zoom (norte da America do Sul) — bem densa,
@@ -76,7 +104,7 @@ export function GlobeSplash() {
       const zStep = 0.3
       for (let lat = -24; lat <= 26; lat += zStep) {
         for (let lon = -88; lon <= -34; lon += zStep) {
-          if (geoContains(land, [lon, lat])) push(lon, lat)
+          if (isLand(lon, lat)) push(lon, lat)
         }
       }
       pointsRef.current = pts
