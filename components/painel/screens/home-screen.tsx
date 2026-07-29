@@ -39,6 +39,15 @@ export function HomeScreen() {
   const invested = overview?.invested ?? 0
   const isPositive = balance >= 0
   const margin = totalContract > 0 ? (balance / totalContract) * 100 : 0
+  const balanceLabel = fmtMoney(balance)
+  const balanceFontSize =
+    balanceLabel.length >= 17
+      ? "text-[18px]"
+      : balanceLabel.length >= 14
+        ? "text-[22px]"
+        : balanceLabel.length >= 12
+          ? "text-[27px]"
+          : "text-[34px]"
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -127,21 +136,26 @@ export function HomeScreen() {
               : "bg-gradient-to-br from-[#4a1414] to-[#8a2626]")
           }
         >
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
                 Saldo da operacao
               </p>
-              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#5fe3a0]" : "text-[#ffaaaa]")}>
-                {fmtMoney(balance)}
+              <p
+                className={
+                  `num mt-1.5 ${balanceFontSize} font-extrabold leading-tight tracking-tight break-words ` +
+                  (isPositive ? "text-[#5fe3a0]" : "text-[#ffaaaa]")
+                }
+              >
+                {balanceLabel}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
                 <TrendingUp className="h-5 w-5 text-white" />
               </span>
               {totalContract > 0 && (
-                <span className="num rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/75">
+                <span className="num whitespace-nowrap rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/75">
                   {margin >= 0 ? "+" : ""}{margin.toFixed(0)}% margem
                 </span>
               )}
