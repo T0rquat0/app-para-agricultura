@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef } from "react"
-import { Check, ChevronRight, Download, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
+import { Banknote, Check, ChevronRight, Download, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
 import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
 import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
@@ -13,7 +13,7 @@ import { IconButton } from "../buttons"
 export function HomeScreen() {
   const { index, isLoading } = useIndex()
   const { overview } = useFinancialOverview()
-  const { openProject, goNewProject, goInvestments, dark, toggleDark } = useNav()
+  const { openProject, goNewProject, goInvestments, goCommission, dark, toggleDark } = useNav()
   const refresh = useRefresh()
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -160,7 +160,25 @@ export function HomeScreen() {
         </button>
       </div>
 
-      <div className="flex-1 px-4 pb-24 pt-6">
+      <div className="px-4 pt-3">
+        <button
+          onClick={goCommission}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:bg-muted active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Banknote className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-[14px] font-extrabold text-foreground">Comissão</div>
+              <div className="text-xs text-muted-foreground">Lançar levantamentos e gerar relatório do mês</div>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
+      <div className="flex-1 px-4 pb-24 pt-4">
         <div className="mb-6 flex gap-2">
           <button
             onClick={() => exportBackup()}

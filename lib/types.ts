@@ -86,10 +86,27 @@ export interface FinancialOverview {
   investments: Investment[]
 }
 
+export interface CommissionEntry {
+  id: string
+  clientName: string
+  hectares: number
+  rate: number
+  date: string
+  note?: string
+  createdAt?: string
+}
+
+export interface CommissionConfig {
+  percent: number
+  fixedSalary: number
+}
+
 export interface BackupData {
   version: number
   exportedAt: string
   projects: Project[]
   vehicles: string[]
   investments: Investment[]
+  commissionEntries?: CommissionEntry[]
+  commissionConfig?: CommissionConfig
 }

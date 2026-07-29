@@ -7,14 +7,18 @@
 // ============================================================
 
 import { mappedHa, projectRevenue, totalExpenses } from "./calculations"
-import type { FinancialOverview, Investment, Project, ProjectSummary } from "./types"
+import type { CommissionConfig, CommissionEntry, FinancialOverview, Investment, Project, ProjectSummary } from "./types"
 
 const KEYS = {
   index: "ags-projects-index",
   project: (id: string) => "ags-project-" + id,
   vehicles: "ags-vehicles",
   investments: "ags-investments",
+  commissionEntries: "ags-commission-entries",
+  commissionConfig: "ags-commission-config",
 }
+
+const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
 
 function read(key: string): string | null {
   if (typeof window === "undefined") return null
@@ -159,6 +163,33 @@ export async function getFinancialOverview(): Promise<FinancialOverview> {
   }
 }
 
+// ---- Comissao (lancamentos de levantamento por periodo + config) ----
+export async function getCommissionEntries(): Promise<CommissionEntry[]> {
+  const v = read(KEYS.commissionEntries)
+  try {
+    return v ? (JSON.parse(v) as CommissionEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+export async function saveCommissionEntries(list: CommissionEntry[]) {
+  write(KEYS.commissionEntries, JSON.stringify(list))
+}
+
+export async function getCommissionConfig(): Promise<CommissionConfig> {
+  const v = read(KEYS.commissionConfig)
+  try {
+    return v ? (JSON.parse(v) as CommissionConfig) : DEFAULT_COMMISSION_CONFIG
+  } catch {
+    return DEFAULT_COMMISSION_CONFIG
+  }
+}
+
+export async function saveCommissionConfig(config: CommissionConfig) {
+  write(KEYS.commissionConfig, JSON.stringify(config))
+}
+
 // ---- Backup manual (export/import de arquivo JSON) ----
 export async function exportBackup() {
   const idx = await getIndex()
@@ -169,7 +200,17 @@ export async function exportBackup() {
   }
   const vehicles = await getVehicles()
   const investments = await getInvestments()
-  const backup = { version: 1, exportedAt: new Date().toISOString(), projects, vehicles, investments }
+  const commissionEntries = await getCommissionEntries()
+  const commissionConfig = await getCommissionConfig()
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    projects,
+    vehicles,
+    investments,
+    commissionEntries,
+    commissionConfig,
+  }
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
@@ -181,8 +222,16 @@ export async function exportBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
 
-export async function importBackup(data: { projects?: Project[]; vehicles?: string[]; investments?: Investment[] }) {
+export async function importBackup(data: {
+  projects?: Project[]
+  vehicles?: string[]
+  investments?: Investment[]
+  commissionEntries?: CommissionEntry[]
+  commissionConfig?: CommissionConfig
+}) {
   for (const p of data.projects || []) await saveProject(p)
   if (data.vehicles && data.vehicles.length) write(KEYS.vehicles, JSON.stringify(data.vehicles))
   if (data.investments) await saveInvestments(data.investments)
+  if (data.commissionEntries) await saveCommissionEntries(data.commissionEntries)
+  if (data.commissionConfig) await saveCommissionConfig(data.commissionConfig)
 }

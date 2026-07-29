@@ -9,11 +9,15 @@ import { ReportClientScreen } from "./screens/report-client-screen"
 import { ReportExpensesScreen } from "./screens/report-expenses-screen"
 import { InvestmentsScreen } from "./screens/investments-screen"
 import { InvestmentsReportScreen } from "./screens/investments-report-screen"
+import { CommissionScreen } from "./screens/commission-screen"
+import { CommissionReportScreen } from "./screens/commission-report-screen"
 import { SplashScreen } from "./splash-screen"
+import { currentPeriod } from "@/lib/calculations"
 
 export function PainelApp() {
   const [screen, setScreen] = useState<Screen>("home")
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [period, setPeriodState] = useState<string>(currentPeriod())
   const [activeTab, setActiveTab] = useState<Tab>("areas")
   const [dark, setDark] = useState(false)
   const [showSplash, setShowSplash] = useState(false)
@@ -63,6 +67,8 @@ export function PainelApp() {
   }, [])
   const goNewProject = useCallback(() => setScreen("newProject"), [])
   const goInvestments = useCallback(() => setScreen("investments"), [])
+  const goCommission = useCallback(() => setScreen("commission"), [])
+  const setPeriod = useCallback((p: string) => setPeriodState(p), [])
   const setTab = useCallback((t: Tab) => setActiveTab(t), [])
   const goReport = useCallback((s: Screen) => setScreen(s), [])
   const toggleDark = useCallback(() => setDark((d) => !d), [])
@@ -72,6 +78,7 @@ export function PainelApp() {
       value={{
         screen,
         currentProjectId,
+        currentPeriod: period,
         activeTab,
         dark,
         navigate,
@@ -79,6 +86,8 @@ export function PainelApp() {
         goHome,
         goNewProject,
         goInvestments,
+        goCommission,
+        setPeriod,
         setTab,
         goReport,
         toggleDark,
@@ -94,6 +103,8 @@ export function PainelApp() {
           {screen === "reportExpenses" && <ReportExpensesScreen />}
           {screen === "investments" && <InvestmentsScreen />}
           {screen === "investmentsReport" && <InvestmentsReportScreen />}
+          {screen === "commission" && <CommissionScreen />}
+          {screen === "commissionReport" && <CommissionReportScreen />}
         </div>
       </div>
     </NavContext.Provider>

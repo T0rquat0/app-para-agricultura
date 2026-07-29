@@ -1,0 +1,113 @@
+"use client"
+
+import { useNav } from "../nav-context"
+import { useCommissionConfig, useCommissionEntries } from "@/lib/hooks"
+import {
+  commissionTotal,
+  commissionVariable,
+  currentPeriod,
+  entriesForPeriod,
+  entryRevenue,
+  periodLabel,
+  periodRevenue,
+} from "@/lib/calculations"
+import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
+import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
+
+const Divider = () => <div style={{ height: 1, background: "#f0f0f0", margin: "20px 0" }} />
+
+export function CommissionReportScreen() {
+  const { goReport, currentPeriod: navPeriod } = useNav()
+  const { entries } = useCommissionEntries()
+  const { config } = useCommissionConfig()
+  const period = navPeriod || currentPeriod()
+
+  const list = entriesForPeriod(entries, period).slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+  const revenue = periodRevenue(entries, period)
+  const variable = commissionVariable(entries, period, config)
+  const total = commissionTotal(entries, period, config)
+
+  // Agrupado por cliente, para o resumo por cliente do relatorio.
+  const byClient = new Map<string, { hectares: number; revenue: number }>()
+  for (const e of list) {
+    const cur = byClient.get(e.clientName) || { hectares: 0, revenue: 0 }
+    cur.hectares += Number(e.hectares || 0)
+    cur.revenue += entryRevenue(e)
+    byClient.set(e.clientName, cur)
+  }
+
+  return (
+    <ReportShell
+      title="Relatório de comissão"
+      subtitle={periodLabel(period)}
+      filename={`relatorio_comissao_${period}`}
+      onBack={() => goReport("commission")}
+      footerNote="Documento interno — uso gerencial."
+    >
+      <ReportHeader
+        docType="Relatório de Comissão"
+        heading={periodLabel(period)}
+        meta="Divisão de Geoprocessamento com Drone"
+      />
+
+      <ReportSection title="Resumo do mês">
+        <ReportRow label="Levantamentos lançados" value={String(list.length)} />
+        <ReportRow label="Hectares faturados" value={`${fmtHa(list.reduce((s, e) => s + Number(e.hectares || 0), 0))} ha`} />
+        <ReportRow label="Faturamento dos levantamentos" value={fmtMoney(revenue)} accent />
+      </ReportSection>
+
+      <Divider />
+
+      <ReportSection title="Faturamento por cliente">
+        {byClient.size === 0 ? (
+          <p className="py-2 text-[13px] text-[#6b7280]">Nenhum levantamento lançado neste período.</p>
+        ) : (
+          Array.from(byClient.entries()).map(([clientName, v]) => (
+            <div key={clientName} className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid #f1f1f1" }}>
+              <div>
+                <div className="text-[13px] font-semibold text-[#1a1a1a]">{clientName}</div>
+                <div className="mt-0.5 text-[11px] text-[#9ca3af]">{fmtHa(v.hectares)} ha levantados</div>
+              </div>
+              <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(v.revenue)}</span>
+            </div>
+          ))
+        )}
+      </ReportSection>
+
+      <Divider />
+
+      <ReportSection title="Lançamentos do período">
+        {list.length === 0 ? (
+          <p className="py-2 text-[13px] text-[#6b7280]">Nenhum lançamento neste período.</p>
+        ) : (
+          list.map((e) => (
+            <div key={e.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-[#1a1a1a]">{e.clientName}</span>
+                <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(entryRevenue(e))}</span>
+              </div>
+              <div className="mt-0.5 flex items-center justify-between text-[11px] text-[#6b7280]">
+                <span>
+                  {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha{e.note ? ` · ${e.note}` : ""}
+                </span>
+                <span>{fmtDate(e.date)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </ReportSection>
+
+      <Divider />
+
+      <ReportSection title="Cálculo da comissão">
+        <ReportRow label="Faturamento dos levantamentos" value={fmtMoney(revenue)} />
+        <ReportRow label={`Comissão variável (${config.percent}%)`} value={fmtMoney(variable)} />
+        <ReportRow label="Salário fixo" value={fmtMoney(config.fixedSalary)} />
+      </ReportSection>
+
+      <ReportSection title="Total a receber">
+        <ReportTotal label="Comissão + salário fixo" value={fmtMoney(total)} />
+      </ReportSection>
+    </ReportShell>
+  )
+}

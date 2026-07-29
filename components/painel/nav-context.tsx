@@ -10,12 +10,15 @@ export type Screen =
   | "reportExpenses"
   | "investments"
   | "investmentsReport"
+  | "commission"
+  | "commissionReport"
 
 export type Tab = "areas" | "services" | "expenses" | "timeline"
 
 export interface NavState {
   screen: Screen
   currentProjectId: string | null
+  currentPeriod: string
   activeTab: Tab
   dark: boolean
   navigate: (screen: Screen) => void
@@ -23,6 +26,8 @@ export interface NavState {
   goHome: () => void
   goNewProject: () => void
   goInvestments: () => void
+  goCommission: () => void
+  setPeriod: (period: string) => void
   setTab: (tab: Tab) => void
   goReport: (screen: Screen) => void
   toggleDark: () => void
