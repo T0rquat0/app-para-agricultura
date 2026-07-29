@@ -551,7 +551,7 @@ export function EditProjectModal({
       </Field>
       <Field
         label="Valor de comissão por hectare (R$, opcional)"
-        hint="Usado para puxar a comissão automaticamente a partir das áreas mapeadas deste cliente."
+        hint='Deixe em branco para usar automaticamente o valor do serviço "Levantamento Altimétrico" (aba Serviços). Preencha aqui só se quiser um valor diferente do faturado.'
       >
         <TextInput value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 20.00" />
       </Field>

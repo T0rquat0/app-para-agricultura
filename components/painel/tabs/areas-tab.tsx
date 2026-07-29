@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Check, ChevronDown, Pencil, Plus, X } from "lucide-react"
 import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
-import { mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
+import { effectiveCommissionRate, mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { saveProject } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
@@ -22,6 +22,7 @@ export function AreasTab({ project }: { project: Project }) {
 
   const mapped = mappedHa(project)
   const pctVal = project.totalHectares ? (mapped / project.totalHectares) * 100 : 0
+  const commissionRate = effectiveCommissionRate(project)
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -67,14 +68,15 @@ export function AreasTab({ project }: { project: Project }) {
         <SummaryStat label="Progresso" value={`${pctVal.toFixed(0)}%`} />
       </div>
       <ProgressBar value={pctVal} className="mb-2 h-2.5" />
-      {project.commissionRate ? (
+      {commissionRate > 0 ? (
         <div className="mb-5 text-[11.5px] text-muted-foreground">
-          Comissão: <span className="font-bold text-foreground">{fmtMoney(project.commissionRate)}/ha</span> · toque no
-          lápis no topo para alterar
+          Comissão: <span className="font-bold text-foreground">{fmtMoney(commissionRate)}/ha</span>
+          {project.commissionRate ? " (valor manual)" : " (do serviço por hectare)"}
         </div>
       ) : (
         <div className="mb-5 text-[11.5px] text-muted-foreground">
-          Valor de comissão não configurado · toque no lápis no topo para definir
+          Valor de comissão não identificado · configure o valor por hectare em "Serviços" ou defina manualmente no
+          lápis no topo
         </div>
       )}
 

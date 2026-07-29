@@ -83,7 +83,7 @@ export function CommissionScreen() {
     const missing = clientsMissingCommissionRate(projects, pullStart, pullEnd)
     if (missing.length) {
       const proceed = confirm(
-        `Estes clientes têm áreas mapeadas no período, mas não têm valor de comissão por hectare configurado (defina em "Editar projeto"): ${missing.join(
+        `Não consegui identificar o valor por hectare destes clientes (configure o serviço "Levantamento Altimétrico" com o valor, ou defina manualmente em "Editar projeto"): ${missing.join(
           ", ",
         )}.\n\nContinuar e puxar apenas os demais clientes?`,
       )

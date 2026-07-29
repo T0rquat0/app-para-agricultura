@@ -123,7 +123,25 @@ export function periodRange(period: string): { start: string; end: string } {
 
 // ---- Puxar comissao automaticamente a partir das areas lancadas nos projetos ----
 // Agrupa as partes voadas (Area) de cada projeto por dia, dentro do intervalo,
-// e aplica o valor por hectare configurado no projeto (Project.commissionRate).
+// e aplica o valor por hectare ja usado para faturar o cliente.
+
+// Valor por hectare a usar na comissao deste projeto:
+// 1) Project.commissionRate, se o usuario definiu um valor manual (substitui tudo).
+// 2) O servico "Levantamento Altimetrico" (billingType hectare), que ja e o
+//    servico que acompanha os hectares mapeados automaticamente.
+// 3) Se so existir um servico por hectare no projeto, usa o dele.
+// Retorna 0 quando nao da pra decidir sozinho (nenhum servico por hectare, ou mais
+// de um sem ser o Levantamento Altimetrico) — nesse caso o projeto e ignorado no pull.
+export function effectiveCommissionRate(p: Project): number {
+  const manual = Number(p.commissionRate || 0)
+  if (manual > 0) return manual
+  const hectareServices = (p.services || []).filter((s) => s.billingType === "hectare" && Number(s.rate || 0) > 0)
+  if (hectareServices.length === 0) return 0
+  const altimetric = hectareServices.find((s) => isAltimetricName(s.name))
+  if (altimetric) return Number(altimetric.rate)
+  if (hectareServices.length === 1) return Number(hectareServices[0].rate)
+  return 0
+}
 
 export interface CommissionDraft {
   clientName: string
@@ -136,7 +154,7 @@ export interface CommissionDraft {
 export function pullCommissionDrafts(projects: Project[], startDate: string, endDate: string): CommissionDraft[] {
   const byKey = new Map<string, CommissionDraft>()
   for (const p of projects || []) {
-    const rate = Number(p.commissionRate || 0)
+    const rate = effectiveCommissionRate(p)
     if (!rate) continue
     for (const a of p.areas || []) {
       const d = a.date
@@ -157,7 +175,7 @@ export function pullCommissionDrafts(projects: Project[], startDate: string, end
 export function clientsMissingCommissionRate(projects: Project[], startDate: string, endDate: string): string[] {
   const names = new Set<string>()
   for (const p of projects || []) {
-    if (Number(p.commissionRate || 0) > 0) continue
+    if (effectiveCommissionRate(p) > 0) continue
     const hasAreaInRange = (p.areas || []).some((a) => a.date && a.date >= startDate && a.date <= endDate)
     if (hasAreaInRange) names.add(p.clientName)
   }
