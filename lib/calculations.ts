@@ -112,6 +112,58 @@ export function periodLabel(period: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+// Primeiro e ultimo dia (AAAA-MM-DD) de um periodo "AAAA-MM".
+export function periodRange(period: string): { start: string; end: string } {
+  const [y, m] = period.split("-").map(Number)
+  const start = `${period}-01`
+  const lastDay = y && m ? new Date(y, m, 0).getDate() : 31
+  const end = `${period}-${String(lastDay).padStart(2, "0")}`
+  return { start, end }
+}
+
+// ---- Puxar comissao automaticamente a partir das areas lancadas nos projetos ----
+// Agrupa as partes voadas (Area) de cada projeto por dia, dentro do intervalo,
+// e aplica o valor por hectare configurado no projeto (Project.commissionRate).
+
+export interface CommissionDraft {
+  clientName: string
+  projectId: string
+  hectares: number
+  rate: number
+  date: string
+}
+
+export function pullCommissionDrafts(projects: Project[], startDate: string, endDate: string): CommissionDraft[] {
+  const byKey = new Map<string, CommissionDraft>()
+  for (const p of projects || []) {
+    const rate = Number(p.commissionRate || 0)
+    if (!rate) continue
+    for (const a of p.areas || []) {
+      const d = a.date
+      if (!d || d < startDate || d > endDate) continue
+      const key = `${p.id}|${d}`
+      const existing = byKey.get(key)
+      if (existing) {
+        existing.hectares += Number(a.hectares || 0)
+      } else {
+        byKey.set(key, { clientName: p.clientName, projectId: p.id, hectares: Number(a.hectares || 0), rate, date: d })
+      }
+    }
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+// Clientes que tem areas lancadas no intervalo mas nenhum valor de comissao configurado.
+export function clientsMissingCommissionRate(projects: Project[], startDate: string, endDate: string): string[] {
+  const names = new Set<string>()
+  for (const p of projects || []) {
+    if (Number(p.commissionRate || 0) > 0) continue
+    const hasAreaInRange = (p.areas || []).some((a) => a.date && a.date >= startDate && a.date <= endDate)
+    if (hasAreaInRange) names.add(p.clientName)
+  }
+  return Array.from(names)
+}
+
 export function pricingSummary(p: Project, s: Service): string {
   if (s.billingType === "fixo") {
     if (!s.rate) return "Toque para definir o valor do pacote"

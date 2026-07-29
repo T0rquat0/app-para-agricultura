@@ -5,6 +5,7 @@
 
 import useSWR, { useSWRConfig } from "swr"
 import {
+  getAllProjects,
   getCommissionConfig,
   getCommissionEntries,
   getFinancialOverview,
@@ -31,6 +32,11 @@ export function useIndex() {
 export function useProject(id: string | null) {
   const { data, isLoading } = useSWR(id ? `project:${id}` : null, () => getProject(id as string))
   return { project: data || null, isLoading }
+}
+
+export function useAllProjects() {
+  const { data, isLoading } = useSWR("all-projects", () => getAllProjects())
+  return { projects: data || [], isLoading }
 }
 
 export function useInvestments() {

@@ -5,7 +5,7 @@ import { Check, ChevronDown, Pencil, Plus, X } from "lucide-react"
 import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
 import { mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
-import { fmtDate, fmtHa } from "@/lib/format"
+import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { saveProject } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
@@ -66,7 +66,17 @@ export function AreasTab({ project }: { project: Project }) {
         <SummaryStat label="Contratado" value={`${fmtHa(project.totalHectares)} ha`} />
         <SummaryStat label="Progresso" value={`${pctVal.toFixed(0)}%`} />
       </div>
-      <ProgressBar value={pctVal} className="mb-5 h-2.5" />
+      <ProgressBar value={pctVal} className="mb-2 h-2.5" />
+      {project.commissionRate ? (
+        <div className="mb-5 text-[11.5px] text-muted-foreground">
+          Comissão: <span className="font-bold text-foreground">{fmtMoney(project.commissionRate)}/ha</span> · toque no
+          lápis no topo para alterar
+        </div>
+      ) : (
+        <div className="mb-5 text-[11.5px] text-muted-foreground">
+          Valor de comissão não configurado · toque no lápis no topo para definir
+        </div>
+      )}
 
       <SectionTitle>Talhões / matrículas</SectionTitle>
       {talhoes.length === 0 ? (

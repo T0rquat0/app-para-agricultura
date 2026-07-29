@@ -90,6 +90,16 @@ export async function saveProject(p: Project): Promise<Project> {
   return p
 }
 
+export async function getAllProjects(): Promise<Project[]> {
+  const idx = await getIndex()
+  const list: Project[] = []
+  for (const summary of idx) {
+    const full = await getProject(summary.id)
+    if (full) list.push(full)
+  }
+  return list
+}
+
 export async function deleteProjectById(id: string) {
   remove(KEYS.project(id))
   const idx = await getIndex()

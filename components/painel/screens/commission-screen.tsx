@@ -1,9 +1,9 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, Settings, Trash2, Wallet } from "lucide-react"
+import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, Settings, Trash2, Wallet, Zap } from "lucide-react"
 import { useNav } from "../nav-context"
-import { useCommissionConfig, useCommissionEntries, useIndex, useRefresh } from "@/lib/hooks"
+import { useAllProjects, useCommissionConfig, useCommissionEntries, useIndex, useRefresh } from "@/lib/hooks"
 import {
   getCommissionConfig,
   getCommissionEntries,
@@ -11,13 +11,16 @@ import {
   saveCommissionEntries,
 } from "@/lib/storage"
 import {
+  clientsMissingCommissionRate,
   commissionTotal,
   commissionVariable,
   currentPeriod,
   entriesForPeriod,
   entryRevenue,
   periodLabel,
+  periodRange,
   periodRevenue,
+  pullCommissionDrafts,
 } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { CommissionEntry } from "@/lib/types"
@@ -31,6 +34,7 @@ export function CommissionScreen() {
   const { entries } = useCommissionEntries()
   const { config } = useCommissionConfig()
   const { index } = useIndex()
+  const { projects } = useAllProjects()
   const refresh = useRefresh()
 
   const [period, setPeriod] = useState(navPeriod || currentPeriod())
@@ -46,6 +50,10 @@ export function CommissionScreen() {
   const [percentInput, setPercentInput] = useState(String(config.percent))
   const [salaryInput, setSalaryInput] = useState(String(config.fixedSalary))
 
+  const [pullOpen, setPullOpen] = useState(false)
+  const [pullStart, setPullStart] = useState("")
+  const [pullEnd, setPullEnd] = useState("")
+
   const periodEntries = useMemo(
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
     [entries, period],
@@ -58,6 +66,49 @@ export function CommissionScreen() {
     const [y, m] = period.split("-").map(Number)
     const d = new Date(y, m - 1 + delta, 1)
     setPeriod(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
+  }
+
+  function openPull() {
+    const { start, end } = periodRange(period)
+    setPullStart(start)
+    setPullEnd(end)
+    setPullOpen(true)
+  }
+
+  async function runPull() {
+    if (!pullStart || !pullEnd || pullStart > pullEnd) {
+      alert("Informe uma data de início e uma data de fim válidas.")
+      return
+    }
+    const missing = clientsMissingCommissionRate(projects, pullStart, pullEnd)
+    if (missing.length) {
+      const proceed = confirm(
+        `Estes clientes têm áreas mapeadas no período, mas não têm valor de comissão por hectare configurado (defina em "Editar projeto"): ${missing.join(
+          ", ",
+        )}.\n\nContinuar e puxar apenas os demais clientes?`,
+      )
+      if (!proceed) return
+    }
+    const drafts = pullCommissionDrafts(projects, pullStart, pullEnd)
+    const list = await getCommissionEntries()
+    const kept = list.filter((e) => !(e.auto && e.date >= pullStart && e.date <= pullEnd))
+    const fresh: CommissionEntry[] = drafts.map((d) => ({
+      id: genId("com"),
+      clientName: d.clientName,
+      hectares: d.hectares,
+      rate: d.rate,
+      date: d.date,
+      note: "Puxado automaticamente das áreas mapeadas",
+      createdAt: new Date().toISOString(),
+      auto: true,
+      sourceProjectId: d.projectId,
+    }))
+    await saveCommissionEntries([...kept, ...fresh])
+    setPullOpen(false)
+    refresh()
+    if (drafts.length === 0) {
+      alert("Nenhuma área mapeada encontrada nesse período (com valor de comissão configurado).")
+    }
   }
 
   function openNew() {
@@ -188,15 +239,23 @@ export function CommissionScreen() {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            setNavPeriod(period)
-            goReport("commissionReport")
-          }}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/15 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/25"
-        >
-          <FileText className="h-4 w-4" /> Relatório de comissão
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={openPull}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-cta py-2.5 text-[13px] font-bold text-cta-foreground transition-all hover:brightness-105"
+          >
+            <Zap className="h-4 w-4" /> Puxar automaticamente
+          </button>
+          <button
+            onClick={() => {
+              setNavPeriod(period)
+              goReport("commissionReport")
+            }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-white/15 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/25"
+          >
+            <FileText className="h-4 w-4" /> Relatório
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-28 pt-5">
@@ -212,7 +271,14 @@ export function CommissionScreen() {
               <div key={e.id} className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border/60">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-[15px] font-bold text-foreground">{e.clientName}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="truncate text-[15px] font-bold text-foreground">{e.clientName}</div>
+                      {e.auto && (
+                        <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                          Automático
+                        </span>
+                      )}
+                    </div>
                     <div className="num mt-0.5 text-xs text-muted-foreground">
                       {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
                     </div>
@@ -301,6 +367,27 @@ export function CommissionScreen() {
             {editing ? "Salvar alterações" : "Adicionar lançamento"}
           </PrimaryButton>
           <GhostButton className="mt-1.5 w-full" onClick={() => setOpen(false)}>
+            Cancelar
+          </GhostButton>
+        </ModalSheet>
+      )}
+
+      {pullOpen && (
+        <ModalSheet title="Puxar comissão automaticamente" onClose={() => setPullOpen(false)}>
+          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
+            Busca nas áreas mapeadas de todos os clientes, dentro do intervalo abaixo, e calcula o valor de cada uma
+            usando o valor por hectare configurado em cada projeto.
+          </p>
+          <Field label="Data de início">
+            <TextInput value={pullStart} onChange={(e) => setPullStart(e.target.value)} type="date" />
+          </Field>
+          <Field label="Data de fim">
+            <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" />
+          </Field>
+          <PrimaryButton className="w-full" onClick={runPull}>
+            Puxar lançamentos
+          </PrimaryButton>
+          <GhostButton className="mt-1.5 w-full" onClick={() => setPullOpen(false)}>
             Cancelar
           </GhostButton>
         </ModalSheet>

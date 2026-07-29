@@ -54,6 +54,7 @@ export interface Project {
   expenses: Expense[]
   talhoes: Talhao[]
   services: Service[]
+  commissionRate?: number
   createdAt: string
   updatedAt?: string
 }
@@ -94,6 +95,8 @@ export interface CommissionEntry {
   date: string
   note?: string
   createdAt?: string
+  auto?: boolean
+  sourceProjectId?: string
 }
 
 export interface CommissionConfig {

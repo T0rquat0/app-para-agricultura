@@ -524,13 +524,15 @@ export function EditProjectModal({
   const [clientName, setClientName] = useState(project.clientName)
   const [fazenda, setFazenda] = useState(project.fazenda || "")
   const [total, setTotal] = useState(project.totalHectares ? String(project.totalHectares) : "")
+  const [commissionRate, setCommissionRate] = useState(project.commissionRate ? String(project.commissionRate) : "")
 
   async function confirm() {
     const name = clientName.trim()
     if (!name) { alert("Informe o nome do cliente."); return }
     const t = parseFloat(total)
     if (!t || t <= 0) { alert("Informe a área total em hectares."); return }
-    const p = { ...project, clientName: name, fazenda: fazenda.trim(), totalHectares: t }
+    const cr = parseFloat(commissionRate)
+    const p = { ...project, clientName: name, fazenda: fazenda.trim(), totalHectares: t, commissionRate: isNaN(cr) ? undefined : cr }
     await saveProject(p)
     onSaved()
     onClose()
@@ -546,6 +548,12 @@ export function EditProjectModal({
       </Field>
       <Field label="Área total contratada (hectares)">
         <TextInput value={total} onChange={(e) => setTotal(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 6500" />
+      </Field>
+      <Field
+        label="Valor de comissão por hectare (R$, opcional)"
+        hint="Usado para puxar a comissão automaticamente a partir das áreas mapeadas deste cliente."
+      >
+        <TextInput value={commissionRate} onChange={(e) => setCommissionRate(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 20.00" />
       </Field>
       <PrimaryButton className="w-full" onClick={confirm}>Salvar alterações</PrimaryButton>
       <GhostButton className="mt-1.5 w-full" onClick={onClose}>Cancelar</GhostButton>
