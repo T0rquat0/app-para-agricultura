@@ -1,16 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
+import { GlobeSplash } from "./globe-splash"
 
-// Tela de abertura: identidade AGS com varredura de drone / radar topografico.
-// Aparece no "cold start" do app, faz fade e some.
+// Tela de abertura AGS GEO: globo geoespacial que gira, aproxima do foco
+// (Roraima / Guiana / Venezuela) e se dissolve em nuvem de pontos.
 export function SplashScreen({ onDone }: { onDone: () => void }) {
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    const hold = setTimeout(() => setLeaving(true), 1900)
-    const done = setTimeout(onDone, 2450)
+    // segura ~2s depois que o nome surge (aos ~2,4s) p/ dar tempo de ler
+    const hold = setTimeout(() => setLeaving(true), 5000)
+    const done = setTimeout(onDone, 5550)
     return () => {
       clearTimeout(hold)
       clearTimeout(done)
@@ -19,68 +20,39 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      className={`bg-topo fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#05090c] ${
         leaving ? "ags-splash-out" : ""
       }`}
       role="status"
       aria-label="Carregando AGS GEO"
     >
-      {/* brilho radial suave */}
+      {/* Globo animado em canvas (fundo cinematografico) */}
+      <GlobeSplash />
+
+      {/* Scrim: escurece a base p/ o nome da empresa se destacar sobre a nuvem */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className="ags-wordmark pointer-events-none absolute inset-x-0 bottom-0 h-64"
         style={{
-          background: "radial-gradient(circle at 50% 42%, rgba(160,200,120,0.18), transparent 60%)",
+          background: "linear-gradient(to top, #05090c 8%, rgba(5,9,12,0.85) 38%, rgba(5,9,12,0) 100%)",
         }}
       />
 
-      {/* Emblema central com varredura */}
-      <div className="relative flex h-64 w-64 items-center justify-center">
-        {/* aneis de radar pulsando */}
-        <span className="ags-ring absolute h-44 w-44 rounded-full border border-[#C9A227]/50" />
-        <span
-          className="ags-ring absolute h-44 w-44 rounded-full border border-[#C9A227]/40"
-          style={{ animationDelay: "0.9s" }}
-        />
-
-        {/* anel fixo */}
-        <span className="absolute h-52 w-52 rounded-full border border-white/15" />
-
-        {/* varredura giratoria (setor luminoso) */}
-        <span
-          className="ags-sweep absolute h-52 w-52 rounded-full"
-          style={{
-            background: "conic-gradient(from 0deg, rgba(201,162,39,0.55), rgba(201,162,39,0) 90deg)",
-            maskImage: "radial-gradient(circle, transparent 60%, #000 61%, #000 100%)",
-            WebkitMaskImage: "radial-gradient(circle, transparent 60%, #000 61%, #000 100%)",
-          }}
-        />
-
-        {/* cartao branco com o simbolo AGS GEO */}
-        <div className="ags-rise relative flex h-32 w-32 items-center justify-center rounded-3xl bg-white shadow-2xl ring-1 ring-black/10">
-          <Image
-            src="/ags-geo-mark-trim.png"
-            alt="AGS GEO"
-            width={104}
-            height={104}
-            className="h-auto w-[100px]"
-            priority
-          />
+      {/* Camada de conteudo */}
+      <div className="pointer-events-none relative flex h-full w-full flex-col items-center justify-end pb-16">
+        {/* Wordmark surge ao final da aproximacao */}
+        <div className="ags-wordmark text-center [text-shadow:0_2px_12px_rgba(0,0,0,0.85)]">
+          <div className="text-3xl font-extrabold tracking-tight text-white">
+            AGS <span className="text-[#2FD48A]">GEO</span>
+          </div>
+          <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#9FE7C4]">
+            Levantamento e Geoprocessamento
+          </div>
         </div>
-      </div>
 
-      {/* Wordmark */}
-      <div className="ags-rise mt-7 text-center" style={{ animationDelay: "0.15s" }}>
-        <div className="text-3xl font-extrabold tracking-tight text-white">
-          AGS <span className="text-[#E3B53D]">GEO</span>
+        {/* Barra de carregamento */}
+        <div className="ags-wordmark mt-6 h-1 w-44 overflow-hidden rounded-full bg-white/12" style={{ animationDelay: "0.1s" }}>
+          <div className="ags-bar h-full w-1/2 rounded-full bg-[#2FD48A]" />
         </div>
-        <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#E4D6A7]">
-          Levantamento e Geoprocessamento
-        </div>
-      </div>
-
-      {/* Barra de carregamento */}
-      <div className="ags-rise mt-8 h-1 w-44 overflow-hidden rounded-full bg-white/15" style={{ animationDelay: "0.3s" }}>
-        <div className="ags-bar h-full w-1/2 rounded-full bg-[#C9A227]" />
       </div>
     </div>
   )

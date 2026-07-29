@@ -49,7 +49,7 @@ export function InvestmentsReportScreen() {
             <div key={inv.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-[#1a1a1a]">{inv.name}</span>
-                <span className="text-[13px] font-bold tabular-nums text-[#1A4228]">{fmtMoney(inv.value)}</span>
+                <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(inv.value)}</span>
               </div>
               <div className="mt-0.5 flex items-center justify-between text-[11px] text-[#6b7280]">
                 <span>{inv.note || "—"}</span>

@@ -1,13 +1,14 @@
 "use client"
 
 import { useRef } from "react"
-import { Check, ChevronRight, Download, Map, Moon, Plus, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
+import { Check, ChevronRight, Download, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
 import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
 import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { useNav } from "../nav-context"
 import { Logo } from "../logo"
-import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
+import { Card, EmptyState, ProgressBar, SectionTitle } from "../chrome"
+import { IconButton } from "../buttons"
 
 export function HomeScreen() {
   const { index, isLoading } = useIndex()
@@ -18,11 +19,14 @@ export function HomeScreen() {
 
   const totalHa = index.reduce((s, p) => s + Number(p.totalHectares || 0), 0)
   const mapped = index.reduce((s, p) => s + Number(p.mappedHectares || 0), 0)
-  const active = index.filter((p) => {
+  const globalPct = totalHa > 0 ? (mapped / totalHa) * 100 : 0
+
+  const activeList = index.filter((p) => {
     const m = Number(p.mappedHectares || 0)
     const t = Number(p.totalHectares || 0)
     return m > 0 && m < t
-  }).length
+  })
+  const active = activeList.length
   const done = index.filter((p) => {
     const m = Number(p.mappedHectares || 0)
     const t = Number(p.totalHectares || 0)
@@ -34,6 +38,7 @@ export function HomeScreen() {
   const totalOpEx = overview?.totalOpEx ?? 0
   const invested = overview?.invested ?? 0
   const isPositive = balance >= 0
+  const margin = totalContract > 0 ? (balance / totalContract) * 100 : 0
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -62,22 +67,53 @@ export function HomeScreen() {
       <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-7 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
         <div className="mb-5 flex items-start justify-between">
           <Logo size={44} />
-          <button
+          <IconButton
             onClick={toggleDark}
             aria-label="Alternar modo escuro"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+            className="bg-white/15 text-white hover:bg-white/25"
           >
             {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-          </button>
+          </IconButton>
         </div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-          Painel de Geoprocessamento
-        </p>
-        <h1 className="mt-1 mb-5 text-[22px] font-extrabold tracking-tight">Visao geral da operacao</h1>
-        <div className="grid grid-cols-3 gap-2.5">
-          <Stat label="Ha mapeados" value={fmtHa(mapped)} unit={"de " + fmtHa(totalHa) + " ha"} />
-          <Stat label="Em campo" value={String(active)} unit={active !== 1 ? "projetos" : "projeto"} />
-          <Stat label="Concluidos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
+
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2FD48A] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2FD48A]" />
+          </span>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
+            Centro de operacoes
+          </p>
+        </div>
+        <h1 className="mt-1 text-[22px] font-extrabold tracking-tight">
+          {active > 0
+            ? `${active} ${active === 1 ? "frente ativa" : "frentes ativas"} em campo`
+            : "Operacao pronta para iniciar"}
+        </h1>
+
+        {/* Progresso global de mapeamento */}
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3.5">
+          <div className="flex items-end justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
+              Progresso do levantamento
+            </span>
+            <span className="num text-[13px] font-extrabold text-[#2FD48A]">{globalPct.toFixed(0)}%</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
+            <div
+              className="h-full rounded-full bg-[#2FD48A] transition-[width] duration-700"
+              style={{ width: `${Math.min(100, globalPct)}%` }}
+            />
+          </div>
+          <p className="num mt-2 text-[11px] text-white/60">
+            {fmtHa(mapped)} de {fmtHa(totalHa)} ha mapeados
+          </p>
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-2.5">
+          <HeaderStat label="Em campo" value={String(active)} unit={active !== 1 ? "projetos" : "projeto"} />
+          <HeaderStat label="Concluidos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
+          <HeaderStat label="Clientes" value={String(index.length)} unit={index.length !== 1 ? "no total" : "no total"} />
         </div>
       </header>
 
@@ -87,8 +123,8 @@ export function HomeScreen() {
           className={
             "w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] " +
             (isPositive
-              ? "bg-gradient-to-br from-[#1e5c38] to-[#2d7a4f]"
-              : "bg-gradient-to-br from-[#7a1e1e] to-[#a83232]")
+              ? "bg-gradient-to-br from-[#0c3a26] to-[#12694a]"
+              : "bg-gradient-to-br from-[#4a1414] to-[#8a2626]")
           }
         >
           <div className="flex items-start justify-between">
@@ -96,13 +132,20 @@ export function HomeScreen() {
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
                 Saldo da operacao
               </p>
-              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#7dffb3]" : "text-[#ffaaaa]")}>
+              <p className={"num mt-1.5 text-[34px] font-extrabold leading-none tracking-tight " + (isPositive ? "text-[#5fe3a0]" : "text-[#ffaaaa]")}>
                 {fmtMoney(balance)}
               </p>
             </div>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
-              <TrendingUp className="h-5 w-5 text-white" />
-            </span>
+            <div className="flex flex-col items-end gap-1.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </span>
+              {totalContract > 0 && (
+                <span className="num rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/75">
+                  {margin >= 0 ? "+" : ""}{margin.toFixed(0)}% margem
+                </span>
+              )}
+            </div>
           </div>
           <div className="my-4 h-px bg-white/10" />
           <div className="grid grid-cols-3 gap-2 text-center">
@@ -117,8 +160,8 @@ export function HomeScreen() {
         </button>
       </div>
 
-      <div className="flex-1 px-4 pb-24 pt-5">
-        <div className="mb-5 flex gap-2">
+      <div className="flex-1 px-4 pb-24 pt-6">
+        <div className="mb-6 flex gap-2">
           <button
             onClick={() => exportBackup()}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-card py-2.5 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-muted"
@@ -133,6 +176,18 @@ export function HomeScreen() {
           </button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
         </div>
+
+        {/* Frentes ativas em destaque */}
+        {activeList.length > 0 && (
+          <div className="mb-6">
+            <SectionTitle>Frentes ativas</SectionTitle>
+            <div className="space-y-3">
+              {activeList.slice(0, 3).map((p) => (
+                <ActiveFrontCard key={p.id} summary={p} onClick={() => openProject(p.id)} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <SectionTitle>Clientes</SectionTitle>
         {isLoading ? (
@@ -171,7 +226,7 @@ export function HomeScreen() {
   )
 }
 
-function Stat({ label, value, unit }: { label: string; value: string; unit: string }) {
+function HeaderStat({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
       <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.1em] text-white/65">{label}</div>
@@ -187,6 +242,39 @@ function BalanceItem({ label, value, dimmed }: { label: string; value: string; d
       <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">{label}</p>
       <p className={"num mt-0.5 text-[12.5px] font-bold " + (dimmed ? "text-white/60" : "text-white")}>{value}</p>
     </div>
+  )
+}
+
+// Card de frente ativa — visual de "operacao em andamento" com radar e progresso
+function ActiveFrontCard({
+  summary,
+  onClick,
+}: {
+  summary: ReturnType<typeof useIndex>["index"][number]
+  onClick: () => void
+}) {
+  const m = Number(summary.mappedHectares || 0)
+  const total = Number(summary.totalHectares || 0)
+  const pct = total > 0 ? (m / total) * 100 : 0
+  return (
+    <Card interactive onClick={onClick} className="cursor-pointer p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Radar className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
+            <span className="num text-[13px] font-bold text-primary">{pct.toFixed(0)}%</span>
+          </div>
+          {summary.fazenda && <div className="truncate text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
+          <ProgressBar value={pct} className="mt-2.5 h-[5px]" />
+          <div className="num mt-1.5 text-[11px] text-muted-foreground">
+            {fmtHa(m)} / {fmtHa(total)} ha
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -215,8 +303,8 @@ function ProjectCard({
       >
         <div className="flex items-center justify-between gap-2 pr-6">
           <span className="text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
-          <span className={"num text-[13px] font-bold " + (isDone ? "text-primary" : "text-primary")}>
-            {isDone ? "✓ " : ""}{pctReal.toFixed(0)}%
+          <span className="num flex items-center gap-1 text-[13px] font-bold text-primary">
+            {isDone && <Check className="h-3.5 w-3.5" />}{pctReal.toFixed(0)}%
           </span>
         </div>
         {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
