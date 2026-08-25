@@ -122,28 +122,35 @@ export function periodRevenue(entries: CommissionEntry[], period: string): numbe
   return entriesForPeriod(entries, period).reduce((s, e) => s + entryRevenue(e), 0)
 }
 
-// Base de calculo da comissao: faturamento do periodo menos o desconto/adiantamento
-// do mes (nunca negativa).
-export function commissionBase(entries: CommissionEntry[], period: string, discount = 0): number {
-  return Math.max(0, periodRevenue(entries, period) - Number(discount || 0))
+// Base de calculo da comissao: faturamento do periodo menos o desconto AO CLIENTE
+// do mes (nunca negativa). Este desconto cascateia pelo percentual — reduz a base
+// antes de multiplicar, entao 1 real de desconto aqui reduz a comissao em (percent%)
+// reais, nao 1 real.
+export function commissionBase(entries: CommissionEntry[], period: string, clientDiscount = 0): number {
+  return Math.max(0, periodRevenue(entries, period) - Number(clientDiscount || 0))
 }
 
 export function commissionVariable(
   entries: CommissionEntry[],
   period: string,
   config: CommissionConfig,
-  discount = 0,
+  clientDiscount = 0,
 ): number {
-  return commissionBase(entries, period, discount) * (Number(config.percent || 0) / 100)
+  return commissionBase(entries, period, clientDiscount) * (Number(config.percent || 0) / 100)
 }
 
+// employeeDeduction (adiantamento/desconto do funcionario) abate DIRETO e por
+// INTEIRO do total final — nao passa pelo percentual, ao contrario do clientDiscount.
+// 1 real de employeeDeduction reduz a comissao final em exatamente 1 real.
 export function commissionTotal(
   entries: CommissionEntry[],
   period: string,
   config: CommissionConfig,
-  discount = 0,
+  clientDiscount = 0,
+  employeeDeduction = 0,
 ): number {
-  return commissionVariable(entries, period, config, discount) + Number(config.fixedSalary || 0)
+  const gross = commissionVariable(entries, period, config, clientDiscount) + Number(config.fixedSalary || 0)
+  return Math.max(0, gross - Number(employeeDeduction || 0))
 }
 
 // Lista de periodos (AAAA-MM) distintos presentes nos lancamentos, mais recente primeiro.
