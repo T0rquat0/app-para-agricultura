@@ -372,7 +372,7 @@ export function CommissionScreen() {
             </div>
           )}
 
-          <div className="mt-3.5 flex items-end justify-between gap-1.5">
+          <div className="mt-4 flex items-end justify-between gap-1.5 border-t border-white/10 pt-3.5">
             {history.map((h) => {
               const isCurrent = h.period === period
               const heightPct = Math.max(6, (h.total / historyMax) * 100)
@@ -441,44 +441,40 @@ export function CommissionScreen() {
               const anyMoved = group.entries.some((e) => e.attributedPeriod)
               return (
                 <div key={group.clientName} className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/60">
-                  <div className="flex items-center gap-1 px-2 pt-2">
-                    <button
-                      onClick={() => toggleClient(group.clientName)}
-                      className="flex flex-1 items-center justify-between gap-3 px-2 py-1 text-left"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
-                          {anyMoved && (
-                            <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                              Movido
-                            </span>
-                          )}
-                        </div>
-                        <div className="num mt-0.5 text-[11px] text-muted-foreground">
-                          {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
-                        </div>
+                  <button
+                    onClick={() => toggleClient(group.clientName)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
+                        {anyMoved && (
+                          <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                            Movido
+                          </span>
+                        )}
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
-                        />
+                      <div className="num mt-0.5 text-[11px] text-muted-foreground">
+                        {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
                       </div>
-                    </button>
-                    <button
-                      onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
-                      title={anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
-                      className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
-                    >
-                      <ArrowRightLeft className="h-3.5 w-3.5" />
-                      {anyMoved ? "Voltar" : "Mover"}
-                    </button>
-                  </div>
-                  <div className="pb-1" />
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+                      />
+                    </div>
+                  </button>
 
                   {!isCollapsed && (
                     <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-3 pb-3 pt-2.5">
+                      <button
+                        onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
+                        className="flex items-center justify-center gap-1.5 self-end rounded-lg bg-muted px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
+                      >
+                        <ArrowRightLeft className="h-3.5 w-3.5" />
+                        {anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
+                      </button>
                       {group.entries.map((e) => (
                         <div key={e.id} className="rounded-xl bg-card p-3 shadow-sm ring-1 ring-border/50">
                           <div className="flex items-start justify-between gap-3">
