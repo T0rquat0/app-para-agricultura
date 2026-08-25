@@ -30,7 +30,12 @@ export function CommissionReportScreen() {
   const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
   const base = commissionBase(entries, period, discount)
   const variable = commissionVariable(entries, period, config, discount)
-  const total = commissionTotal(entries, period, config, discount)
+  const grossBeforeDeduction = variable + Number(config.fixedSalary || 0)
+  const employeeDeduction = Math.min(
+    Math.max(0, grossBeforeDeduction),
+    Math.max(0, Number(adjustment?.employeeDeduction || 0)),
+  )
+  const total = commissionTotal(entries, period, config, discount, employeeDeduction)
 
   // Agrupado por cliente, para o resumo por cliente do relatorio.
   const byClient = new Map<string, { hectares: number; revenue: number }>()
@@ -114,7 +119,7 @@ export function CommissionReportScreen() {
         {discount > 0 && (
           <>
             <ReportRow
-              label={adjustment?.note ? `Desconto / adiantamento (${adjustment.note})` : "Desconto / adiantamento"}
+              label={adjustment?.note ? `Desconto ao cliente (${adjustment.note})` : "Desconto ao cliente"}
               value={`− ${fmtMoney(discount)}`}
             />
             <ReportRow label="Base de cálculo" value={fmtMoney(base)} accent />
@@ -122,6 +127,12 @@ export function CommissionReportScreen() {
         )}
         <ReportRow label={`Comissão variável (${config.percent}%)`} value={fmtMoney(variable)} />
         <ReportRow label="Salário fixo" value={fmtMoney(config.fixedSalary)} />
+        {employeeDeduction > 0 && (
+          <ReportRow
+            label={adjustment?.employeeNote ? `Meu adiantamento (${adjustment.employeeNote})` : "Meu adiantamento"}
+            value={`− ${fmtMoney(employeeDeduction)}`}
+          />
+        )}
       </ReportSection>
 
       <ReportSection title="Total a receber">
