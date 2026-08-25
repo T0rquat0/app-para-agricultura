@@ -14,6 +14,23 @@ export function pct(p: Project): number {
   return (mappedHa(p) / t) * 100
 }
 
+// Percentual mapeado a partir de valores ja resolvidos (mapped/total), para uso
+// fora do tipo Project completo (ex: ProjectSummary do index).
+export function projectPercent(mapped: number, total: number): number {
+  if (!total) return 0
+  return (Number(mapped) / Number(total)) * 100
+}
+
+// Regra unica de "projeto concluido": usa o MESMO arredondamento que aparece na tela
+// (pct.toFixed(0)). Evita que um projeto mostre 100% no card mas continue contado
+// como "ativo" por uma fracao de hectare — diferenca normal em voo real (buffer de
+// borda, zona de nao-voo, arredondamento de poligono). Antes desta funcao havia 3
+// regras diferentes (contagem de ativos, card de frente ativa, checkmark da lista),
+// cada uma com sua propria tolerancia — corrigido para usar sempre esta.
+export function isProjectComplete(mapped: number, total: number): boolean {
+  return total > 0 && Math.round(projectPercent(mapped, total)) >= 100
+}
+
 export function totalExpenses(p: Project): number {
   return (p.expenses || []).reduce((s, e) => s + Number(e.value || 0), 0)
 }
