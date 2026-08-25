@@ -82,9 +82,14 @@ export function CommissionReportScreen() {
         ) : (
           list.map((e) => (
             <div key={e.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#1a1a1a]">{e.clientName}</span>
-                <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(entryRevenue(e))}</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[13px] font-semibold text-[#1a1a1a]">
+                  {e.clientName}
+                  {e.talhaoName ? (
+                    <span className="font-normal text-[#6b7280]">{` — ${e.talhaoName}`}</span>
+                  ) : null}
+                </span>
+                <span className="shrink-0 text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(entryRevenue(e))}</span>
               </div>
               <div className="mt-0.5 flex items-center justify-between text-[11px] text-[#6b7280]">
                 <span>
