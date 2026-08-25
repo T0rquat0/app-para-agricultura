@@ -74,12 +74,21 @@ export function periodOf(dateISO: string): string {
   return String(dateISO || "").slice(0, 7)
 }
 
+// Mes efetivo de um lancamento para fins de comissao: usa o mes escolhido manualmente
+// (attributedPeriod) quando definido, senao cai no mes da data real do lancamento.
+// IMPORTANTE: pullCommissionDrafts e a deduplicacao do "puxar automaticamente" usam
+// sempre periodOf(e.date) (a data real), nunca esta funcao — para nao recriar em
+// duplicidade um lancamento que o usuario moveu manualmente para outro mes.
+export function entryPeriod(e: CommissionEntry): string {
+  return e.attributedPeriod || periodOf(e.date)
+}
+
 export function entryRevenue(e: CommissionEntry): number {
   return Number(e.hectares || 0) * Number(e.rate || 0)
 }
 
 export function entriesForPeriod(entries: CommissionEntry[], period: string): CommissionEntry[] {
-  return (entries || []).filter((e) => periodOf(e.date) === period)
+  return (entries || []).filter((e) => entryPeriod(e) === period)
 }
 
 export function periodRevenue(entries: CommissionEntry[], period: string): number {
@@ -96,7 +105,7 @@ export function commissionTotal(entries: CommissionEntry[], period: string, conf
 
 // Lista de periodos (AAAA-MM) distintos presentes nos lancamentos, mais recente primeiro.
 export function availablePeriods(entries: CommissionEntry[]): string[] {
-  const set = new Set((entries || []).map((e) => periodOf(e.date)).filter(Boolean))
+  const set = new Set((entries || []).map((e) => entryPeriod(e)).filter(Boolean))
   return Array.from(set).sort((a, b) => b.localeCompare(a))
 }
 
