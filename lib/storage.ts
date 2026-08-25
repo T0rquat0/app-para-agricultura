@@ -222,10 +222,11 @@ export async function getCommissionAdjustments(): Promise<CommissionAdjustments>
 
 export async function saveCommissionAdjustment(period: string, adj: CommissionAdjustment | null) {
   const map = await getCommissionAdjustments()
-  if (!adj || !adj.discount) {
+  const hasContent = adj && (adj.discount > 0 || Number(adj.employeeDeduction || 0) > 0)
+  if (!hasContent) {
     delete map[period]
   } else {
-    map[period] = adj
+    map[period] = adj as CommissionAdjustment
   }
   write(KEYS.commissionAdjustments, JSON.stringify(map))
 }
