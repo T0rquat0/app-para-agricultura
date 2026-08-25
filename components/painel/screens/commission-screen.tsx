@@ -1,7 +1,18 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight, FileText, Pencil, Plus, Settings, Trash2, Wallet, Zap } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Pencil,
+  Plus,
+  Settings,
+  Trash2,
+  Wallet,
+  Zap,
+} from "lucide-react"
 import { useNav } from "../nav-context"
 import { useAllProjects, useCommissionConfig, useCommissionEntries, useIndex, useRefresh } from "@/lib/hooks"
 import {
@@ -53,6 +64,10 @@ export function CommissionScreen() {
   const [pullOpen, setPullOpen] = useState(false)
   const [pullStart, setPullStart] = useState("")
   const [pullEnd, setPullEnd] = useState("")
+  const [pullMissing, setPullMissing] = useState<string[]>([])
+  const [pullResultMsg, setPullResultMsg] = useState<string | null>(null)
+
+  const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set())
 
   const periodEntries = useMemo(
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
@@ -61,6 +76,44 @@ export function CommissionScreen() {
   const revenue = periodRevenue(entries, period)
   const variable = commissionVariable(entries, period, config)
   const total = commissionTotal(entries, period, config)
+
+  // Agrupa os lancamentos do mes por cliente, mantendo a ordem por maior faturamento primeiro.
+  const groupedByClient = useMemo(() => {
+    const map = new Map<string, { entries: CommissionEntry[]; revenue: number }>()
+    for (const e of periodEntries) {
+      const cur = map.get(e.clientName) || { entries: [], revenue: 0 }
+      cur.entries.push(e)
+      cur.revenue += entryRevenue(e)
+      map.set(e.clientName, cur)
+    }
+    return Array.from(map.entries())
+      .map(([clientName, v]) => ({ clientName, ...v }))
+      .sort((a, b) => b.revenue - a.revenue)
+  }, [periodEntries])
+
+  function toggleClient(name: string) {
+    setCollapsedClients((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+
+  // Historico dos ultimos 6 meses (incluindo o atual), para dar contexto de tendencia.
+  const history = useMemo(() => {
+    const [y, m] = period.split("-").map(Number)
+    const months: { period: string; total: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(y, m - 1 - i, 1)
+      const p = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+      months.push({ period: p, total: commissionTotal(entries, p, config) })
+    }
+    return months
+  }, [entries, period, config])
+  const historyMax = Math.max(1, ...history.map((h) => h.total))
+  const prevMonthTotal = history[history.length - 2]?.total ?? 0
+  const monthDelta = prevMonthTotal > 0 ? ((total - prevMonthTotal) / prevMonthTotal) * 100 : null
 
   function shiftPeriod(delta: number) {
     const [y, m] = period.split("-").map(Number)
@@ -72,23 +125,18 @@ export function CommissionScreen() {
     const { start, end } = periodRange(period)
     setPullStart(start)
     setPullEnd(end)
+    setPullMissing([])
+    setPullResultMsg(null)
     setPullOpen(true)
   }
 
   async function runPull() {
     if (!pullStart || !pullEnd || pullStart > pullEnd) {
-      alert("Informe uma data de início e uma data de fim válidas.")
+      setPullResultMsg("Informe uma data de início e uma data de fim válidas.")
       return
     }
     const missing = clientsMissingCommissionRate(projects, pullStart, pullEnd)
-    if (missing.length) {
-      const proceed = confirm(
-        `Não consegui identificar o valor por hectare destes clientes (configure o serviço "Levantamento Altimétrico" com o valor, ou defina manualmente em "Editar projeto"): ${missing.join(
-          ", ",
-        )}.\n\nContinuar e puxar apenas os demais clientes?`,
-      )
-      if (!proceed) return
-    }
+    setPullMissing(missing)
     const drafts = pullCommissionDrafts(projects, pullStart, pullEnd)
     const list = await getCommissionEntries()
     const kept = list.filter((e) => !(e.auto && e.date >= pullStart && e.date <= pullEnd))
@@ -104,11 +152,12 @@ export function CommissionScreen() {
       sourceProjectId: d.projectId,
     }))
     await saveCommissionEntries([...kept, ...fresh])
-    setPullOpen(false)
     refresh()
-    if (drafts.length === 0) {
-      alert("Nenhuma área mapeada encontrada nesse período (com valor de comissão configurado).")
-    }
+    setPullResultMsg(
+      drafts.length === 0
+        ? "Nenhuma área mapeada encontrada nesse período (com valor de comissão configurado)."
+        : `${drafts.length} lançamento${drafts.length === 1 ? "" : "s"} puxado${drafts.length === 1 ? "" : "s"} com sucesso.`,
+    )
   }
 
   function openNew() {
@@ -230,12 +279,46 @@ export function CommissionScreen() {
         </div>
 
         <div className="mt-3 rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white/65">
-            <Wallet className="h-3.5 w-3.5" /> Comissão do mês
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white/65">
+              <Wallet className="h-3.5 w-3.5" /> Comissão do mês
+            </div>
+            {monthDelta !== null && (
+              <span
+                className={`num rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  monthDelta >= 0 ? "bg-emerald-400/20 text-emerald-300" : "bg-red-400/20 text-red-300"
+                }`}
+              >
+                {monthDelta >= 0 ? "+" : ""}
+                {monthDelta.toFixed(0)}% vs. mês anterior
+              </span>
+            )}
           </div>
           <div className="num mt-1 text-3xl font-extrabold">{fmtMoney(total)}</div>
           <div className="mt-1 text-[11px] text-white/60">
             {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(revenue)}) + {fmtMoney(config.fixedSalary)} fixo
+          </div>
+
+          <div className="mt-3.5 flex items-end justify-between gap-1.5" aria-hidden="true">
+            {history.map((h) => {
+              const isCurrent = h.period === period
+              const heightPct = Math.max(6, (h.total / historyMax) * 100)
+              return (
+                <div key={h.period} className="flex flex-1 flex-col items-center gap-1">
+                  <div className="flex h-10 w-full items-end">
+                    <div
+                      className={`w-full rounded-t-md transition-all ${
+                        isCurrent ? "bg-cta" : "bg-white/25"
+                      }`}
+                      style={{ height: `${heightPct}%` }}
+                    />
+                  </div>
+                  <span className={`text-[9px] font-bold ${isCurrent ? "text-white" : "text-white/45"}`}>
+                    {periodLabel(h.period).slice(0, 3)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -259,52 +342,91 @@ export function CommissionScreen() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-28 pt-5">
-        <SectionTitle>Levantamentos lançados</SectionTitle>
+        <div className="mb-3 mt-1 flex items-center justify-between">
+          <SectionTitle className="mb-0 mt-0">Levantamentos lançados</SectionTitle>
+          {groupedByClient.length > 0 && (
+            <span className="num text-[11px] font-bold text-muted-foreground">
+              {groupedByClient.length} cliente{groupedByClient.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
         {periodEntries.length === 0 ? (
           <EmptyState icon={<Wallet className="h-8 w-8 text-muted-foreground/50" />}>
             Nenhum levantamento lançado em {periodLabel(period).toLowerCase()}. Toque em "Novo lançamento" para
             registrar o que foi feito.
           </EmptyState>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {periodEntries.map((e) => (
-              <div key={e.id} className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border/60">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <div className="truncate text-[15px] font-bold text-foreground">{e.clientName}</div>
-                      {e.auto && (
-                        <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
-                          Automático
-                        </span>
-                      )}
-                    </div>
-                    <div className="num mt-0.5 text-xs text-muted-foreground">
-                      {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{fmtDate(e.date)}</div>
-                    {e.note && <div className="mt-1 text-[13px] text-muted-foreground">{e.note}</div>}
-                  </div>
-                  <div className="num shrink-0 text-[15px] font-extrabold text-primary">
-                    {fmtMoney(entryRevenue(e))}
-                  </div>
-                </div>
-                <div className="mt-3 flex gap-2">
+          <div className="flex flex-col gap-3">
+            {groupedByClient.map((group) => {
+              const isCollapsed = collapsedClients.has(group.clientName)
+              return (
+                <div key={group.clientName} className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/60">
                   <button
-                    onClick={() => openEdit(e)}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-muted py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted/70"
+                    onClick={() => toggleClient(group.clientName)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Editar
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
+                      <div className="num mt-0.5 text-[11px] text-muted-foreground">
+                        {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+                      />
+                    </div>
                   </button>
-                  <button
-                    onClick={() => remove(e)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+
+                  {!isCollapsed && (
+                    <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-3 pb-3 pt-2.5">
+                      {group.entries.map((e) => (
+                        <div key={e.id} className="rounded-xl bg-card p-3 shadow-sm ring-1 ring-border/50">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                {e.auto ? (
+                                  <span className="flex shrink-0 items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                                    <Zap className="h-2.5 w-2.5" /> Automático
+                                  </span>
+                                ) : (
+                                  <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                    Manual
+                                  </span>
+                                )}
+                              </div>
+                              <div className="num mt-1 text-xs text-muted-foreground">
+                                {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
+                              </div>
+                              <div className="mt-0.5 text-xs text-muted-foreground">{fmtDate(e.date)}</div>
+                              {e.note && <div className="mt-1 text-[13px] text-muted-foreground">{e.note}</div>}
+                            </div>
+                            <div className="num shrink-0 text-[14px] font-extrabold text-primary">
+                              {fmtMoney(entryRevenue(e))}
+                            </div>
+                          </div>
+                          <div className="mt-2.5 flex gap-2">
+                            <button
+                              onClick={() => openEdit(e)}
+                              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-muted py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted/70"
+                            >
+                              <Pencil className="h-3.5 w-3.5" /> Editar
+                            </button>
+                            <button
+                              onClick={() => remove(e)}
+                              className="flex items-center justify-center gap-1.5 rounded-xl bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -373,7 +495,13 @@ export function CommissionScreen() {
       )}
 
       {pullOpen && (
-        <ModalSheet title="Puxar comissão automaticamente" onClose={() => setPullOpen(false)}>
+        <ModalSheet
+          title="Puxar comissão automaticamente"
+          onClose={() => {
+            setPullOpen(false)
+            setPullResultMsg(null)
+          }}
+        >
           <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
             Busca nas áreas mapeadas de todos os clientes, dentro do intervalo abaixo, e calcula o valor de cada uma
             usando o valor por hectare configurado em cada projeto.
@@ -384,11 +512,34 @@ export function CommissionScreen() {
           <Field label="Data de fim">
             <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" />
           </Field>
+
+          {pullResultMsg && (
+            <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
+              {pullResultMsg}
+            </div>
+          )}
+
+          {pullMissing.length > 0 && (
+            <div className="mb-3.5 rounded-xl bg-amber-500/10 px-3.5 py-2.5 text-[13px] text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400">
+              <div className="font-bold">Sem valor por hectare configurado — ignorados:</div>
+              <div className="mt-0.5">{pullMissing.join(", ")}</div>
+              <div className="mt-1 text-[12px] opacity-80">
+                Configure o serviço "Levantamento Altimétrico" com o valor, ou defina manualmente em "Editar projeto".
+              </div>
+            </div>
+          )}
+
           <PrimaryButton className="w-full" onClick={runPull}>
             Puxar lançamentos
           </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setPullOpen(false)}>
-            Cancelar
+          <GhostButton
+            className="mt-1.5 w-full"
+            onClick={() => {
+              setPullOpen(false)
+              setPullResultMsg(null)
+            }}
+          >
+            Fechar
           </GhostButton>
         </ModalSheet>
       )}
