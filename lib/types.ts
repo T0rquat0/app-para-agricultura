@@ -97,6 +97,10 @@ export interface CommissionEntry {
   createdAt?: string
   auto?: boolean
   sourceProjectId?: string
+  // Mes (AAAA-MM) em que o usuario decidiu receber a comissao, sobrescrevendo o mes
+  // da data real. Usado para adiar/antecipar o recebimento sem alterar a data real
+  // (que continua sendo usada pelo "puxar automaticamente" para deduplicar).
+  attributedPeriod?: string
 }
 
 export interface CommissionConfig {
