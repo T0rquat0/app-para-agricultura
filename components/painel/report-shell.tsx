@@ -93,7 +93,7 @@ export function ReportShell({
       await exportElementToPdf(clone, filename)
     } catch (e) {
       console.error("[v0] erro ao gerar PDF", e)
-      alert("Nao foi possivel gerar o PDF. Tente novamente.")
+      alert("Não foi possível gerar o PDF. Tente novamente.")
     } finally {
       document.body.removeChild(clone)
       document.body.removeChild(overlay)
