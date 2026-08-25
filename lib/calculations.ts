@@ -172,25 +172,38 @@ export function effectiveCommissionRate(p: Project): number {
 export interface CommissionDraft {
   clientName: string
   projectId: string
+  talhaoName?: string
   hectares: number
   rate: number
   date: string
 }
 
+// Agrupa as areas mapeadas por projeto + talhao + data, para que cada lancamento
+// automatico represente um talhao (matricula) especifico num dia — permitindo exibir
+// o nome do cliente e do talhao lado a lado no relatorio.
 export function pullCommissionDrafts(projects: Project[], startDate: string, endDate: string): CommissionDraft[] {
   const byKey = new Map<string, CommissionDraft>()
   for (const p of projects || []) {
     const rate = effectiveCommissionRate(p)
     if (!rate) continue
+    const talhaoNameById = new Map((p.talhoes || []).map((t) => [t.id, t.name]))
     for (const a of p.areas || []) {
       const d = a.date
       if (!d || d < startDate || d > endDate) continue
-      const key = `${p.id}|${d}`
+      const talhaoName = talhaoNameById.get(a.talhaoId) || undefined
+      const key = `${p.id}|${a.talhaoId || "_"}|${d}`
       const existing = byKey.get(key)
       if (existing) {
         existing.hectares += Number(a.hectares || 0)
       } else {
-        byKey.set(key, { clientName: p.clientName, projectId: p.id, hectares: Number(a.hectares || 0), rate, date: d })
+        byKey.set(key, {
+          clientName: p.clientName,
+          projectId: p.id,
+          talhaoName,
+          hectares: Number(a.hectares || 0),
+          rate,
+          date: d,
+        })
       }
     }
   }

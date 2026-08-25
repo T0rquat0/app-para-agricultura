@@ -97,6 +97,8 @@ export interface CommissionEntry {
   createdAt?: string
   auto?: boolean
   sourceProjectId?: string
+  // Nome do talhao/matricula de origem (quando puxado automaticamente das areas mapeadas).
+  talhaoName?: string
   // Mes (AAAA-MM) em que o usuario decidiu receber a comissao, sobrescrevendo o mes
   // da data real. Usado para adiar/antecipar o recebimento sem alterar a data real
   // (que continua sendo usada pelo "puxar automaticamente" para deduplicar).

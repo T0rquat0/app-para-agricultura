@@ -164,6 +164,7 @@ export function CommissionScreen() {
       createdAt: new Date().toISOString(),
       auto: true,
       sourceProjectId: d.projectId,
+      talhaoName: d.talhaoName,
     }))
     await saveCommissionEntries([...kept, ...fresh])
     refresh()
@@ -493,6 +494,11 @@ export function CommissionScreen() {
                                   </span>
                                 )}
                               </div>
+                              {e.talhaoName && (
+                                <div className="mt-1 truncate text-[13px] font-semibold text-foreground">
+                                  {e.talhaoName}
+                                </div>
+                              )}
                               <div className="num mt-1 text-xs text-muted-foreground">
                                 {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
                               </div>
