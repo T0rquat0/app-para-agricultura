@@ -6,8 +6,17 @@
 // precisa mudar quando o backend chegar.
 // ============================================================
 
-import { mappedHa, projectRevenue, totalExpenses } from "./calculations"
-import type { CommissionConfig, CommissionEntry, FinancialOverview, Investment, Project, ProjectSummary } from "./types"
+import { mappedHa, projectNetRevenue, totalExpenses } from "./calculations"
+import type {
+  CommissionAdjustment,
+  CommissionAdjustments,
+  CommissionConfig,
+  CommissionEntry,
+  FinancialOverview,
+  Investment,
+  Project,
+  ProjectSummary,
+} from "./types"
 
 const KEYS = {
   index: "ags-projects-index",
@@ -16,6 +25,7 @@ const KEYS = {
   investments: "ags-investments",
   commissionEntries: "ags-commission-entries",
   commissionConfig: "ags-commission-config",
+  commissionAdjustments: "ags-commission-adjustments",
 }
 
 const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
@@ -157,7 +167,7 @@ export async function getFinancialOverview(): Promise<FinancialOverview> {
   for (const summary of idx) {
     const full = await getProject(summary.id)
     if (full) {
-      totalContract += projectRevenue(full)
+      totalContract += projectNetRevenue(full)
       totalOpEx += totalExpenses(full)
     }
   }
@@ -200,6 +210,26 @@ export async function saveCommissionConfig(config: CommissionConfig) {
   write(KEYS.commissionConfig, JSON.stringify(config))
 }
 
+// Ajustes de comissao por periodo (desconto/adiantamento). Mapa { "AAAA-MM": { discount, note } }.
+export async function getCommissionAdjustments(): Promise<CommissionAdjustments> {
+  const v = read(KEYS.commissionAdjustments)
+  try {
+    return v ? (JSON.parse(v) as CommissionAdjustments) : {}
+  } catch {
+    return {}
+  }
+}
+
+export async function saveCommissionAdjustment(period: string, adj: CommissionAdjustment | null) {
+  const map = await getCommissionAdjustments()
+  if (!adj || !adj.discount) {
+    delete map[period]
+  } else {
+    map[period] = adj
+  }
+  write(KEYS.commissionAdjustments, JSON.stringify(map))
+}
+
 // ---- Backup manual (export/import de arquivo JSON) ----
 export async function exportBackup() {
   const idx = await getIndex()
@@ -212,6 +242,7 @@ export async function exportBackup() {
   const investments = await getInvestments()
   const commissionEntries = await getCommissionEntries()
   const commissionConfig = await getCommissionConfig()
+  const commissionAdjustments = await getCommissionAdjustments()
   const backup = {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -220,6 +251,7 @@ export async function exportBackup() {
     investments,
     commissionEntries,
     commissionConfig,
+    commissionAdjustments,
   }
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
   const url = URL.createObjectURL(blob)
@@ -238,10 +270,12 @@ export async function importBackup(data: {
   investments?: Investment[]
   commissionEntries?: CommissionEntry[]
   commissionConfig?: CommissionConfig
+  commissionAdjustments?: CommissionAdjustments
 }) {
   for (const p of data.projects || []) await saveProject(p)
   if (data.vehicles && data.vehicles.length) write(KEYS.vehicles, JSON.stringify(data.vehicles))
   if (data.investments) await saveInvestments(data.investments)
   if (data.commissionEntries) await saveCommissionEntries(data.commissionEntries)
   if (data.commissionConfig) await saveCommissionConfig(data.commissionConfig)
+  if (data.commissionAdjustments) write(KEYS.commissionAdjustments, JSON.stringify(data.commissionAdjustments))
 }

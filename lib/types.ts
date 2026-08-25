@@ -55,6 +55,9 @@ export interface Project {
   talhoes: Talhao[]
   services: Service[]
   commissionRate?: number
+  // Desconto concedido ao cliente (R$), abatido do total dos servicos no relatorio do cliente.
+  discount?: number
+  discountNote?: string
   createdAt: string
   updatedAt?: string
 }
@@ -110,6 +113,16 @@ export interface CommissionConfig {
   fixedSalary: number
 }
 
+// Ajuste por periodo (AAAA-MM): desconto/adiantamento que reduz a base de calculo
+// da comissao variavel. Ex.: faturou 136k mas so sera cobrado 130k -> desconto 6k,
+// e a comissao passa a incidir sobre 130k.
+export interface CommissionAdjustment {
+  discount: number
+  note?: string
+}
+
+export type CommissionAdjustments = Record<string, CommissionAdjustment>
+
 export interface BackupData {
   version: number
   exportedAt: string
@@ -118,4 +131,5 @@ export interface BackupData {
   investments: Investment[]
   commissionEntries?: CommissionEntry[]
   commissionConfig?: CommissionConfig
+  commissionAdjustments?: CommissionAdjustments
 }

@@ -3,7 +3,7 @@
 import { useNav } from "../nav-context"
 import { useProject } from "@/lib/hooks"
 import { fmtDate, fmtMoney, slug } from "@/lib/format"
-import { projectRevenue, totalExpenses } from "@/lib/calculations"
+import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
 import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
 
 export function ReportExpensesScreen() {
@@ -20,7 +20,7 @@ export function ReportExpensesScreen() {
 
   const expenses = (project.expenses || []).slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
   const opex = totalExpenses(project)
-  const revenue = projectRevenue(project)
+  const revenue = projectNetRevenue(project)
   const margin = revenue - opex
 
   // Agrupa por categoria

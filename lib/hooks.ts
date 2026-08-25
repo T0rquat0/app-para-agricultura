@@ -6,6 +6,7 @@
 import useSWR, { useSWRConfig } from "swr"
 import {
   getAllProjects,
+  getCommissionAdjustments,
   getCommissionConfig,
   getCommissionEntries,
   getFinancialOverview,
@@ -14,7 +15,7 @@ import {
   getProject,
   getVehicles,
 } from "./storage"
-import type { CommissionConfig, ProjectSummary } from "./types"
+import type { CommissionAdjustments, CommissionConfig, ProjectSummary } from "./types"
 
 const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
 
@@ -62,6 +63,11 @@ export function useCommissionEntries() {
 export function useCommissionConfig() {
   const { data, isLoading } = useSWR("commission-config", () => getCommissionConfig())
   return { config: data || DEFAULT_COMMISSION_CONFIG, isLoading }
+}
+
+export function useCommissionAdjustments() {
+  const { data, isLoading } = useSWR("commission-adjustments", () => getCommissionAdjustments())
+  return { adjustments: (data || {}) as CommissionAdjustments, isLoading }
 }
 
 // Revalida tudo apos uma escrita (mantem todas as telas em sincronia).

@@ -6,6 +6,8 @@ import { fmtHa, fmtMoney, slug } from "@/lib/format"
 import {
   mappedHa,
   pct,
+  projectDiscount,
+  projectNetRevenue,
   projectRevenue,
   serviceRevenue,
   pricingSummary,
@@ -70,6 +72,8 @@ export function ReportClientScreen() {
   const total = Number(project.totalHectares || 0)
   const progress = pct(project)
   const revenue = projectRevenue(project)
+  const discount = projectDiscount(project)
+  const netRevenue = projectNetRevenue(project)
   const talhoes = project.talhoes || []
   const loose = ungroupedAreas(project)
   const services = project.services || []
@@ -225,7 +229,16 @@ export function ReportClientScreen() {
             </div>
           ))}
         </div>
-        <ReportTotal label="Valor total dos serviços" value={fmtMoney(revenue)} />
+        {discount > 0 && (
+          <div className="mb-1">
+            <ReportRow label="Subtotal dos serviços" value={fmtMoney(revenue)} />
+            <ReportRow
+              label={project.discountNote ? `Desconto (${project.discountNote})` : "Desconto"}
+              value={`− ${fmtMoney(discount)}`}
+            />
+          </div>
+        )}
+        <ReportTotal label="Valor total dos serviços" value={fmtMoney(netRevenue)} />
       </ReportSection>
 
     </ReportShell>
