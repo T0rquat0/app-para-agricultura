@@ -4,6 +4,7 @@ import { useRef } from "react"
 import { Banknote, Check, ChevronRight, Download, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
 import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
 import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
+import { isProjectComplete, projectPercent } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { useNav } from "../nav-context"
 import { Logo } from "../logo"
@@ -24,13 +25,13 @@ export function HomeScreen() {
   const activeList = index.filter((p) => {
     const m = Number(p.mappedHectares || 0)
     const t = Number(p.totalHectares || 0)
-    return m > 0 && m < t
+    return t > 0 && m > 0 && !isProjectComplete(m, t)
   })
   const active = activeList.length
   const done = index.filter((p) => {
     const m = Number(p.mappedHectares || 0)
     const t = Number(p.totalHectares || 0)
-    return t > 0 && m >= t
+    return isProjectComplete(m, t)
   }).length
 
   const balance = overview?.balance ?? 0
@@ -287,7 +288,7 @@ function ActiveFrontCard({
 }) {
   const m = Number(summary.mappedHectares || 0)
   const total = Number(summary.totalHectares || 0)
-  const pct = total > 0 ? (m / total) * 100 : 0
+  const pct = projectPercent(m, total)
   return (
     <Card interactive onClick={onClick} className="cursor-pointer p-4">
       <div className="flex items-center gap-3">
@@ -321,8 +322,8 @@ function ProjectCard({
 }) {
   const m = Number(summary.mappedHectares || 0)
   const total = Number(summary.totalHectares || 0)
-  const pctReal = total > 0 ? (m / total) * 100 : 0
-  const isDone = total > 0 && m >= total - 0.01
+  const pctReal = projectPercent(m, total)
+  const isDone = isProjectComplete(m, total)
 
   return (
     <div
