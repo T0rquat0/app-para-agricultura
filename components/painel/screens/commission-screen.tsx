@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import {
+  ArrowRightLeft,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -27,8 +28,10 @@ import {
   commissionVariable,
   currentPeriod,
   entriesForPeriod,
+  entryPeriod,
   entryRevenue,
   periodLabel,
+  periodOf,
   periodRange,
   periodRevenue,
   pullCommissionDrafts,
@@ -68,6 +71,10 @@ export function CommissionScreen() {
   const [pullResultMsg, setPullResultMsg] = useState<string | null>(null)
 
   const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set())
+
+  const [moveOpen, setMoveOpen] = useState(false)
+  const [moveClient, setMoveClient] = useState<string | null>(null)
+  const [moveTarget, setMoveTarget] = useState("")
 
   const periodEntries = useMemo(
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
@@ -222,6 +229,37 @@ export function CommissionScreen() {
     refresh()
   }
 
+  function openMove(clientName: string) {
+    setMoveClient(clientName)
+    // sugere o proximo mes como padrao, ja que e o caso de uso mais comum (adiar)
+    const [y, m] = period.split("-").map(Number)
+    const d = new Date(y, m, 1)
+    setMoveTarget(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`)
+    setMoveOpen(true)
+  }
+
+  async function runMove() {
+    if (!moveClient || !moveTarget) return
+    const list = await getCommissionEntries()
+    const updated = list.map((e) => {
+      if (e.clientName !== moveClient || entryPeriod(e) !== period) return e
+      // Se o destino coincide com o mes real da data, remove o override (volta ao padrao).
+      return { ...e, attributedPeriod: moveTarget === periodOf(e.date) ? undefined : moveTarget }
+    })
+    await saveCommissionEntries(updated)
+    setMoveOpen(false)
+    refresh()
+  }
+
+  async function resetMove(clientName: string) {
+    const list = await getCommissionEntries()
+    const updated = list.map((e) =>
+      e.clientName === clientName && entryPeriod(e) === period ? { ...e, attributedPeriod: undefined } : e,
+    )
+    await saveCommissionEntries(updated)
+    refresh()
+  }
+
   async function remove(e: CommissionEntry) {
     if (!confirm(`Excluir o lançamento de "${e.clientName}"?`)) return
     const list = await getCommissionEntries()
@@ -359,25 +397,44 @@ export function CommissionScreen() {
           <div className="flex flex-col gap-3">
             {groupedByClient.map((group) => {
               const isCollapsed = collapsedClients.has(group.clientName)
+              const anyMoved = group.entries.some((e) => e.attributedPeriod)
               return (
                 <div key={group.clientName} className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/60">
-                  <button
-                    onClick={() => toggleClient(group.clientName)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
-                      <div className="num mt-0.5 text-[11px] text-muted-foreground">
-                        {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
+                  <div className="flex items-center gap-1 px-2 pt-2">
+                    <button
+                      onClick={() => toggleClient(group.clientName)}
+                      className="flex flex-1 items-center justify-between gap-3 px-2 py-1 text-left"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
+                          {anyMoved && (
+                            <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                              Movido
+                            </span>
+                          )}
+                        </div>
+                        <div className="num mt-0.5 text-[11px] text-muted-foreground">
+                          {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
-                      <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
-                      />
-                    </div>
-                  </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
+                        <ChevronDown
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+                        />
+                      </div>
+                    </button>
+                    <IconButton
+                      onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
+                      aria-label={anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
+                      className="h-8 w-8 bg-muted text-muted-foreground hover:bg-muted/70"
+                      title={anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                    </IconButton>
+                  </div>
+                  <div className="pb-1" />
 
                   {!isCollapsed && (
                     <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-3 pb-3 pt-2.5">
@@ -393,6 +450,11 @@ export function CommissionScreen() {
                                 ) : (
                                   <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
                                     Manual
+                                  </span>
+                                )}
+                                {e.attributedPeriod && (
+                                  <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                                    Recebido em {periodLabel(e.attributedPeriod).split(" ")[0]}
                                   </span>
                                 )}
                               </div>
@@ -489,6 +551,26 @@ export function CommissionScreen() {
             {editing ? "Salvar alterações" : "Adicionar lançamento"}
           </PrimaryButton>
           <GhostButton className="mt-1.5 w-full" onClick={() => setOpen(false)}>
+            Cancelar
+          </GhostButton>
+        </ModalSheet>
+      )}
+
+      {moveOpen && (
+        <ModalSheet title={`Mover ${moveClient} para outro mês`} onClose={() => setMoveOpen(false)}>
+          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
+            Os lançamentos de <strong>{moveClient}</strong> em {periodLabel(period).toLowerCase()} vão contar como
+            comissão do mês escolhido abaixo. A data original de cada lançamento não muda — só o mês em que ele entra
+            no total pago.
+          </p>
+          <Field label="Receber comissão em">
+            <TextInput value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} type="month" />
+          </Field>
+          {moveTarget && <p className="mb-3.5 text-[13px] font-semibold text-foreground">{periodLabel(moveTarget)}</p>}
+          <PrimaryButton className="w-full" onClick={runMove}>
+            Mover lançamentos
+          </PrimaryButton>
+          <GhostButton className="mt-1.5 w-full" onClick={() => setMoveOpen(false)}>
             Cancelar
           </GhostButton>
         </ModalSheet>
