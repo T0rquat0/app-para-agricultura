@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Plus, X } from "lucide-react"
 import type { Project } from "@/lib/types"
-import { projectRevenue, totalExpenses } from "@/lib/calculations"
+import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
 import { fmtDate, fmtMoney } from "@/lib/format"
 import { saveProject } from "@/lib/storage"
 import { useRefresh, useVehicles } from "@/lib/hooks"
@@ -17,7 +17,7 @@ export function ExpensesTab({ project }: { project: Project }) {
   const [showAdd, setShowAdd] = useState(false)
 
   const total = totalExpenses(project)
-  const revenue = projectRevenue(project)
+  const revenue = projectNetRevenue(project)
   const margin = revenue - total
   const hasRevenue = revenue > 0
 

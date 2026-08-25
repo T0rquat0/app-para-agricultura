@@ -15,15 +15,24 @@ import {
   Zap,
 } from "lucide-react"
 import { useNav } from "../nav-context"
-import { useAllProjects, useCommissionConfig, useCommissionEntries, useIndex, useRefresh } from "@/lib/hooks"
+import {
+  useAllProjects,
+  useCommissionAdjustments,
+  useCommissionConfig,
+  useCommissionEntries,
+  useIndex,
+  useRefresh,
+} from "@/lib/hooks"
 import {
   getCommissionConfig,
   getCommissionEntries,
+  saveCommissionAdjustment,
   saveCommissionConfig,
   saveCommissionEntries,
 } from "@/lib/storage"
 import {
   clientsMissingCommissionRate,
+  commissionBase,
   commissionTotal,
   commissionVariable,
   currentPeriod,
@@ -47,6 +56,7 @@ export function CommissionScreen() {
   const { goHome, goReport, currentPeriod: navPeriod, setPeriod: setNavPeriod } = useNav()
   const { entries } = useCommissionEntries()
   const { config } = useCommissionConfig()
+  const { adjustments } = useCommissionAdjustments()
   const { index } = useIndex()
   const { projects } = useAllProjects()
   const refresh = useRefresh()
@@ -80,13 +90,20 @@ export function CommissionScreen() {
   const [configError, setConfigError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<CommissionEntry | null>(null)
 
+  const [discountOpen, setDiscountOpen] = useState(false)
+  const [discountInput, setDiscountInput] = useState("")
+  const [discountNoteInput, setDiscountNoteInput] = useState("")
+
   const periodEntries = useMemo(
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
     [entries, period],
   )
   const revenue = periodRevenue(entries, period)
-  const variable = commissionVariable(entries, period, config)
-  const total = commissionTotal(entries, period, config)
+  const adjustment = adjustments[period]
+  const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
+  const base = commissionBase(entries, period, discount)
+  const variable = commissionVariable(entries, period, config, discount)
+  const total = commissionTotal(entries, period, config, discount)
   const monthHectares = periodEntries.reduce((s, e) => s + Number(e.hectares || 0), 0)
   const autoCount = periodEntries.filter((e) => e.auto).length
   const manualCount = periodEntries.length - autoCount
@@ -121,10 +138,10 @@ export function CommissionScreen() {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1)
       const p = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-      months.push({ period: p, total: commissionTotal(entries, p, config) })
+      months.push({ period: p, total: commissionTotal(entries, p, config, adjustments[p]?.discount || 0) })
     }
     return months
-  }, [entries, period, config])
+  }, [entries, period, config, adjustments])
   const historyMax = Math.max(1, ...history.map((h) => h.total))
   const prevMonthTotal = history[history.length - 2]?.total ?? 0
   const monthDelta = prevMonthTotal > 0 ? ((total - prevMonthTotal) / prevMonthTotal) * 100 : null
@@ -296,6 +313,20 @@ export function CommissionScreen() {
     refresh()
   }
 
+  function openDiscount() {
+    setDiscountInput(adjustment?.discount ? String(adjustment.discount) : "")
+    setDiscountNoteInput(adjustment?.note || "")
+    setDiscountOpen(true)
+  }
+
+  async function saveDiscount() {
+    const value = Number(discountInput)
+    const safe = Number.isNaN(value) || value < 0 ? 0 : value
+    await saveCommissionAdjustment(period, safe ? { discount: safe, note: discountNoteInput.trim() || undefined } : null)
+    setDiscountOpen(false)
+    refresh()
+  }
+
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title="Comissão" subtitle="Levantamentos faturados por mês" onBack={goHome}>
@@ -352,8 +383,29 @@ export function CommissionScreen() {
           </div>
           <div className="num mt-1 text-3xl font-extrabold">{fmtMoney(total)}</div>
           <div className="mt-1 text-[11px] text-white/60">
-            {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(revenue)}) + {fmtMoney(config.fixedSalary)} fixo
+            {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(discount > 0 ? base : revenue)}) +{" "}
+            {fmtMoney(config.fixedSalary)} fixo
           </div>
+
+          <button
+            onClick={openDiscount}
+            className="mt-2.5 flex w-full items-center justify-between gap-2 rounded-xl bg-white/10 px-3 py-2 text-left transition-colors hover:bg-white/15"
+          >
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">
+                Desconto / adiantamento
+              </div>
+              {discount > 0 ? (
+                <div className="num mt-0.5 truncate text-[13px] font-extrabold text-white">
+                  − {fmtMoney(discount)}
+                  {adjustment?.note ? <span className="font-semibold text-white/55">{` · ${adjustment.note}`}</span> : null}
+                </div>
+              ) : (
+                <div className="mt-0.5 text-[12px] font-semibold text-white/50">Toque para abater da base de cálculo</div>
+              )}
+            </div>
+            <Pencil className="h-3.5 w-3.5 shrink-0 text-white/60" />
+          </button>
 
           {periodEntries.length > 0 && (
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -721,6 +773,49 @@ export function CommissionScreen() {
             <Trash2 className="h-[18px] w-[18px]" /> Excluir lançamento
           </button>
           <GhostButton className="mt-1.5 w-full" onClick={() => setPendingDelete(null)}>
+            Cancelar
+          </GhostButton>
+        </ModalSheet>
+      )}
+
+      {discountOpen && (
+        <ModalSheet title="Desconto / adiantamento do mês" onClose={() => setDiscountOpen(false)}>
+          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
+            Abatido do faturamento de <strong>{fmtMoney(revenue)}</strong> antes de calcular a comissão. Use para
+            adiantamentos que você já recebeu ou descontos combinados com o cliente.
+          </p>
+          <Field label="Valor do desconto (R$)" hint="Deixe em branco ou 0 para remover o desconto.">
+            <TextInput
+              value={discountInput}
+              onChange={(e) => setDiscountInput(e.target.value)}
+              type="number"
+              inputMode="decimal"
+              placeholder="Ex: 6000"
+            />
+          </Field>
+          <Field label="Motivo (opcional)" hint="Ex.: adiantamento, desconto ao cliente.">
+            <TextInput
+              value={discountNoteInput}
+              onChange={(e) => setDiscountNoteInput(e.target.value)}
+              placeholder="Ex: adiantamento"
+            />
+          </Field>
+          {discountInput && !Number.isNaN(Number(discountInput)) && Number(discountInput) > 0 && (
+            <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
+              Base de cálculo:{" "}
+              <span className="text-primary">
+                {fmtMoney(Math.max(0, revenue - Number(discountInput)))}
+              </span>{" "}
+              · comissão {config.percent}%:{" "}
+              <span className="text-primary">
+                {fmtMoney(Math.max(0, revenue - Number(discountInput)) * (config.percent / 100))}
+              </span>
+            </div>
+          )}
+          <PrimaryButton className="w-full" onClick={saveDiscount}>
+            Salvar desconto
+          </PrimaryButton>
+          <GhostButton className="mt-1.5 w-full" onClick={() => setDiscountOpen(false)}>
             Cancelar
           </GhostButton>
         </ModalSheet>

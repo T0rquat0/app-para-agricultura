@@ -1,8 +1,9 @@
 "use client"
 
 import { useNav } from "../nav-context"
-import { useCommissionConfig, useCommissionEntries } from "@/lib/hooks"
+import { useCommissionAdjustments, useCommissionConfig, useCommissionEntries } from "@/lib/hooks"
 import {
+  commissionBase,
   commissionTotal,
   commissionVariable,
   currentPeriod,
@@ -20,12 +21,16 @@ export function CommissionReportScreen() {
   const { goReport, currentPeriod: navPeriod } = useNav()
   const { entries } = useCommissionEntries()
   const { config } = useCommissionConfig()
+  const { adjustments } = useCommissionAdjustments()
   const period = navPeriod || currentPeriod()
 
   const list = entriesForPeriod(entries, period).slice().sort((a, b) => (a.date || "").localeCompare(b.date || ""))
   const revenue = periodRevenue(entries, period)
-  const variable = commissionVariable(entries, period, config)
-  const total = commissionTotal(entries, period, config)
+  const adjustment = adjustments[period]
+  const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
+  const base = commissionBase(entries, period, discount)
+  const variable = commissionVariable(entries, period, config, discount)
+  const total = commissionTotal(entries, period, config, discount)
 
   // Agrupado por cliente, para o resumo por cliente do relatorio.
   const byClient = new Map<string, { hectares: number; revenue: number }>()
@@ -106,6 +111,15 @@ export function CommissionReportScreen() {
 
       <ReportSection title="Cálculo da comissão">
         <ReportRow label="Faturamento dos levantamentos" value={fmtMoney(revenue)} />
+        {discount > 0 && (
+          <>
+            <ReportRow
+              label={adjustment?.note ? `Desconto / adiantamento (${adjustment.note})` : "Desconto / adiantamento"}
+              value={`− ${fmtMoney(discount)}`}
+            />
+            <ReportRow label="Base de cálculo" value={fmtMoney(base)} accent />
+          </>
+        )}
         <ReportRow label={`Comissão variável (${config.percent}%)`} value={fmtMoney(variable)} />
         <ReportRow label="Salário fixo" value={fmtMoney(config.fixedSalary)} />
       </ReportSection>

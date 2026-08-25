@@ -82,6 +82,16 @@ export function projectRevenue(p: Project): number {
   return (p.services || []).reduce((sum, s) => sum + serviceRevenue(p, s), 0)
 }
 
+// Desconto concedido ao cliente (R$), limitado ao faturamento bruto.
+export function projectDiscount(p: Project): number {
+  return Math.min(projectRevenue(p), Math.max(0, Number(p.discount || 0)))
+}
+
+// Faturamento efetivamente cobrado do cliente = bruto - desconto.
+export function projectNetRevenue(p: Project): number {
+  return projectRevenue(p) - projectDiscount(p)
+}
+
 // ---- Comissao ----
 // Regra: 10% sobre o faturamento dos levantamentos do periodo + salario fixo.
 // (percentual e salario ficam configuraveis, mas o padrao segue essa regra)
@@ -112,12 +122,28 @@ export function periodRevenue(entries: CommissionEntry[], period: string): numbe
   return entriesForPeriod(entries, period).reduce((s, e) => s + entryRevenue(e), 0)
 }
 
-export function commissionVariable(entries: CommissionEntry[], period: string, config: CommissionConfig): number {
-  return periodRevenue(entries, period) * (Number(config.percent || 0) / 100)
+// Base de calculo da comissao: faturamento do periodo menos o desconto/adiantamento
+// do mes (nunca negativa).
+export function commissionBase(entries: CommissionEntry[], period: string, discount = 0): number {
+  return Math.max(0, periodRevenue(entries, period) - Number(discount || 0))
 }
 
-export function commissionTotal(entries: CommissionEntry[], period: string, config: CommissionConfig): number {
-  return commissionVariable(entries, period, config) + Number(config.fixedSalary || 0)
+export function commissionVariable(
+  entries: CommissionEntry[],
+  period: string,
+  config: CommissionConfig,
+  discount = 0,
+): number {
+  return commissionBase(entries, period, discount) * (Number(config.percent || 0) / 100)
+}
+
+export function commissionTotal(
+  entries: CommissionEntry[],
+  period: string,
+  config: CommissionConfig,
+  discount = 0,
+): number {
+  return commissionVariable(entries, period, config, discount) + Number(config.fixedSalary || 0)
 }
 
 // Lista de periodos (AAAA-MM) distintos presentes nos lancamentos, mais recente primeiro.
