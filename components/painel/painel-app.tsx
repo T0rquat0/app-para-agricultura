@@ -67,7 +67,14 @@ export function PainelApp() {
   }, [])
   const goNewProject = useCallback(() => setScreen("newProject"), [])
   const goInvestments = useCallback(() => setScreen("investments"), [])
-  const goCommission = useCallback(() => setScreen("commission"), [])
+  const goCommission = useCallback(() => {
+    // Recalcula o mes atual toda vez que a aba e aberta — nao confia no valor salvo
+    // em memoria, que pode estar desatualizado se o PWA ficou em segundo plano
+    // (celular "fechado" nem sempre mata o processo) ou se o usuario navegou para
+    // outro mes com as setinhas e nao voltou.
+    setPeriodState(currentPeriod())
+    setScreen("commission")
+  }, [])
   const setPeriod = useCallback((p: string) => setPeriodState(p), [])
   const setTab = useCallback((t: Tab) => setActiveTab(t), [])
   const goReport = useCallback((s: Screen) => setScreen(s), [])
