@@ -113,12 +113,18 @@ export interface CommissionConfig {
   fixedSalary: number
 }
 
-// Ajuste por periodo (AAAA-MM): desconto/adiantamento que reduz a base de calculo
-// da comissao variavel. Ex.: faturou 136k mas so sera cobrado 130k -> desconto 6k,
-// e a comissao passa a incidir sobre 130k.
+// Ajuste por periodo (AAAA-MM): dois tipos de desconto, com efeito matematico
+// diferente sobre a comissao final:
+// - discount: desconto AO CLIENTE. Abate do faturamento ANTES de aplicar o %.
+//   Ex.: faturou 136k mas so sera cobrado 130k -> desconto 6k, comissao incide sobre 130k.
+// - employeeDeduction: adiantamento/desconto DO FUNCIONARIO. Abate direto e por
+//   inteiro do valor final da comissao (variavel + fixo), sem passar pelo %.
+//   Ex.: ja recebeu 641 adiantado -> employeeDeduction 641, comissao final cai 641 exatos.
 export interface CommissionAdjustment {
   discount: number
   note?: string
+  employeeDeduction?: number
+  employeeNote?: string
 }
 
 export type CommissionAdjustments = Record<string, CommissionAdjustment>
