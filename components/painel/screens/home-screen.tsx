@@ -62,7 +62,7 @@ export function HomeScreen() {
       refresh()
       alert("Backup importado com sucesso.")
     } catch {
-      alert("Esse arquivo nao parece ser um backup valido.")
+      alert("Esse arquivo não parece ser um backup válido.")
     }
   }
 
@@ -92,13 +92,13 @@ export function HomeScreen() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2FD48A]" />
           </span>
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-            Centro de operacoes
+            Centro de operações
           </p>
         </div>
         <h1 className="mt-1 text-[22px] font-extrabold tracking-tight">
           {active > 0
             ? `${active} ${active === 1 ? "frente ativa" : "frentes ativas"} em campo`
-            : "Operacao pronta para iniciar"}
+            : "Operação pronta para iniciar"}
         </h1>
 
         {/* Progresso global de mapeamento */}
@@ -122,7 +122,7 @@ export function HomeScreen() {
 
         <div className="mt-3 grid grid-cols-3 gap-2.5">
           <HeaderStat label="Em campo" value={String(active)} unit={active !== 1 ? "projetos" : "projeto"} />
-          <HeaderStat label="Concluidos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
+          <HeaderStat label="Concluídos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
           <HeaderStat label="Clientes" value={String(index.length)} unit={index.length !== 1 ? "no total" : "no total"} />
         </div>
       </header>
@@ -140,7 +140,7 @@ export function HomeScreen() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
-                Saldo da operacao
+                Saldo da operação
               </p>
               <p
                 className={

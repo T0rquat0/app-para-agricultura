@@ -55,12 +55,16 @@ export function ExpensesTab({ project }: { project: Project }) {
               <div className="min-w-0">
                 <div className="truncate text-[13.5px] font-bold text-foreground">{e.description || e.category}</div>
                 <div className="text-[11.5px] text-muted-foreground">{fmtDate(e.date)}</div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <span className="rounded-md bg-sand-bg px-1.5 py-0.5 text-[10px] font-bold text-accent">{e.category}</span>
-                  {e.vehicle && (
-                    <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">{e.vehicle}</span>
-                  )}
-                </div>
+                {(e.description || e.vehicle) && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {e.description && (
+                      <span className="rounded-md bg-sand-bg px-1.5 py-0.5 text-[10px] font-bold text-accent">{e.category}</span>
+                    )}
+                    {e.vehicle && (
+                      <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">{e.vehicle}</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex shrink-0 items-center gap-2.5">
                 <span className="num text-[14px] font-bold text-foreground">{fmtMoney(e.value)}</span>
