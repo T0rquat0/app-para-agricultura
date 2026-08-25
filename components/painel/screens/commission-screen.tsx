@@ -76,6 +76,10 @@ export function CommissionScreen() {
   const [moveClient, setMoveClient] = useState<string | null>(null)
   const [moveTarget, setMoveTarget] = useState("")
 
+  const [formError, setFormError] = useState<string | null>(null)
+  const [configError, setConfigError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<CommissionEntry | null>(null)
+
   const periodEntries = useMemo(
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
     [entries, period],
@@ -83,6 +87,9 @@ export function CommissionScreen() {
   const revenue = periodRevenue(entries, period)
   const variable = commissionVariable(entries, period, config)
   const total = commissionTotal(entries, period, config)
+  const monthHectares = periodEntries.reduce((s, e) => s + Number(e.hectares || 0), 0)
+  const autoCount = periodEntries.filter((e) => e.auto).length
+  const manualCount = periodEntries.length - autoCount
 
   // Agrupa os lancamentos do mes por cliente, mantendo a ordem por maior faturamento primeiro.
   const groupedByClient = useMemo(() => {
@@ -174,6 +181,7 @@ export function CommissionScreen() {
     setRate("")
     setDate(todayISO())
     setNote("")
+    setFormError(null)
     setOpen(true)
   }
 
@@ -184,22 +192,24 @@ export function CommissionScreen() {
     setRate(String(e.rate ?? ""))
     setDate(e.date || todayISO())
     setNote(e.note || "")
+    setFormError(null)
     setOpen(true)
   }
 
   async function save() {
     if (!clientName.trim()) {
-      alert("Informe o nome do cliente.")
+      setFormError("Informe o nome do cliente.")
       return
     }
     if (!hectares || Number(hectares) <= 0) {
-      alert("Informe os hectares levantados.")
+      setFormError("Informe os hectares levantados (maior que zero).")
       return
     }
     if (!rate || Number(rate) <= 0) {
-      alert("Informe o valor por hectare.")
+      setFormError("Informe o valor por hectare (maior que zero).")
       return
     }
+    setFormError(null)
     const list = await getCommissionEntries()
     if (editing) {
       const i = list.findIndex((x) => x.id === editing.id)
@@ -260,20 +270,26 @@ export function CommissionScreen() {
     refresh()
   }
 
-  async function remove(e: CommissionEntry) {
-    if (!confirm(`Excluir o lançamento de "${e.clientName}"?`)) return
+  async function confirmDelete() {
+    if (!pendingDelete) return
     const list = await getCommissionEntries()
-    await saveCommissionEntries(list.filter((x) => x.id !== e.id))
+    await saveCommissionEntries(list.filter((x) => x.id !== pendingDelete.id))
+    setPendingDelete(null)
     refresh()
   }
 
   async function saveConfig() {
     const percent = Number(percentInput)
     const fixedSalary = Number(salaryInput)
-    if (Number.isNaN(percent) || Number.isNaN(fixedSalary)) {
-      alert("Informe valores numéricos válidos.")
+    if (percentInput.trim() === "" || salaryInput.trim() === "" || Number.isNaN(percent) || Number.isNaN(fixedSalary)) {
+      setConfigError("Informe valores numéricos válidos.")
       return
     }
+    if (percent < 0 || fixedSalary < 0) {
+      setConfigError("Os valores não podem ser negativos.")
+      return
+    }
+    setConfigError(null)
     await saveCommissionConfig({ percent, fixedSalary })
     setConfigOpen(false)
     refresh()
@@ -286,6 +302,7 @@ export function CommissionScreen() {
           onClick={() => {
             setPercentInput(String(config.percent))
             setSalaryInput(String(config.fixedSalary))
+            setConfigError(null)
             setConfigOpen(true)
           }}
           aria-label="Configurar comissão"
@@ -337,16 +354,40 @@ export function CommissionScreen() {
             {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(revenue)}) + {fmtMoney(config.fixedSalary)} fixo
           </div>
 
-          <div className="mt-3.5 flex items-end justify-between gap-1.5" aria-hidden="true">
+          {periodEntries.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-white/10 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">Hectares no mês</div>
+                <div className="num mt-0.5 text-[15px] font-extrabold">{fmtHa(monthHectares)} ha</div>
+              </div>
+              <div className="rounded-xl bg-white/10 px-3 py-2">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">Lançamentos</div>
+                <div className="num mt-0.5 flex items-baseline gap-1.5 text-[15px] font-extrabold">
+                  {periodEntries.length}
+                  <span className="text-[10px] font-semibold text-white/55">
+                    {autoCount} auto · {manualCount} manual
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-3.5 flex items-end justify-between gap-1.5">
             {history.map((h) => {
               const isCurrent = h.period === period
               const heightPct = Math.max(6, (h.total / historyMax) * 100)
               return (
-                <div key={h.period} className="flex flex-1 flex-col items-center gap-1">
+                <button
+                  key={h.period}
+                  onClick={() => setPeriod(h.period)}
+                  title={`${periodLabel(h.period)}: ${fmtMoney(h.total)}`}
+                  aria-label={`${periodLabel(h.period)}: ${fmtMoney(h.total)}. Ver este mês.`}
+                  className="group flex flex-1 flex-col items-center gap-1 rounded-md pt-1 transition-colors hover:bg-white/5"
+                >
                   <div className="flex h-10 w-full items-end">
                     <div
                       className={`w-full rounded-t-md transition-all ${
-                        isCurrent ? "bg-cta" : "bg-white/25"
+                        isCurrent ? "bg-cta" : "bg-white/25 group-hover:bg-white/40"
                       }`}
                       style={{ height: `${heightPct}%` }}
                     />
@@ -354,7 +395,7 @@ export function CommissionScreen() {
                   <span className={`text-[9px] font-bold ${isCurrent ? "text-white" : "text-white/45"}`}>
                     {periodLabel(h.period).slice(0, 3)}
                   </span>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -425,14 +466,14 @@ export function CommissionScreen() {
                         />
                       </div>
                     </button>
-                    <IconButton
+                    <button
                       onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
-                      aria-label={anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
-                      className="h-8 w-8 bg-muted text-muted-foreground hover:bg-muted/70"
                       title={anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
+                      className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-2 py-1.5 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
                     >
                       <ArrowRightLeft className="h-3.5 w-3.5" />
-                    </IconButton>
+                      {anyMoved ? "Voltar" : "Mover"}
+                    </button>
                   </div>
                   <div className="pb-1" />
 
@@ -476,7 +517,8 @@ export function CommissionScreen() {
                               <Pencil className="h-3.5 w-3.5" /> Editar
                             </button>
                             <button
-                              onClick={() => remove(e)}
+                              onClick={() => setPendingDelete(e)}
+                              aria-label="Excluir lançamento"
                               className="flex items-center justify-center gap-1.5 rounded-xl bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -545,6 +587,11 @@ export function CommissionScreen() {
           {hectares && rate && !Number.isNaN(Number(hectares)) && !Number.isNaN(Number(rate)) && (
             <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
               Faturamento deste lançamento: <span className="text-primary">{fmtMoney(Number(hectares) * Number(rate))}</span>
+            </div>
+          )}
+          {formError && (
+            <div className="mb-3.5 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-[13px] font-semibold text-destructive ring-1 ring-destructive/20">
+              {formError}
             </div>
           )}
           <PrimaryButton className="w-full" onClick={save}>
@@ -646,10 +693,34 @@ export function CommissionScreen() {
               placeholder="Ex: 2000"
             />
           </Field>
+          {configError && (
+            <div className="mb-3.5 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-[13px] font-semibold text-destructive ring-1 ring-destructive/20">
+              {configError}
+            </div>
+          )}
           <PrimaryButton className="w-full" onClick={saveConfig}>
             Salvar configuração
           </PrimaryButton>
           <GhostButton className="mt-1.5 w-full" onClick={() => setConfigOpen(false)}>
+            Cancelar
+          </GhostButton>
+        </ModalSheet>
+      )}
+
+      {pendingDelete && (
+        <ModalSheet title="Excluir lançamento" onClose={() => setPendingDelete(null)}>
+          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
+            Tem certeza que deseja excluir o lançamento de <strong>{pendingDelete.clientName}</strong> (
+            {fmtHa(pendingDelete.hectares)} ha × {fmtMoney(pendingDelete.rate)}/ha ={" "}
+            {fmtMoney(entryRevenue(pendingDelete))})? Esta ação não pode ser desfeita.
+          </p>
+          <button
+            onClick={confirmDelete}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive py-3.5 text-sm font-bold text-destructive-foreground transition-all hover:brightness-105"
+          >
+            <Trash2 className="h-[18px] w-[18px]" /> Excluir lançamento
+          </button>
+          <GhostButton className="mt-1.5 w-full" onClick={() => setPendingDelete(null)}>
             Cancelar
           </GhostButton>
         </ModalSheet>
