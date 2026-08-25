@@ -362,11 +362,9 @@ export function CommissionScreen() {
               </div>
               <div className="rounded-xl bg-white/10 px-3 py-2">
                 <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">Lançamentos</div>
-                <div className="num mt-0.5 flex items-baseline gap-1.5 text-[15px] font-extrabold">
-                  {periodEntries.length}
-                  <span className="text-[10px] font-semibold text-white/55">
-                    {autoCount} auto · {manualCount} manual
-                  </span>
+                <div className="num mt-0.5 text-[15px] font-extrabold leading-none">{periodEntries.length}</div>
+                <div className="num mt-1 text-[10px] font-semibold text-white/55">
+                  {autoCount} auto · {manualCount} manual
                 </div>
               </div>
             </div>
@@ -404,18 +402,18 @@ export function CommissionScreen() {
         <div className="mt-3 flex gap-2">
           <button
             onClick={openPull}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-cta py-2.5 text-[13px] font-bold text-cta-foreground transition-all hover:brightness-105"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cta px-3 text-[13px] font-bold leading-tight text-cta-foreground transition-all hover:brightness-105"
           >
-            <Zap className="h-4 w-4" /> Puxar automaticamente
+            <Zap className="h-4 w-4 shrink-0" /> Puxar áreas
           </button>
           <button
             onClick={() => {
               setNavPeriod(period)
               goReport("commissionReport")
             }}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-white/15 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/25"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-white/15 px-3 text-[13px] font-bold leading-tight text-white transition-colors hover:bg-white/25"
           >
-            <FileText className="h-4 w-4" /> Relatório
+            <FileText className="h-4 w-4 shrink-0" /> Relatório
           </button>
         </div>
       </div>
