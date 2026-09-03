@@ -27,26 +27,18 @@ function isLightOk(value: string): boolean {
   return l >= 0.6
 }
 
-export async function exportElementToPdf(
-  el: HTMLElement,
-  filename: string,
-  options?: { orientation?: "portrait" | "landscape" },
-): Promise<void> {
+export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
   const mod = await import("html2pdf.js")
   const html2pdf = (mod as { default: any }).default || (mod as any)
 
   const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`
 
-  const orientation = options?.orientation ?? "portrait"
   const elW = el.offsetWidth || 760
   const elH = el.scrollHeight || el.offsetHeight || 1075
 
   const PX_TO_MM = 0.2646
   const pageW = Math.ceil(elW * PX_TO_MM) + 4
   const pageH = Math.ceil(elH * PX_TO_MM) + 8
-
-  // jsPDF espera o formato sempre como [menor, maior]; a orientacao decide a rotacao.
-  const format = orientation === "landscape" ? [pageH, pageW] : [pageW, pageH]
 
   const opts = {
     margin: [4, 2, 4, 2],
@@ -64,7 +56,7 @@ export async function exportElementToPdf(
         try { sanitizeColors(element ?? _doc.body) } catch { /* nunca bloquear */ }
       },
     },
-    jsPDF: { unit: "mm", format, orientation },
+    jsPDF: { unit: "mm", format: [pageW, pageH], orientation: "portrait" },
     pagebreak: { mode: ["avoid-all", "css"] },
   }
 
