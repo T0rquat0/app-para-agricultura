@@ -196,8 +196,8 @@ export function ReportClientScreen() {
                   </div>
                   <div className="space-y-1.5">
                     {getDeliverables(s.name).map((d, j) => (
-                      <div key={j} className="flex items-start gap-2">
-                        <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: "#0C3A26" }}>▸</span>
+                      <div key={j} className="flex items-start">
+                        <span className="mr-2 mt-0.5 shrink-0 text-[10px]" style={{ color: "#0C3A26" }}>▸</span>
                         <span className="text-[12px] text-[#6b7280] leading-relaxed">{d}</span>
                       </div>
                     ))}
