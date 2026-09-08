@@ -20,6 +20,11 @@ const BLANK_ITEM = (): ProposalItem => ({
   quantity: null,
 })
 
+// Presets que ja casam com os detalhamentos tecnicos automaticos do documento
+// (ver ITEM_SPECS em proposal-document-screen.tsx). Escolher um preset garante
+// que o detalhamento tecnico apareca certo no PDF; "Outro" mantem liberdade total.
+const ITEM_NAME_PRESETS = ["Levantamento Planialtimétrico", "Curva de Nível", "Projeto de Drenagem"]
+
 // bannerMap comeca desmarcado — lona grande so faz sentido economicamente em
 // projetos grandes, entao a excecao (marcar) fica a criterio de quem preenche.
 const DEFAULT_DELIVERABLES: ProposalDeliverables = {
@@ -232,15 +237,31 @@ export function ProposalFormScreen() {
         </div>
 
         <div className="flex flex-col gap-3">
-          {items.map((item) => (
+          {items.map((item) => {
+            const isPreset = ITEM_NAME_PRESETS.includes(item.name)
+            const selectValue = item.name === "" ? "" : isPreset ? item.name : "custom"
+            return (
             <div key={item.id} className="rounded-2xl border border-border bg-card p-3.5">
               <div className="mb-2.5 flex items-start gap-2">
-                <TextInput
-                  value={item.name}
-                  onChange={(e) => updateItem(item.id, { name: e.target.value })}
-                  placeholder="Ex: Levantamento Aerofotogramétrico"
-                  className="flex-1"
-                />
+                <div className="flex-1">
+                  <Select
+                    value={selectValue}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      updateItem(item.id, { name: v === "custom" ? (isPreset ? "" : item.name) : v })
+                    }}
+                  >
+                    <option value="" disabled>
+                      Selecione um item…
+                    </option>
+                    {ITEM_NAME_PRESETS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                    <option value="custom">Outro (digitar)</option>
+                  </Select>
+                </div>
                 <button
                   onClick={() => removeItem(item.id)}
                   className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
@@ -249,6 +270,14 @@ export function ProposalFormScreen() {
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
+              {selectValue === "custom" && (
+                <TextInput
+                  value={item.name}
+                  onChange={(e) => updateItem(item.id, { name: e.target.value })}
+                  placeholder="Ex: Ortomosaico, Sistematização de Solo…"
+                  className="mb-2.5"
+                />
+              )}
               <div className="grid grid-cols-3 gap-2">
                 <Select
                   value={item.billingType}
@@ -287,7 +316,8 @@ export function ProposalFormScreen() {
                 />
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <SecondaryButton className="mt-3 w-full" onClick={addItem}>
