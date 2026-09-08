@@ -13,6 +13,8 @@ import {
   getIndex,
   getInvestments,
   getProject,
+  getProposal,
+  getProposals,
   getVehicles,
 } from "./storage"
 import type { CommissionAdjustments, CommissionConfig, ProjectSummary } from "./types"
@@ -68,6 +70,16 @@ export function useCommissionConfig() {
 export function useCommissionAdjustments() {
   const { data, isLoading } = useSWR("commission-adjustments", () => getCommissionAdjustments())
   return { adjustments: (data || {}) as CommissionAdjustments, isLoading }
+}
+
+export function useProposals() {
+  const { data, isLoading } = useSWR("proposals", () => getProposals())
+  return { proposals: data || [], isLoading }
+}
+
+export function useProposal(id: string | null) {
+  const { data, isLoading } = useSWR(id ? `proposal:${id}` : null, () => getProposal(id as string))
+  return { proposal: data || null, isLoading }
 }
 
 // Revalida tudo apos uma escrita (mantem todas as telas em sincronia).
