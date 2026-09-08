@@ -36,8 +36,12 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
   const elW = el.offsetWidth || 760
   const elH = el.scrollHeight || el.offsetHeight || 1075
 
+  const PX_TO_MM = 0.2646
+  const pageW = Math.ceil(elW * PX_TO_MM) + 4
+  const pageH = Math.ceil(elH * PX_TO_MM) + 8
+
   const opts = {
-    margin: [8, 6, 8, 6],
+    margin: [4, 2, 4, 2],
     filename: fname,
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: {
@@ -52,14 +56,23 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
         try { sanitizeColors(element ?? _doc.body) } catch { /* nunca bloquear */ }
       },
     },
-    // Paginas A4 de verdade — visualizadores de PDF (Quick Look no iPhone, preview
-    // do WhatsApp, etc.) esperam essa proporcao. Uma pagina unica customizada e
-    // muito alta fica "espremida" nesses visualizadores no celular.
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    // Pagina unica customizada, do tamanho exato do conteudo. NAO trocar por
+    // formato "a4" fixo: a paginacao automatica do html2pdf.js corta a imagem
+    // renderizada em fatias de altura fixa sem respeitar onde as secoes
+    // terminam (o "avoid-all" nao segura isso de forma confiavel nessa lib) —
+    // ja tentamos e cortou conteudo da proposta no meio. Pagina unica elimina
+    // o risco de corte; o preco e a pagina ficar "espremida" em visualizadores
+    // de PDF no celular (Quick Look etc.) por ser bem mais alta que larga.
+    jsPDF: { unit: "mm", format: [pageW, pageH], orientation: "portrait" },
     pagebreak: { mode: ["avoid-all", "css"] },
   }
 
+  // Gera PDF e remove paginas em branco extras que o html2pdf as vezes cria
   const pdfObj = await html2pdf().set(opts).from(el).toPdf().get("pdf")
+  const totalPages: number = pdfObj.internal.getNumberOfPages()
+  for (let i = totalPages; i > 1; i--) {
+    pdfObj.deletePage(i)
+  }
   const blob: Blob = pdfObj.output("blob")
   const file = new File([blob], fname, { type: "application/pdf" })
 
