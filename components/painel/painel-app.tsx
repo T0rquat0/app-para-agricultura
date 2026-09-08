@@ -11,12 +11,16 @@ import { InvestmentsScreen } from "./screens/investments-screen"
 import { InvestmentsReportScreen } from "./screens/investments-report-screen"
 import { CommissionScreen } from "./screens/commission-screen"
 import { CommissionReportScreen } from "./screens/commission-report-screen"
+import { ProposalsScreen } from "./screens/proposals-screen"
+import { ProposalFormScreen } from "./screens/proposal-form-screen"
+import { ProposalDocumentScreen } from "./screens/proposal-document-screen"
 import { SplashScreen } from "./splash-screen"
 import { currentPeriod } from "@/lib/calculations"
 
 export function PainelApp() {
   const [screen, setScreen] = useState<Screen>("home")
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [currentProposalId, setCurrentProposalId] = useState<string | null>(null)
   const [period, setPeriodState] = useState<string>(currentPeriod())
   const [activeTab, setActiveTab] = useState<Tab>("areas")
   const [dark, setDark] = useState(false)
@@ -79,12 +83,18 @@ export function PainelApp() {
   const setTab = useCallback((t: Tab) => setActiveTab(t), [])
   const goReport = useCallback((s: Screen) => setScreen(s), [])
   const toggleDark = useCallback(() => setDark((d) => !d), [])
+  const goProposals = useCallback(() => setScreen("proposals"), [])
+  const openProposal = useCallback((id: string | null) => {
+    setCurrentProposalId(id)
+    setScreen("proposalForm")
+  }, [])
 
   return (
     <NavContext.Provider
       value={{
         screen,
         currentProjectId,
+        currentProposalId,
         currentPeriod: period,
         activeTab,
         dark,
@@ -94,6 +104,8 @@ export function PainelApp() {
         goNewProject,
         goInvestments,
         goCommission,
+        goProposals,
+        openProposal,
         setPeriod,
         setTab,
         goReport,
@@ -112,6 +124,9 @@ export function PainelApp() {
           {screen === "investmentsReport" && <InvestmentsReportScreen />}
           {screen === "commission" && <CommissionScreen />}
           {screen === "commissionReport" && <CommissionReportScreen />}
+          {screen === "proposals" && <ProposalsScreen />}
+          {screen === "proposalForm" && <ProposalFormScreen />}
+          {screen === "proposalDocument" && <ProposalDocumentScreen />}
         </div>
       </div>
     </NavContext.Provider>
