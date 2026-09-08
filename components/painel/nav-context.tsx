@@ -12,12 +12,16 @@ export type Screen =
   | "investmentsReport"
   | "commission"
   | "commissionReport"
+  | "proposals"
+  | "proposalForm"
+  | "proposalDocument"
 
 export type Tab = "areas" | "services" | "expenses" | "timeline"
 
 export interface NavState {
   screen: Screen
   currentProjectId: string | null
+  currentProposalId: string | null
   currentPeriod: string
   activeTab: Tab
   dark: boolean
@@ -27,6 +31,8 @@ export interface NavState {
   goNewProject: () => void
   goInvestments: () => void
   goCommission: () => void
+  goProposals: () => void
+  openProposal: (id: string | null) => void
   setPeriod: (period: string) => void
   setTab: (tab: Tab) => void
   goReport: (screen: Screen) => void
