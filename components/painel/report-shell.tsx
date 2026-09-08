@@ -197,9 +197,9 @@ export function ReportHeader({
         className="-mx-7 flex items-start justify-between gap-3 px-7 py-4 text-white"
         style={{ background: `linear-gradient(135deg, ${DOC_GREEN} 0%, ${DOC_GREEN_2} 100%)` }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white"
+            className="mr-3 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white"
             style={{ border: "1px solid rgba(255,255,255,0.5)" }}
           >
             <img src="/ags-geo-mark-trim.png" alt="AGS GEO" className="h-9 w-9 object-contain" />
@@ -272,10 +272,10 @@ export function ReportSection({ title, children }: { title: string; children: Re
   return (
     <div className="mb-4">
       <h3
-        className="mb-1 flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em]"
+        className="mb-1 flex items-center text-[11px] font-extrabold uppercase tracking-[0.12em]"
         style={{ color: DOC_GREEN }}
       >
-        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-[1px]" style={{ background: RTK }} />
+        <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-[1px]" style={{ background: RTK }} />
         {title}
       </h3>
       {children}
