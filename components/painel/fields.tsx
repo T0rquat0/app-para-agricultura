@@ -7,13 +7,15 @@ export function Field({
   label,
   hint,
   children,
+  className,
 }: {
   label?: string
   hint?: ReactNode
   children: ReactNode
+  className?: string
 }) {
   return (
-    <div className="mb-3.5">
+    <div className={cn("mb-3.5", className)}>
       {label && (
         <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
           {label}
