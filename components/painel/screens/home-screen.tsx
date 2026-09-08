@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef } from "react"
-import { Banknote, Check, ChevronRight, Download, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
+import { Banknote, Check, ChevronRight, Download, FileText, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
 import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
 import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
 import { isProjectComplete, projectPercent } from "@/lib/calculations"
@@ -14,7 +14,7 @@ import { IconButton } from "../buttons"
 export function HomeScreen() {
   const { index, isLoading } = useIndex()
   const { overview } = useFinancialOverview()
-  const { openProject, goNewProject, goInvestments, goCommission, dark, toggleDark } = useNav()
+  const { openProject, goNewProject, goInvestments, goCommission, goProposals, dark, toggleDark } = useNav()
   const refresh = useRefresh()
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -187,6 +187,24 @@ export function HomeScreen() {
             <div>
               <div className="text-[14px] font-extrabold text-foreground">Comissão</div>
               <div className="text-xs text-muted-foreground">Lançar levantamentos e gerar relatório do mês</div>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+
+      <div className="px-4 pt-3">
+        <button
+          onClick={goProposals}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:bg-muted active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-[14px] font-extrabold text-foreground">Propostas</div>
+              <div className="text-xs text-muted-foreground">Montar e gerar PDF de proposta comercial</div>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
