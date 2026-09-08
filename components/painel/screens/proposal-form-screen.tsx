@@ -65,7 +65,7 @@ const DEFAULT_TIMELINE = (): ProposalTimelinePhase[] => [
 ]
 
 export function ProposalFormScreen() {
-  const { goProposals, currentProposalId, navigate } = useNav()
+  const { goProposals, currentProposalId, navigate, openProposal } = useNav()
   const { proposal: existing, isLoading } = useProposal(currentProposalId)
   const refresh = useRefresh()
 
@@ -181,6 +181,9 @@ export function ProposalFormScreen() {
     if (!p) return
     await saveProposal(p)
     refresh()
+    // Importante pra proposta NOVA: sem isso, currentProposalId continua null
+    // (era null desde "Nova proposta") e a tela do documento nao acha nada.
+    openProposal(p.id)
     navigate("proposalDocument")
   }
 
