@@ -327,7 +327,7 @@ export function ProposalFormScreen() {
           })}
         </div>
 
-        <Field label="Desconto (R$, opcional)">
+        <Field label="Desconto (R$, opcional)" className="mt-6">
           <TextInput value={discount} onChange={(e) => setDiscount(e.target.value)} type="number" inputMode="decimal" placeholder="0" />
         </Field>
         {Number(discount || 0) > 0 && (
@@ -376,6 +376,7 @@ export function ProposalFormScreen() {
         <Field
           label="Responsabilidades do cliente (opcional)"
           hint="Uma por linha. Vira lista com marcadores no documento."
+          className="mt-6"
         >
           <TextArea
             value={clientResponsibilities}
