@@ -138,4 +138,69 @@ export interface BackupData {
   commissionEntries?: CommissionEntry[]
   commissionConfig?: CommissionConfig
   commissionAdjustments?: CommissionAdjustments
+  proposals?: Proposal[]
+}
+
+// ---- Propostas comerciais ----
+// Documento pre-contrato, para clientes ainda nao convertidos em Project.
+// Deliberadamente separado de Project: nao entra em "Frentes ativas", nao
+// conta em hectares mapeados/faturamento real, nao afeta comissao.
+export interface ProposalItem {
+  id: string
+  name: string
+  billingType: BillingType
+  rate: number
+  // null so faz sentido para billingType "fixo" (pacote fechado)
+  quantity: number | null
+  note?: string
+}
+
+export interface ProposalDeliverables {
+  rawPhotosHd?: boolean
+  bannerMap?: boolean
+  georefPdf?: boolean
+  photoPaperMap?: boolean
+}
+
+// Parcela de pagamento: percentual do valor total, atrelado a um marco do projeto
+// (ex: assinatura, campo, entrega). O valor em R$ e sempre calculado, nunca digitado
+// solto, pra nao ficar dessincronizado se o total da proposta mudar depois.
+export interface ProposalPaymentPhase {
+  id: string
+  label: string
+  percent: number
+}
+
+// Fase do cronograma estimado (sem datas fixas — duracao em dias/semanas).
+export interface ProposalTimelinePhase {
+  id: string
+  label: string
+  duration: string
+}
+
+export interface Proposal {
+  id: string
+  clientName: string
+  fazenda?: string
+  location?: string
+  items: ProposalItem[]
+  // Desconto comercial (R$), abatido do subtotal dos itens.
+  discount?: number
+  discountNote?: string
+  // Validade da proposta em dias corridos a partir da data de emissao.
+  validityDays?: number
+  // Texto livre (retrocompativel). Se paymentSchedule tiver itens, o documento
+  // prioriza a tabela de parcelas e usa este campo so como observacao complementar.
+  paymentTerms?: string
+  paymentSchedule?: ProposalPaymentPhase[]
+  timeline?: ProposalTimelinePhase[]
+  // Responsabilidades do cliente / condicoes, uma por linha.
+  clientResponsibilities?: string
+  // Numeros/fatos reais de credibilidade (ex: hectares ja mapeados na regiao),
+  // uma linha por item. Deixado vazio por padrao — nunca inventado pelo app.
+  experienceNote?: string
+  notes?: string
+  deliverables?: ProposalDeliverables
+  createdAt: string
+  updatedAt?: string
 }
