@@ -1,6 +1,6 @@
 "use client"
 
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react"
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react"
 import { cn } from "@/lib/utils"
 
 export function Field({
@@ -39,6 +39,10 @@ export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
 // Entrada de dados numericos/coordenadas — monoespacada (tabular)
 export function NumberInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input inputMode="decimal" {...props} className={cn(fieldBase, "num tracking-tight", props.className)} />
+}
+
+export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={cn(fieldBase, "min-h-[80px] resize-y", props.className)} />
 }
 
 export function Select({
