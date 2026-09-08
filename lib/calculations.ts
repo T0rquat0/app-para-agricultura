@@ -2,7 +2,7 @@
 // NAO alterar: estas formulas definem faturamento, progresso e margens.
 
 import { fmtHa, fmtMoney } from "./format"
-import type { CommissionConfig, CommissionEntry, Project, Service, Talhao } from "./types"
+import type { CommissionConfig, CommissionEntry, Project, Proposal, ProposalItem, ProposalPaymentPhase, Service, Talhao } from "./types"
 
 export function mappedHa(p: Project): number {
   return (p.areas || []).reduce((s, a) => s + Number(a.hectares || 0), 0)
@@ -269,4 +269,45 @@ export function pricingSummary(p: Project, s: Service): string {
   const qty = serviceQuantity(p, s) || 0
   const qtyLabel = isAltimetricName(s.name) ? `${fmtHa(qty)} ha mapeados` : `${fmtHa(qty)} ha`
   return `${fmtMoney(s.rate)}/ha × ${qtyLabel} = ${fmtMoney(serviceRevenue(p, s))}`
+}
+
+// ---- Propostas comerciais ----
+// Quantidade sempre informada manualmente no item (nada foi mapeado ainda),
+// diferente de serviceQuantity() que deriva de areas ja voadas do Project.
+export function proposalItemTotal(item: ProposalItem): number {
+  if (item.billingType === "fixo") return Number(item.rate || 0)
+  return Number(item.rate || 0) * Number(item.quantity || 0)
+}
+
+export function proposalSubtotal(p: Proposal): number {
+  return (p.items || []).reduce((sum, i) => sum + proposalItemTotal(i), 0)
+}
+
+export function proposalDiscount(p: Proposal): number {
+  return Math.min(Number(p.discount || 0), proposalSubtotal(p))
+}
+
+export function proposalTotal(p: Proposal): number {
+  return Math.max(0, proposalSubtotal(p) - proposalDiscount(p))
+}
+
+export function proposalItemPricingSummary(item: ProposalItem): string {
+  if (item.billingType === "fixo") {
+    if (!item.rate) return "Defina o valor do pacote"
+    return `Pacote fechado · ${fmtMoney(item.rate)}`
+  }
+  const unit = item.billingType === "metro" ? "m" : "ha"
+  if (!item.rate || !item.quantity) return `Defina R$/${unit} e a quantidade`
+  const qtyLabel = item.billingType === "hectare" ? fmtHa(item.quantity) : item.quantity.toLocaleString("pt-BR")
+  return `${fmtMoney(item.rate)}/${unit} × ${qtyLabel} ${unit} = ${fmtMoney(proposalItemTotal(item))}`
+}
+
+// Valor em R$ de uma parcela, calculado a partir do percentual — nunca digitado
+// solto, pra nao dessincronizar se o total da proposta mudar.
+export function paymentPhaseValue(total: number, phase: ProposalPaymentPhase): number {
+  return Math.round(total * (Number(phase.percent || 0) / 100) * 100) / 100
+}
+
+export function paymentSchedulePercentTotal(schedule: ProposalPaymentPhase[]): number {
+  return (schedule || []).reduce((sum, p) => sum + Number(p.percent || 0), 0)
 }
