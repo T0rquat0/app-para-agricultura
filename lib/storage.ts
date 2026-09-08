@@ -16,6 +16,7 @@ import type {
   Investment,
   Project,
   ProjectSummary,
+  Proposal,
 } from "./types"
 
 const KEYS = {
@@ -26,6 +27,7 @@ const KEYS = {
   commissionEntries: "ags-commission-entries",
   commissionConfig: "ags-commission-config",
   commissionAdjustments: "ags-commission-adjustments",
+  proposals: "ags-proposals",
 }
 
 const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
@@ -231,6 +233,41 @@ export async function saveCommissionAdjustment(period: string, adj: CommissionAd
   write(KEYS.commissionAdjustments, JSON.stringify(map))
 }
 
+// ---- Propostas comerciais ----
+// Lista unica em uma chave so — volume baixo, nao justifica indice separado
+// como em Projetos. Nao toca em nenhuma chave/estrutura de Project existente.
+export async function getProposals(): Promise<Proposal[]> {
+  const v = read(KEYS.proposals)
+  try {
+    const list = v ? (JSON.parse(v) as Proposal[]) : []
+    return list.sort(
+      (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime(),
+    )
+  } catch {
+    return []
+  }
+}
+
+export async function getProposal(id: string): Promise<Proposal | null> {
+  const list = await getProposals()
+  return list.find((p) => p.id === id) || null
+}
+
+export async function saveProposal(p: Proposal): Promise<Proposal> {
+  p.updatedAt = new Date().toISOString()
+  const list = await getProposals()
+  const i = list.findIndex((x) => x.id === p.id)
+  if (i >= 0) list[i] = p
+  else list.push(p)
+  write(KEYS.proposals, JSON.stringify(list))
+  return p
+}
+
+export async function deleteProposal(id: string) {
+  const list = await getProposals()
+  write(KEYS.proposals, JSON.stringify(list.filter((x) => x.id !== id)))
+}
+
 // ---- Backup manual (export/import de arquivo JSON) ----
 export async function exportBackup() {
   const idx = await getIndex()
@@ -244,6 +281,7 @@ export async function exportBackup() {
   const commissionEntries = await getCommissionEntries()
   const commissionConfig = await getCommissionConfig()
   const commissionAdjustments = await getCommissionAdjustments()
+  const proposals = await getProposals()
   const backup = {
     version: 1,
     exportedAt: new Date().toISOString(),
@@ -253,6 +291,7 @@ export async function exportBackup() {
     commissionEntries,
     commissionConfig,
     commissionAdjustments,
+    proposals,
   }
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
   const url = URL.createObjectURL(blob)
@@ -272,6 +311,7 @@ export async function importBackup(data: {
   commissionEntries?: CommissionEntry[]
   commissionConfig?: CommissionConfig
   commissionAdjustments?: CommissionAdjustments
+  proposals?: Proposal[]
 }) {
   for (const p of data.projects || []) await saveProject(p)
   if (data.vehicles && data.vehicles.length) write(KEYS.vehicles, JSON.stringify(data.vehicles))
@@ -279,4 +319,5 @@ export async function importBackup(data: {
   if (data.commissionEntries) await saveCommissionEntries(data.commissionEntries)
   if (data.commissionConfig) await saveCommissionConfig(data.commissionConfig)
   if (data.commissionAdjustments) write(KEYS.commissionAdjustments, JSON.stringify(data.commissionAdjustments))
+  if (data.proposals && data.proposals.length) write(KEYS.proposals, JSON.stringify(data.proposals))
 }
