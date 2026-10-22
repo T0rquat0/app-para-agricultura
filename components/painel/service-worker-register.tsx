@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect } from "react"
+import { requestPersistentStorage } from "@/lib/storage"
 
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return
+    requestPersistentStorage()
     if (!("serviceWorker" in navigator)) return
     if (process.env.NODE_ENV !== "production") return
 

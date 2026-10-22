@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ArrowUpRight, Check, Plus, Tag, X } from "lucide-react"
 import type { Project, Service, ServiceStatus } from "@/lib/types"
 import { pricingSummary, projectDiscount, projectNetRevenue, projectRevenue } from "@/lib/calculations"
-import { fmtMoney } from "@/lib/format"
+import { fmtMoney, todayISO } from "@/lib/format"
 import { saveProject } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { SectionTitle } from "../chrome"
@@ -46,7 +46,7 @@ export function ServicesTab({ project }: { project: Project }) {
     const s = (p.services || []).find((x) => x.id === serviceId)
     if (!s) return
     s.status = status
-    s.updatedAt = new Date().toISOString().slice(0, 10)
+    s.updatedAt = todayISO()
     await saveProject(p)
     refresh()
   }

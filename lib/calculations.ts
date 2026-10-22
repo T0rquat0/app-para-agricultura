@@ -1,7 +1,7 @@
 // Calculos derivados — copiados fielmente do app original.
 // NAO alterar: estas formulas definem faturamento, progresso e margens.
 
-import { fmtHa, fmtMoney } from "./format"
+import { fmtHa, fmtMoney, todayISO } from "./format"
 import type { CommissionConfig, CommissionEntry, Project, Proposal, ProposalItem, ProposalPaymentPhase, Service, Talhao } from "./types"
 
 export function mappedHa(p: Project): number {
@@ -159,8 +159,9 @@ export function availablePeriods(entries: CommissionEntry[]): string[] {
   return Array.from(set).sort((a, b) => b.localeCompare(a))
 }
 
+// Mes atual no horario do aparelho (ver todayISO: toISOString viraria o mes antes da hora).
 export function currentPeriod(): string {
-  return new Date().toISOString().slice(0, 7)
+  return periodOf(todayISO())
 }
 
 export function periodLabel(period: string): string {

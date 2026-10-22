@@ -180,7 +180,17 @@ export function CommissionScreen() {
     setPullMissing(missing)
     const drafts = pullCommissionDrafts(projects, pullStart, pullEnd)
     const list = await getCommissionEntries()
-    const kept = list.filter((e) => !(e.auto && e.date >= pullStart && e.date <= pullEnd))
+    const replaced = (e: CommissionEntry) => e.auto && e.date >= pullStart && e.date <= pullEnd
+    const kept = list.filter((e) => !replaced(e))
+    // Os lancamentos automaticos do intervalo sao recriados; o mes escolhido manualmente
+    // (attributedPeriod) passa para o lancamento novo do mesmo projeto + talhao + dia,
+    // senao puxar de novo devolvia ao mes original o que o usuario tinha movido.
+    const pullKey = (projectId?: string, talhaoName?: string, date?: string) =>
+      `${projectId || ""}|${talhaoName || ""}|${date || ""}`
+    const movedPeriod = new Map<string, string>()
+    for (const e of list) {
+      if (replaced(e) && e.attributedPeriod) movedPeriod.set(pullKey(e.sourceProjectId, e.talhaoName, e.date), e.attributedPeriod)
+    }
     const fresh: CommissionEntry[] = drafts.map((d) => ({
       id: genId("com"),
       clientName: d.clientName,
@@ -192,6 +202,7 @@ export function CommissionScreen() {
       auto: true,
       sourceProjectId: d.projectId,
       talhaoName: d.talhaoName,
+      attributedPeriod: movedPeriod.get(pullKey(d.projectId, d.talhaoName, d.date)),
     }))
     await saveCommissionEntries([...kept, ...fresh])
     refresh()

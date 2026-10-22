@@ -7,6 +7,7 @@
 // ============================================================
 
 import { mappedHa, projectNetRevenue, totalExpenses } from "./calculations"
+import { todayISO } from "./format"
 import type {
   CommissionAdjustment,
   CommissionAdjustments,
@@ -41,12 +42,22 @@ function read(key: string): string | null {
   }
 }
 
+// Pede ao navegador para nao apagar os dados sozinho (o Safari do iPhone limpa sites
+// pouco usados). Chamado uma vez ao abrir o app; se negar, segue funcionando igual.
+export function requestPersistentStorage() {
+  if (typeof navigator === "undefined" || !navigator.storage?.persist) return
+  navigator.storage.persist().catch(() => {})
+}
+
 function write(key: string, value: string) {
   if (typeof window === "undefined") return
   try {
     window.localStorage.setItem(key, value)
   } catch (e) {
     console.error("[v0] storage write failed", e)
+    // Antes a falha (ex.: armazenamento cheio) so ia para o console e a tela parecia ter salvo.
+    window.alert("Não foi possível salvar no aparelho. Exporte um backup agora e libere espaço no celular.")
+    throw e
   }
 }
 
@@ -297,7 +308,7 @@ export async function exportBackup() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = "ags_painel_backup_" + new Date().toISOString().slice(0, 10) + ".json"
+  a.download = "ags_painel_backup_" + todayISO() + ".json"
   document.body.appendChild(a)
   a.click()
   a.remove()
