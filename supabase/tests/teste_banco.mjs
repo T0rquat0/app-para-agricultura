@@ -101,6 +101,14 @@ await como(A, `insert into areas (id, project_id, talhao_id, hectares, date) val
 const depois = (await como(A, `select updated_at::text u from projects where id = 'p1'`)).rows[0].u;
 checa(depois > antes, 'lançar uma área atualiza a data do projeto (ordem da tela inicial)');
 
+r = await como(A, `update projects set updated_at = '2026-08-25T21:55:05Z' where id = 'p1'; select updated_at::text u from projects where id = 'p1'`);
+checa(r.rows?.[0]?.u?.startsWith('2026-08-25'), 'importar backup consegue manter a data original do projeto');
+r = await como(A, `update projects set fazenda = 'JD' where id = 'p1'; select updated_at::text u from projects where id = 'p1'`);
+checa(!r.rows?.[0]?.u?.startsWith('2026-08-25'), 'editar o projeto normalmente atualiza a data para agora');
+
+r = await como(null, `select keepalive() k`);
+checa(!r.erro && !!r.rows?.[0]?.k, 'manter acordado: visitante sem login consegue chamar keepalive()' + (r.erro ? ': ' + r.erro : ''));
+
 r = await como(A, `insert into commission_entries (id, client_name, hectares, rate, date, attributed_period) values ('cx', 'X', 1, 1, '2026-01-01', '2026-13')`);
 checa(!!r.erro, 'mês de comissão inválido (2026-13) é recusado');
 r = await como(A, `insert into areas (id, project_id, hectares, date) values ('an', 'p1', -5, '2026-01-01')`);

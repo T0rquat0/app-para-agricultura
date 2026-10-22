@@ -194,10 +194,13 @@ create index if not exists idx_proposals_owner on proposals (owner_id, updated_a
 -- ---------- updated_at automatico ----------
 -- Projeto: qualquer mudanca nele OU num lancamento dele (talhao, area, gasto, servico)
 -- atualiza o updated_at do projeto, que ordena a lista da tela inicial.
+-- Quem grava um updated_at diferente (importar backup) mantem o valor; senao vira agora.
 create or replace function set_updated_at() returns trigger
 language plpgsql set search_path = public as $$
 begin
-  new.updated_at := now();
+  if new.updated_at is not distinct from old.updated_at then
+    new.updated_at := now();
+  end if;
   return new;
 end $$;
 
@@ -262,6 +265,14 @@ begin
     execute format('grant select, insert, update, delete on %I to authenticated', t);
   end loop;
 end $$;
+
+-- ---------- Manter o banco acordado ----------
+-- O plano gratis pausa o projeto depois de ~7 dias sem uso. A Vercel chama esta funcao uma
+-- vez por dia (app/api/keepalive). Nao le nem grava dado nenhum: so responde a hora.
+create or replace function keepalive() returns timestamptz
+language sql stable set search_path = public as $$ select now() $$;
+revoke execute on function keepalive() from public;
+grant execute on function keepalive() to anon, authenticated;
 
 revoke all on project_summaries from anon;
 grant select on project_summaries to authenticated;

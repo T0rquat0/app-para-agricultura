@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useNav } from "../nav-context"
 import { useRefresh } from "@/lib/hooks"
-import { saveProject } from "@/lib/storage"
+import { createProject as storeProject } from "@/lib/storage"
 import { genId } from "@/lib/format"
 import type { Project } from "@/lib/types"
 import { TopBar } from "../chrome"
@@ -41,7 +41,7 @@ export function NewProjectScreen() {
       ],
       createdAt: new Date().toISOString(),
     }
-    await saveProject(p)
+    await storeProject(p)
     refresh()
     openProject(p.id)
   }

@@ -1,45 +1,35 @@
 // ============================================================
 // CAMADA DE DADOS (REPOSITORIO)
-// Hoje: localStorage. Amanha: trocar SOMENTE este arquivo por
-// chamadas ao banco (ex: rotas /api ou cliente do Neon/Supabase).
-// A interface assincrona ja esta pronta para isso — nenhuma tela
-// precisa mudar quando o backend chegar.
+// As telas so falam com este arquivo. Ele escolhe onde os dados ficam:
+// - banco configurado (NEXT_PUBLIC_SUPABASE_*): nuvem, storage-cloud.ts;
+// - sem banco: no aparelho, storage-local.ts (o jeito original).
+// Cada funcao mexe so no item envolvido (uma area, um gasto...).
 // ============================================================
 
-import { mappedHa, projectNetRevenue, totalExpenses } from "./calculations"
+import { projectNetRevenue, totalExpenses } from "./calculations"
 import { todayISO } from "./format"
+import { cloudBackend } from "./storage-cloud"
+import { localBackend } from "./storage-local"
+import type { StorageBackend } from "./storage-backend"
+import { isSupabaseConfigured } from "./supabase"
 import type {
+  Area,
+  BackupData,
   CommissionAdjustment,
-  CommissionAdjustments,
   CommissionConfig,
   CommissionEntry,
+  Expense,
   FinancialOverview,
   Investment,
   Project,
-  ProjectSummary,
+  ProjectPatch,
   Proposal,
+  Service,
+  Talhao,
 } from "./types"
 
-const KEYS = {
-  index: "ags-projects-index",
-  project: (id: string) => "ags-project-" + id,
-  vehicles: "ags-vehicles",
-  investments: "ags-investments",
-  commissionEntries: "ags-commission-entries",
-  commissionConfig: "ags-commission-config",
-  commissionAdjustments: "ags-commission-adjustments",
-  proposals: "ags-proposals",
-}
-
-const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
-
-function read(key: string): string | null {
-  if (typeof window === "undefined") return null
-  try {
-    return window.localStorage.getItem(key)
-  } catch {
-    return null
-  }
+function backend(): StorageBackend {
+  return isSupabaseConfigured() ? cloudBackend : localBackend
 }
 
 // Pede ao navegador para nao apagar os dados sozinho (o Safari do iPhone limpa sites
@@ -49,124 +39,37 @@ export function requestPersistentStorage() {
   navigator.storage.persist().catch(() => {})
 }
 
-function write(key: string, value: string) {
-  if (typeof window === "undefined") return
-  try {
-    window.localStorage.setItem(key, value)
-  } catch (e) {
-    console.error("[v0] storage write failed", e)
-    // Antes a falha (ex.: armazenamento cheio) so ia para o console e a tela parecia ter salvo.
-    window.alert("Não foi possível salvar no aparelho. Exporte um backup agora e libere espaço no celular.")
-    throw e
-  }
-}
-
-function remove(key: string) {
-  if (typeof window === "undefined") return
-  try {
-    window.localStorage.removeItem(key)
-  } catch (e) {
-    console.error("[v0] storage remove failed", e)
-  }
-}
-
 // ---- Projetos ----
-export async function getIndex(): Promise<ProjectSummary[]> {
-  const v = read(KEYS.index)
-  try {
-    return v ? (JSON.parse(v) as ProjectSummary[]) : []
-  } catch {
-    return []
-  }
-}
+export const getIndex = () => backend().getIndex()
+export const getProject = (id: string) => backend().getProject(id)
+export const getAllProjects = () => backend().getAllProjects()
+export const createProject = (p: Project) => backend().createProject(p)
+export const updateProject = (id: string, patch: ProjectPatch) => backend().updateProject(id, patch)
+export const deleteProjectById = (id: string) => backend().deleteProject(id)
 
-async function saveIndex(list: ProjectSummary[]) {
-  write(KEYS.index, JSON.stringify(list))
-}
+export const addTalhao = (projectId: string, t: Talhao) => backend().addTalhao(projectId, t)
+export const updateTalhao = (projectId: string, t: Talhao) => backend().updateTalhao(projectId, t)
+export const deleteTalhao = (projectId: string, talhaoId: string) => backend().deleteTalhao(projectId, talhaoId)
 
-export async function getProject(id: string): Promise<Project | null> {
-  const v = read(KEYS.project(id))
-  try {
-    return v ? (JSON.parse(v) as Project) : null
-  } catch {
-    return null
-  }
-}
+export const addArea = (projectId: string, a: Area) => backend().addArea(projectId, a)
+export const updateArea = (projectId: string, a: Area) => backend().updateArea(projectId, a)
+export const deleteArea = (projectId: string, areaId: string) => backend().deleteArea(projectId, areaId)
 
-export async function saveProject(p: Project): Promise<Project> {
-  p.updatedAt = new Date().toISOString()
-  write(KEYS.project(p.id), JSON.stringify(p))
-  const idx = await getIndex()
-  const i = idx.findIndex((x) => x.id === p.id)
-  const summary: ProjectSummary = {
-    id: p.id,
-    clientName: p.clientName,
-    fazenda: p.fazenda,
-    totalHectares: p.totalHectares,
-    mappedHectares: mappedHa(p),
-    updatedAt: p.updatedAt,
-    createdAt: p.createdAt,
-  }
-  if (i >= 0) idx[i] = summary
-  else idx.push(summary)
-  await saveIndex(idx)
-  return p
-}
+export const addExpense = (projectId: string, e: Expense) => backend().addExpense(projectId, e)
+export const deleteExpense = (projectId: string, expenseId: string) => backend().deleteExpense(projectId, expenseId)
 
-export async function getAllProjects(): Promise<Project[]> {
-  const idx = await getIndex()
-  const list: Project[] = []
-  for (const summary of idx) {
-    const full = await getProject(summary.id)
-    if (full) list.push(full)
-  }
-  return list
-}
-
-export async function deleteProjectById(id: string) {
-  remove(KEYS.project(id))
-  const idx = await getIndex()
-  await saveIndex(idx.filter((x) => x.id !== id))
-}
+export const addService = (projectId: string, s: Service) => backend().addService(projectId, s)
+export const updateService = (projectId: string, s: Service) => backend().updateService(projectId, s)
+export const deleteService = (projectId: string, serviceId: string) => backend().deleteService(projectId, serviceId)
 
 // ---- Veiculos (lista global usada nos gastos de combustivel) ----
-export async function getVehicles(): Promise<string[]> {
-  const v = read(KEYS.vehicles)
-  let list: string[] | null = null
-  try {
-    list = v ? (JSON.parse(v) as string[]) : null
-  } catch {
-    list = null
-  }
-  if (!list || !list.length) {
-    list = ["Quadriciclo", "Carro 408"]
-    write(KEYS.vehicles, JSON.stringify(list))
-  }
-  return list
-}
-
-export async function addVehicle(name: string): Promise<string[]> {
-  const list = await getVehicles()
-  if (!list.find((x) => x.trim().toLowerCase() === name.trim().toLowerCase())) {
-    list.push(name.trim())
-    write(KEYS.vehicles, JSON.stringify(list))
-  }
-  return list
-}
+export const getVehicles = () => backend().getVehicles()
+export const addVehicle = (name: string) => backend().addVehicle(name)
 
 // ---- Investimentos (CAPEX da divisao de levantamento) ----
-export async function getInvestments(): Promise<Investment[]> {
-  const v = read(KEYS.investments)
-  try {
-    return v ? (JSON.parse(v) as Investment[]) : []
-  } catch {
-    return []
-  }
-}
-
-export async function saveInvestments(list: Investment[]) {
-  write(KEYS.investments, JSON.stringify(list))
-}
+export const getInvestments = () => backend().getInvestments()
+export const saveInvestment = (inv: Investment) => backend().saveInvestment(inv)
+export const deleteInvestment = (id: string) => backend().deleteInvestment(id)
 
 export function totalInvested(list: Investment[]): number {
   return (list || []).reduce((s, i) => s + Number(i.value || 0), 0)
@@ -174,126 +77,53 @@ export function totalInvested(list: Investment[]): number {
 
 // ---- Visao financeira agregada ----
 export async function getFinancialOverview(): Promise<FinancialOverview> {
-  const idx = await getIndex()
+  const [projects, investments] = await Promise.all([getAllProjects(), getInvestments()])
   let totalContract = 0
   let totalOpEx = 0
-  for (const summary of idx) {
-    const full = await getProject(summary.id)
-    if (full) {
-      totalContract += projectNetRevenue(full)
-      totalOpEx += totalExpenses(full)
-    }
+  for (const p of projects) {
+    totalContract += projectNetRevenue(p)
+    totalOpEx += totalExpenses(p)
   }
-  const investments = await getInvestments()
   const invested = totalInvested(investments)
   return {
     totalContract,
     totalOpEx,
     invested,
     balance: totalContract - totalOpEx - invested,
-    projectCount: idx.length,
+    projectCount: projects.length,
     investments,
   }
 }
 
 // ---- Comissao (lancamentos de levantamento por periodo + config) ----
-export async function getCommissionEntries(): Promise<CommissionEntry[]> {
-  const v = read(KEYS.commissionEntries)
-  try {
-    return v ? (JSON.parse(v) as CommissionEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-export async function saveCommissionEntries(list: CommissionEntry[]) {
-  write(KEYS.commissionEntries, JSON.stringify(list))
-}
-
-export async function getCommissionConfig(): Promise<CommissionConfig> {
-  const v = read(KEYS.commissionConfig)
-  try {
-    return v ? (JSON.parse(v) as CommissionConfig) : DEFAULT_COMMISSION_CONFIG
-  } catch {
-    return DEFAULT_COMMISSION_CONFIG
-  }
-}
-
-export async function saveCommissionConfig(config: CommissionConfig) {
-  write(KEYS.commissionConfig, JSON.stringify(config))
-}
-
-// Ajustes de comissao por periodo (desconto/adiantamento). Mapa { "AAAA-MM": { discount, note } }.
-export async function getCommissionAdjustments(): Promise<CommissionAdjustments> {
-  const v = read(KEYS.commissionAdjustments)
-  try {
-    return v ? (JSON.parse(v) as CommissionAdjustments) : {}
-  } catch {
-    return {}
-  }
-}
-
-export async function saveCommissionAdjustment(period: string, adj: CommissionAdjustment | null) {
-  const map = await getCommissionAdjustments()
-  const hasContent = adj && (adj.discount > 0 || Number(adj.employeeDeduction || 0) > 0)
-  if (!hasContent) {
-    delete map[period]
-  } else {
-    map[period] = adj as CommissionAdjustment
-  }
-  write(KEYS.commissionAdjustments, JSON.stringify(map))
-}
+export const getCommissionEntries = () => backend().getCommissionEntries()
+export const saveCommissionEntries = (list: CommissionEntry[]) => backend().saveCommissionEntries(list)
+export const deleteCommissionEntries = (ids: string[]) => backend().deleteCommissionEntries(ids)
+export const getCommissionConfig = () => backend().getCommissionConfig()
+export const saveCommissionConfig = (config: CommissionConfig) => backend().saveCommissionConfig(config)
+export const getCommissionAdjustments = () => backend().getCommissionAdjustments()
+export const saveCommissionAdjustment = (period: string, adj: CommissionAdjustment | null) =>
+  backend().saveCommissionAdjustment(period, adj)
 
 // ---- Propostas comerciais ----
-// Lista unica em uma chave so — volume baixo, nao justifica indice separado
-// como em Projetos. Nao toca em nenhuma chave/estrutura de Project existente.
-export async function getProposals(): Promise<Proposal[]> {
-  const v = read(KEYS.proposals)
-  try {
-    const list = v ? (JSON.parse(v) as Proposal[]) : []
-    return list.sort(
-      (a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime(),
-    )
-  } catch {
-    return []
-  }
-}
-
-export async function getProposal(id: string): Promise<Proposal | null> {
-  const list = await getProposals()
-  return list.find((p) => p.id === id) || null
-}
-
-export async function saveProposal(p: Proposal): Promise<Proposal> {
-  p.updatedAt = new Date().toISOString()
-  const list = await getProposals()
-  const i = list.findIndex((x) => x.id === p.id)
-  if (i >= 0) list[i] = p
-  else list.push(p)
-  write(KEYS.proposals, JSON.stringify(list))
-  return p
-}
-
-export async function deleteProposal(id: string) {
-  const list = await getProposals()
-  write(KEYS.proposals, JSON.stringify(list.filter((x) => x.id !== id)))
-}
+export const getProposals = () => backend().getProposals()
+export const getProposal = (id: string) => backend().getProposal(id)
+export const saveProposal = (p: Proposal) => backend().saveProposal(p)
+export const deleteProposal = (id: string) => backend().deleteProposal(id)
 
 // ---- Backup manual (export/import de arquivo JSON) ----
 export async function exportBackup() {
-  const idx = await getIndex()
-  const projects: Project[] = []
-  for (const summary of idx) {
-    const full = await getProject(summary.id)
-    if (full) projects.push(full)
-  }
-  const vehicles = await getVehicles()
-  const investments = await getInvestments()
-  const commissionEntries = await getCommissionEntries()
-  const commissionConfig = await getCommissionConfig()
-  const commissionAdjustments = await getCommissionAdjustments()
-  const proposals = await getProposals()
-  const backup = {
+  const [projects, vehicles, investments, commissionEntries, commissionConfig, commissionAdjustments, proposals] =
+    await Promise.all([
+      getAllProjects(),
+      getVehicles(),
+      getInvestments(),
+      getCommissionEntries(),
+      getCommissionConfig(),
+      getCommissionAdjustments(),
+      getProposals(),
+    ])
+  const backup: BackupData = {
     version: 1,
     exportedAt: new Date().toISOString(),
     projects,
@@ -315,20 +145,4 @@ export async function exportBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
 
-export async function importBackup(data: {
-  projects?: Project[]
-  vehicles?: string[]
-  investments?: Investment[]
-  commissionEntries?: CommissionEntry[]
-  commissionConfig?: CommissionConfig
-  commissionAdjustments?: CommissionAdjustments
-  proposals?: Proposal[]
-}) {
-  for (const p of data.projects || []) await saveProject(p)
-  if (data.vehicles && data.vehicles.length) write(KEYS.vehicles, JSON.stringify(data.vehicles))
-  if (data.investments) await saveInvestments(data.investments)
-  if (data.commissionEntries) await saveCommissionEntries(data.commissionEntries)
-  if (data.commissionConfig) await saveCommissionConfig(data.commissionConfig)
-  if (data.commissionAdjustments) write(KEYS.commissionAdjustments, JSON.stringify(data.commissionAdjustments))
-  if (data.proposals && data.proposals.length) write(KEYS.proposals, JSON.stringify(data.proposals))
-}
+export const importBackup = (data: Partial<BackupData>) => backend().importBackup(data)

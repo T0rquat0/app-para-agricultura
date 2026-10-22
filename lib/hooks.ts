@@ -17,9 +17,8 @@ import {
   getProposals,
   getVehicles,
 } from "./storage"
-import type { CommissionAdjustments, CommissionConfig, ProjectSummary } from "./types"
-
-const DEFAULT_COMMISSION_CONFIG: CommissionConfig = { percent: 10, fixedSalary: 2000 }
+import { DEFAULT_COMMISSION_CONFIG } from "./storage-backend"
+import type { CommissionAdjustments, ProjectSummary } from "./types"
 
 export function useIndex() {
   const { data, isLoading } = useSWR("index", () => getIndex())

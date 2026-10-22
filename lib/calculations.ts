@@ -207,6 +207,7 @@ export interface CommissionDraft {
   clientName: string
   projectId: string
   talhaoName?: string
+  talhaoId?: string
   hectares: number
   rate: number
   date: string
@@ -234,6 +235,7 @@ export function pullCommissionDrafts(projects: Project[], startDate: string, end
           clientName: p.clientName,
           projectId: p.id,
           talhaoName,
+          talhaoId: talhaoName ? a.talhaoId : undefined,
           hectares: Number(a.hectares || 0),
           rate,
           date: d,

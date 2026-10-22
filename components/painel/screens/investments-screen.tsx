@@ -4,7 +4,7 @@ import { useState } from "react"
 import { FileText, Pencil, Plus, Trash2, TrendingUp, Wallet } from "lucide-react"
 import { useNav } from "../nav-context"
 import { useFinancialOverview, useInvestments, useRefresh } from "@/lib/hooks"
-import { getInvestments, saveInvestments, totalInvested } from "@/lib/storage"
+import { deleteInvestment, saveInvestment, totalInvested } from "@/lib/storage"
 import { fmtDate, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { Investment } from "@/lib/types"
 import { TopBar, EmptyState, SectionTitle } from "../chrome"
@@ -53,31 +53,25 @@ export function InvestmentsScreen() {
       alert("Informe o nome do investimento.")
       return
     }
-    const list = await getInvestments()
-    if (editing) {
-      const i = list.findIndex((x) => x.id === editing.id)
-      if (i >= 0) {
-        list[i] = { ...editing, name: name.trim(), value: Number(value || 0), date, note: note.trim() }
-      }
-    } else {
-      list.push({
-        id: genId("inv"),
-        name: name.trim(),
-        value: Number(value || 0),
-        date,
-        note: note.trim(),
-        createdAt: new Date().toISOString(),
-      })
-    }
-    await saveInvestments(list)
+    await saveInvestment(
+      editing
+        ? { ...editing, name: name.trim(), value: Number(value || 0), date, note: note.trim() }
+        : {
+            id: genId("inv"),
+            name: name.trim(),
+            value: Number(value || 0),
+            date,
+            note: note.trim(),
+            createdAt: new Date().toISOString(),
+          },
+    )
     setOpen(false)
     refresh()
   }
 
   async function remove(inv: Investment) {
     if (!confirm(`Excluir o investimento "${inv.name}"?`)) return
-    const list = await getInvestments()
-    await saveInvestments(list.filter((x) => x.id !== inv.id))
+    await deleteInvestment(inv.id)
     refresh()
   }
 

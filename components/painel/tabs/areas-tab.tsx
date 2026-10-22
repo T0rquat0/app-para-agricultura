@@ -6,7 +6,7 @@ import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
 import { effectiveCommissionRate, mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
-import { saveProject } from "@/lib/storage"
+import { deleteArea, deleteTalhao } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
 import { SecondaryButton, GhostButton } from "../buttons"
@@ -35,8 +35,7 @@ export function AreasTab({ project }: { project: Project }) {
 
   async function removeArea(areaId: string) {
     if (!confirm("Remover este lançamento?")) return
-    const p = { ...project, areas: (project.areas || []).filter((a) => a.id !== areaId) }
-    await saveProject(p)
+    await deleteArea(project.id, areaId)
     refresh()
   }
 
@@ -47,12 +46,7 @@ export function AreasTab({ project }: { project: Project }) {
         ? `Esse talhão tem ${count} parte(s) voada(s) lançada(s). Remover o talhão e todas as partes?`
         : "Remover este talhão?"
     if (!confirm(msg)) return
-    const p = {
-      ...project,
-      talhoes: (project.talhoes || []).filter((t) => t.id !== talhaoId),
-      areas: (project.areas || []).filter((a) => a.talhaoId !== talhaoId),
-    }
-    await saveProject(p)
+    await deleteTalhao(project.id, talhaoId)
     refresh()
   }
 

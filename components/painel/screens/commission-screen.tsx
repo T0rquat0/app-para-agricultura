@@ -24,6 +24,7 @@ import {
   useRefresh,
 } from "@/lib/hooks"
 import {
+  deleteCommissionEntries,
   getCommissionConfig,
   getCommissionEntries,
   saveCommissionAdjustment,
@@ -181,7 +182,6 @@ export function CommissionScreen() {
     const drafts = pullCommissionDrafts(projects, pullStart, pullEnd)
     const list = await getCommissionEntries()
     const replaced = (e: CommissionEntry) => e.auto && e.date >= pullStart && e.date <= pullEnd
-    const kept = list.filter((e) => !replaced(e))
     // Os lancamentos automaticos do intervalo sao recriados; o mes escolhido manualmente
     // (attributedPeriod) passa para o lancamento novo do mesmo projeto + talhao + dia,
     // senao puxar de novo devolvia ao mes original o que o usuario tinha movido.
@@ -202,9 +202,11 @@ export function CommissionScreen() {
       auto: true,
       sourceProjectId: d.projectId,
       talhaoName: d.talhaoName,
+      talhaoId: d.talhaoId,
       attributedPeriod: movedPeriod.get(pullKey(d.projectId, d.talhaoName, d.date)),
     }))
-    await saveCommissionEntries([...kept, ...fresh])
+    await deleteCommissionEntries(list.filter(replaced).map((e) => e.id))
+    await saveCommissionEntries(fresh)
     refresh()
     setPullResultMsg(
       drafts.length === 0
@@ -249,31 +251,10 @@ export function CommissionScreen() {
       return
     }
     setFormError(null)
-    const list = await getCommissionEntries()
-    if (editing) {
-      const i = list.findIndex((x) => x.id === editing.id)
-      if (i >= 0) {
-        list[i] = {
-          ...editing,
-          clientName: clientName.trim(),
-          hectares: Number(hectares),
-          rate: Number(rate),
-          date,
-          note: note.trim(),
-        }
-      }
-    } else {
-      list.push({
-        id: genId("com"),
-        clientName: clientName.trim(),
-        hectares: Number(hectares),
-        rate: Number(rate),
-        date,
-        note: note.trim(),
-        createdAt: new Date().toISOString(),
-      })
-    }
-    await saveCommissionEntries(list)
+    const fields = { clientName: clientName.trim(), hectares: Number(hectares), rate: Number(rate), date, note: note.trim() }
+    await saveCommissionEntries([
+      editing ? { ...editing, ...fields } : { id: genId("com"), ...fields, createdAt: new Date().toISOString() },
+    ])
     setOpen(false)
     refresh()
   }
@@ -290,11 +271,10 @@ export function CommissionScreen() {
   async function runMove() {
     if (!moveClient || !moveTarget) return
     const list = await getCommissionEntries()
-    const updated = list.map((e) => {
-      if (e.clientName !== moveClient || entryPeriod(e) !== period) return e
+    const updated = list
+      .filter((e) => e.clientName === moveClient && entryPeriod(e) === period)
       // Se o destino coincide com o mes real da data, remove o override (volta ao padrao).
-      return { ...e, attributedPeriod: moveTarget === periodOf(e.date) ? undefined : moveTarget }
-    })
+      .map((e) => ({ ...e, attributedPeriod: moveTarget === periodOf(e.date) ? undefined : moveTarget }))
     await saveCommissionEntries(updated)
     setMoveOpen(false)
     refresh()
@@ -302,17 +282,16 @@ export function CommissionScreen() {
 
   async function resetMove(clientName: string) {
     const list = await getCommissionEntries()
-    const updated = list.map((e) =>
-      e.clientName === clientName && entryPeriod(e) === period ? { ...e, attributedPeriod: undefined } : e,
-    )
+    const updated = list
+      .filter((e) => e.clientName === clientName && entryPeriod(e) === period)
+      .map((e) => ({ ...e, attributedPeriod: undefined }))
     await saveCommissionEntries(updated)
     refresh()
   }
 
   async function confirmDelete() {
     if (!pendingDelete) return
-    const list = await getCommissionEntries()
-    await saveCommissionEntries(list.filter((x) => x.id !== pendingDelete.id))
+    await deleteCommissionEntries([pendingDelete.id])
     setPendingDelete(null)
     refresh()
   }

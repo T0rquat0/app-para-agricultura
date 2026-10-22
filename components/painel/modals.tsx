@@ -4,7 +4,7 @@ import { useState } from "react"
 import { CATEGORIES, FUEL_CATEGORY, SERVICE_PRESETS } from "@/lib/constants"
 import { genId, todayISO, fmtHa } from "@/lib/format"
 import { isAltimetricName, mappedHa, talhaoFlown } from "@/lib/calculations"
-import { addVehicle, saveProject } from "@/lib/storage"
+import { addArea, addExpense, addService, addTalhao, addVehicle, updateArea, updateProject, updateService, updateTalhao } from "@/lib/storage"
 import type { Area, BillingType, Project, Service, Talhao } from "@/lib/types"
 import { ModalSheet } from "./modal-sheet"
 import { Field, Hint, Select, TextInput } from "./fields"
@@ -24,12 +24,13 @@ export function TalhaoModal({ project, onClose, onSaved }: { project: Project; o
       return
     }
     const t = parseFloat(target)
-    const p = { ...project }
-    p.talhoes = [
-      ...(p.talhoes || []),
-      { id: genId("t"), name: name.trim(), identifier: identifier.trim(), targetHectares: isNaN(t) ? null : t, createdAt: new Date().toISOString() },
-    ]
-    await saveProject(p)
+    await addTalhao(project.id, {
+      id: genId("t"),
+      name: name.trim(),
+      identifier: identifier.trim(),
+      targetHectares: isNaN(t) ? null : t,
+      createdAt: new Date().toISOString(),
+    })
     onSaved()
     onClose()
   }
@@ -80,13 +81,12 @@ export function EditTalhaoModal({
       return
     }
     const t = parseFloat(target)
-    const p = { ...project }
-    p.talhoes = (p.talhoes || []).map((x) =>
-      x.id === talhao.id
-        ? { ...x, name: name.trim(), identifier: identifier.trim(), targetHectares: isNaN(t) ? null : t }
-        : x
-    )
-    await saveProject(p)
+    await updateTalhao(project.id, {
+      ...talhao,
+      name: name.trim(),
+      identifier: identifier.trim(),
+      targetHectares: isNaN(t) ? null : t,
+    })
     onSaved()
     onClose()
   }
@@ -139,9 +139,7 @@ export function ParteModal({
       alert("Informe os hectares dessa parte.")
       return
     }
-    const p = { ...project }
-    p.areas = [...(p.areas || []), { id: genId("a"), talhaoId, hectares: h, date: date || todayISO(), note: note.trim() }]
-    await saveProject(p)
+    await addArea(project.id, { id: genId("a"), talhaoId, hectares: h, date: date || todayISO(), note: note.trim() })
     onSaved()
     onClose()
   }
@@ -226,11 +224,7 @@ export function EditParteModal({
       alert("Informe os hectares dessa parte.")
       return
     }
-    const p = { ...project }
-    p.areas = (p.areas || []).map((a) =>
-      a.id === area.id ? { ...a, hectares: h, date: date || todayISO(), note: note.trim() } : a
-    )
-    await saveProject(p)
+    await updateArea(project.id, { ...area, hectares: h, date: date || todayISO(), note: note.trim() })
     onSaved()
     onClose()
   }
@@ -317,12 +311,14 @@ export function ExpenseModal({
       alert("Informe o valor do gasto.")
       return
     }
-    const p = { ...project }
-    p.expenses = [
-      ...(p.expenses || []),
-      { id: genId("e"), category: cat, vehicle: veh, description: description.trim(), value: v, date: date || todayISO() },
-    ]
-    await saveProject(p)
+    await addExpense(project.id, {
+      id: genId("e"),
+      category: cat,
+      vehicle: veh,
+      description: description.trim(),
+      value: v,
+      date: date || todayISO(),
+    })
     onSaved()
     onClose()
   }
@@ -386,9 +382,7 @@ export function ServiceModal({ project, onClose, onSaved }: { project: Project; 
       return
     }
     const defaultType: BillingType = name.trim().toLowerCase().includes("drenagem") ? "metro" : "hectare"
-    const p = { ...project }
-    p.services = [...(p.services || []), { id: genId("s"), name, status: "pendente", billingType: defaultType, rate: 0, quantity: null }]
-    await saveProject(p)
+    await addService(project.id, { id: genId("s"), name, status: "pendente", billingType: defaultType, rate: 0, quantity: null })
     onSaved()
     onClose()
   }
@@ -439,9 +433,8 @@ export function ServicePricingModal({
   const [rateFixo, setRateFixo] = useState(service.billingType === "fixo" && service.rate ? String(service.rate) : "")
 
   async function confirm() {
-    const p = { ...project }
-    const s = (p.services || []).find((x) => x.id === service.id)
-    if (!s) return
+    // Copia: antes o servico era alterado direto no objeto em cache das telas.
+    const s: Service = { ...service }
     s.billingType = type
     if (type === "hectare") {
       s.rate = parseFloat(rateHa) || 0
@@ -459,7 +452,7 @@ export function ServicePricingModal({
       s.rate = parseFloat(rateFixo) || 0
       s.quantity = null
     }
-    await saveProject(p)
+    await updateService(project.id, s)
     onSaved()
     onClose()
   }
@@ -532,8 +525,12 @@ export function EditProjectModal({
     const t = parseFloat(total)
     if (!t || t <= 0) { alert("Informe a área total em hectares."); return }
     const cr = parseFloat(commissionRate)
-    const p = { ...project, clientName: name, fazenda: fazenda.trim(), totalHectares: t, commissionRate: isNaN(cr) ? undefined : cr }
-    await saveProject(p)
+    await updateProject(project.id, {
+      clientName: name,
+      fazenda: fazenda.trim(),
+      totalHectares: t,
+      commissionRate: isNaN(cr) ? undefined : cr,
+    })
     onSaved()
     onClose()
   }

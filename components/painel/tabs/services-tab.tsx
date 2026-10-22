@@ -5,7 +5,7 @@ import { ArrowUpRight, Check, Plus, Tag, X } from "lucide-react"
 import type { Project, Service, ServiceStatus } from "@/lib/types"
 import { pricingSummary, projectDiscount, projectNetRevenue, projectRevenue } from "@/lib/calculations"
 import { fmtMoney, todayISO } from "@/lib/format"
-import { saveProject } from "@/lib/storage"
+import { deleteService, updateProject, updateService } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { SectionTitle } from "../chrome"
 import { Field, Hint, TextInput } from "../fields"
@@ -35,26 +35,24 @@ export function ServicesTab({ project }: { project: Project }) {
   async function saveDiscount() {
     const value = Number(discountInput)
     const safe = Number.isNaN(value) || value < 0 ? 0 : value
-    const p = { ...project, discount: safe || undefined, discountNote: safe ? discountNoteInput.trim() || undefined : undefined }
-    await saveProject(p)
+    await updateProject(project.id, {
+      discount: safe || undefined,
+      discountNote: safe ? discountNoteInput.trim() || undefined : undefined,
+    })
     setDiscountOpen(false)
     refresh()
   }
 
   async function setStatus(serviceId: string, status: ServiceStatus) {
-    const p = { ...project }
-    const s = (p.services || []).find((x) => x.id === serviceId)
+    const s = (project.services || []).find((x) => x.id === serviceId)
     if (!s) return
-    s.status = status
-    s.updatedAt = todayISO()
-    await saveProject(p)
+    await updateService(project.id, { ...s, status, updatedAt: todayISO() })
     refresh()
   }
 
   async function removeService(serviceId: string) {
     if (!confirm("Remover este serviço?")) return
-    const p = { ...project, services: (project.services || []).filter((s) => s.id !== serviceId) }
-    await saveProject(p)
+    await deleteService(project.id, serviceId)
     refresh()
   }
 

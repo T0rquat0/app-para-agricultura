@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react"
 import type { Project } from "@/lib/types"
 import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
 import { fmtDate, fmtMoney } from "@/lib/format"
-import { saveProject } from "@/lib/storage"
+import { deleteExpense } from "@/lib/storage"
 import { useRefresh, useVehicles } from "@/lib/hooks"
 import { SectionTitle } from "../chrome"
 import { SecondaryButton } from "../buttons"
@@ -25,8 +25,7 @@ export function ExpensesTab({ project }: { project: Project }) {
 
   async function removeExpense(expId: string) {
     if (!confirm("Remover este gasto?")) return
-    const p = { ...project, expenses: (project.expenses || []).filter((e) => e.id !== expId) }
-    await saveProject(p)
+    await deleteExpense(project.id, expId)
     refresh()
   }
 

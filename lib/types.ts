@@ -102,6 +102,8 @@ export interface CommissionEntry {
   sourceProjectId?: string
   // Nome do talhao/matricula de origem (quando puxado automaticamente das areas mapeadas).
   talhaoName?: string
+  // Id do talhao de origem (lancamentos puxados a partir desta versao; os antigos so tem o nome).
+  talhaoId?: string
   // Mes (AAAA-MM) em que o usuario decidiu receber a comissao, sobrescrevendo o mes
   // da data real. Usado para adiar/antecipar o recebimento sem alterar a data real
   // (que continua sendo usada pelo "puxar automaticamente" para deduplicar).
@@ -128,6 +130,11 @@ export interface CommissionAdjustment {
 }
 
 export type CommissionAdjustments = Record<string, CommissionAdjustment>
+
+// Campos do projeto editaveis direto (sem as listas). Chave presente com undefined = apagar o valor.
+export type ProjectPatch = Partial<
+  Pick<Project, "clientName" | "fazenda" | "totalHectares" | "commissionRate" | "discount" | "discountNote">
+>
 
 export interface BackupData {
   version: number
