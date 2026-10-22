@@ -15,6 +15,7 @@ import { ProposalsScreen } from "./screens/proposals-screen"
 import { ProposalFormScreen } from "./screens/proposal-form-screen"
 import { ProposalDocumentScreen } from "./screens/proposal-document-screen"
 import { SplashScreen } from "./splash-screen"
+import { AuthGate } from "./auth-gate"
 import { currentPeriod } from "@/lib/calculations"
 
 export function PainelApp() {
@@ -113,22 +114,24 @@ export function PainelApp() {
       }}
     >
       {showSplash && <SplashScreen onDone={dismissSplash} />}
-      <div className="min-h-dvh w-full bg-background lg:bg-muted">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background pb-safe shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
-          {screen === "home" && <HomeScreen />}
-          {screen === "newProject" && <NewProjectScreen />}
-          {screen === "project" && <ProjectScreen />}
-          {screen === "reportClient" && <ReportClientScreen />}
-          {screen === "reportExpenses" && <ReportExpensesScreen />}
-          {screen === "investments" && <InvestmentsScreen />}
-          {screen === "investmentsReport" && <InvestmentsReportScreen />}
-          {screen === "commission" && <CommissionScreen />}
-          {screen === "commissionReport" && <CommissionReportScreen />}
-          {screen === "proposals" && <ProposalsScreen />}
-          {screen === "proposalForm" && <ProposalFormScreen />}
-          {screen === "proposalDocument" && <ProposalDocumentScreen />}
+      <AuthGate>
+        <div className="min-h-dvh w-full bg-background lg:bg-muted">
+          <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background pb-safe shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
+            {screen === "home" && <HomeScreen />}
+            {screen === "newProject" && <NewProjectScreen />}
+            {screen === "project" && <ProjectScreen />}
+            {screen === "reportClient" && <ReportClientScreen />}
+            {screen === "reportExpenses" && <ReportExpensesScreen />}
+            {screen === "investments" && <InvestmentsScreen />}
+            {screen === "investmentsReport" && <InvestmentsReportScreen />}
+            {screen === "commission" && <CommissionScreen />}
+            {screen === "commissionReport" && <CommissionReportScreen />}
+            {screen === "proposals" && <ProposalsScreen />}
+            {screen === "proposalForm" && <ProposalFormScreen />}
+            {screen === "proposalDocument" && <ProposalDocumentScreen />}
+          </div>
         </div>
-      </div>
+      </AuthGate>
     </NavContext.Provider>
   )
 }

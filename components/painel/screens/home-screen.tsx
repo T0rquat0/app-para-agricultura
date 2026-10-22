@@ -7,6 +7,7 @@ import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
 import { isProjectComplete, projectPercent } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { useNav } from "../nav-context"
+import { useAuth } from "../auth-gate"
 import { Logo } from "../logo"
 import { Card, EmptyState, ProgressBar, SectionTitle } from "../chrome"
 import { IconButton } from "../buttons"
@@ -16,6 +17,7 @@ export function HomeScreen() {
   const { overview } = useFinancialOverview()
   const { openProject, goNewProject, goInvestments, goCommission, goProposals, dark, toggleDark } = useNav()
   const refresh = useRefresh()
+  const { email, signOut } = useAuth()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const totalHa = index.reduce((s, p) => s + Number(p.totalHectares || 0), 0)
@@ -227,6 +229,14 @@ export function HomeScreen() {
           </button>
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
         </div>
+        {signOut && (
+          <div className="-mt-4 mb-6 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="truncate">Conectado como {email}</span>
+            <button onClick={() => signOut()} className="shrink-0 font-bold text-primary hover:underline">
+              Sair
+            </button>
+          </div>
+        )}
 
         {/* Frentes ativas em destaque */}
         {activeList.length > 0 && (

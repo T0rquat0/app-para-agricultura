@@ -1,0 +1,8 @@
+{
+  "name": "testes-banco-ags",
+  "private": true,
+  "type": "module",
+  "description": "Roda supabase/*.sql num Postgres de verdade (PGlite) e testa as regras e a seguranca.",
+  "scripts": { "test": "node teste_banco.mjs" },
+  "dependencies": { "@electric-sql/pglite": "0.2.17" }
+}
