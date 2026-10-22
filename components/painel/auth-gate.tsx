@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { useSWRConfig } from "swr"
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase"
@@ -26,8 +26,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const userId = session?.user.id ?? null
 
   // Trocou de conta (ou saiu): descarta o que estava em memoria da conta anterior.
+  // Na primeira entrada (ninguem -> conta) nao limpa: as telas ja estao buscando os dados, e
+  // limpar ali fazia o SWR jogar fora a resposta (tela vazia ate o app voltar ao foco).
+  const previousUserId = useRef<string | null>(null)
   useEffect(() => {
-    mutate(() => true, undefined, { revalidate: false })
+    const previous = previousUserId.current
+    previousUserId.current = userId
+    if (previous && previous !== userId) mutate(() => true, undefined, { revalidate: Boolean(userId) })
   }, [userId, mutate])
 
   useEffect(() => {
