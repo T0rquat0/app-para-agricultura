@@ -353,7 +353,7 @@ Sobe de baixo (300ms, `cubic-bezier(0.32, 0.72, 0, 1)`), no computador fica cent
 - **EmptyState:** filete tracejado, cantos 18px, ícone a 40%, frase de até ~20rem dizendo o que fazer a seguir.
 
 ### Exceções conhecidas (fora deste sistema)
-- **Documentos em PDF** (relatório do cliente, de gastos, de investimentos, de comissão e o documento da proposta): papel claro com cores fixas no código. Seguem lógica de impressão, não estes tokens.
+- **Documentos em PDF** (relatório do cliente, de gastos, de investimentos, de comissão e o documento da proposta): papel claro A4 (gerado por `lib/pdf.ts`, com cabeçalho corrido, rodapé numerado e cortes que não partem linhas de tabela). Usam a tinta e os cinzas do tema claro, Hanken Grotesk com algarismos tabulares, o sinal `#0a7fbf` só no número principal e nas linhas de destaque, e as cores do andamento nas barras e no mapa das matrículas. As peças comuns ficam em `components/painel/report-shell.tsx`.
 - **Abertura com o globo** (`globe-splash`, `splash-screen`, animações `ags-*`): será redesenhada depois; não usar como referência.
 
 ## Do's and Don'ts
