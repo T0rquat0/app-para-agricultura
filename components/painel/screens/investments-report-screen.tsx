@@ -4,7 +4,17 @@ import { useNav } from "../nav-context"
 import { useFinancialOverview, useInvestments } from "@/lib/hooks"
 import { totalInvested } from "@/lib/storage"
 import { fmtDate, fmtMoney } from "@/lib/format"
-import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
+import {
+  CellNote,
+  DOC,
+  ReportFigures,
+  ReportHeader,
+  ReportRow,
+  ReportSection,
+  ReportShell,
+  ReportTable,
+  ReportTotal,
+} from "../report-shell"
 
 export function InvestmentsReportScreen() {
   const { goInvestments } = useNav()
@@ -23,44 +33,74 @@ export function InvestmentsReportScreen() {
     <ReportShell
       title="Relatório financeiro"
       subtitle="Divisão de levantamento"
+      docType="Relatório financeiro"
       filename="relatorio_financeiro_ags"
       onBack={goInvestments}
       footerNote="Documento interno — uso gerencial."
     >
       <ReportHeader
-        docType="Relatório Financeiro"
-        heading="Visão Consolidada"
+        docType="Relatório financeiro"
+        heading="Visão consolidada"
         meta="Divisão de Geoprocessamento com Drone"
-      />
+      >
+        <ReportFigures
+          items={[
+            {
+              label: "Saldo da operação",
+              value: fmtMoney(balance),
+              tone: balance < 0 ? "negative" : "signal",
+            },
+            { label: "Total contratado", value: fmtMoney(contract) },
+            { label: "Projetos ativos", value: String(projectCount) },
+          ]}
+        />
+      </ReportHeader>
 
-      <ReportSection title="Visão geral">
-        <ReportRow label="Projetos ativos" value={String(projectCount)} />
-        <ReportRow label="Total contratado" value={fmtMoney(contract)} />
-        <ReportRow label="Custos operacionais" value={fmtMoney(opex)} />
-        <ReportRow label="Total investido (CAPEX)" value={fmtMoney(invested)} />
-        <ReportRow label="Saldo da operação" value={fmtMoney(balance)} strong accent />
+      <ReportSection title="Composição do saldo">
+        <div data-pdf-keep>
+          <ReportRow label="Total contratado" value={fmtMoney(contract)} />
+          <ReportRow label="Custos operacionais" value={`− ${fmtMoney(opex)}`} />
+          <ReportRow label="Total investido (CAPEX)" value={`− ${fmtMoney(invested)}`} />
+          <ReportTotal
+            label="Saldo da operação"
+            value={fmtMoney(balance)}
+            tone={balance < 0 ? "negative" : "positive"}
+          />
+        </div>
       </ReportSection>
 
-      <ReportSection title="Investimentos / equipamentos">
+      <ReportSection
+        title="Investimentos / equipamentos"
+        aside={sorted.length ? `${sorted.length} ${sorted.length === 1 ? "aporte" : "aportes"}` : undefined}
+      >
         {sorted.length === 0 ? (
-          <p className="py-2 text-[13px] text-[#6b7280]">Nenhum investimento cadastrado.</p>
+          <p className="py-3 text-[13px]" style={{ color: DOC.muted }}>
+            Nenhum investimento cadastrado.
+          </p>
         ) : (
-          sorted.map((inv) => (
-            <div key={inv.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#1a1a1a]">{inv.name}</span>
-                <span className="text-[13px] font-bold tabular-nums text-[#0C3A26]">{fmtMoney(inv.value)}</span>
-              </div>
-              <div className="mt-0.5 flex items-center justify-between text-[11px] text-[#6b7280]">
-                <span>{inv.note || "—"}</span>
-                <span>{fmtDate(inv.date)}</span>
-              </div>
-            </div>
-          ))
+          <ReportTable
+            columns={[
+              { label: "Data", width: "92px" },
+              { label: "Item" },
+              { label: "Valor", align: "right", width: "150px" },
+            ]}
+            rows={sorted.map((inv) => ({
+              key: inv.id,
+              cells: [
+                <span key="d" style={{ color: DOC.muted }}>
+                  {fmtDate(inv.date)}
+                </span>,
+                <span key="n" className="font-semibold">
+                  {inv.name}
+                  {inv.note && <CellNote>{inv.note}</CellNote>}
+                </span>,
+                <span key="v" className="font-semibold">
+                  {fmtMoney(inv.value)}
+                </span>,
+              ],
+            }))}
+          />
         )}
-      </ReportSection>
-
-      <ReportSection title="Total investido">
         <ReportTotal label="Soma dos aportes" value={fmtMoney(invested)} />
       </ReportSection>
     </ReportShell>
