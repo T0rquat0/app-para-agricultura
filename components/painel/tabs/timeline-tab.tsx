@@ -68,7 +68,7 @@ export function TimelineTab({ project }: { project: Project }) {
           {events.map((ev, i) => (
             <div key={i} className="relative pb-5 last:pb-0">
               <span className={`absolute -left-[26px] top-1 h-3 w-3 rounded-full ring-4 ring-background ${dotColor[ev.type]}`} />
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="text-[11px] font-semibold text-muted-foreground">
                 {ev.date ? fmtDate(ev.date.slice(0, 10)) : "—"}
               </div>
               <div className="text-[13.5px] font-bold text-foreground">{ev.label}</div>

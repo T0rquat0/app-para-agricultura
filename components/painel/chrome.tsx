@@ -1,53 +1,43 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { ArrowLeft, Moon, Sun } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useNav } from "./nav-context"
 import { IconButton } from "./buttons"
 
+// Cabecalho das telas internas: voltar, titulo e acoes, direto sobre o chao escuro.
 export function TopBar({
   title,
   subtitle,
   onBack,
-  showDarkToggle = true,
   children,
 }: {
   title: string
   subtitle?: string
   onBack?: () => void
+  // mantido por compatibilidade; o tema agora troca no menu da conta, na tela inicial
   showDarkToggle?: boolean
   children?: ReactNode
 }) {
-  const { dark, toggleDark } = useNav()
   return (
-    <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-5 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 bg-background/95 px-4 pb-3 pt-safe">
+      <div className="flex min-h-10 items-center gap-3">
         {onBack && (
-          <IconButton onClick={onBack} aria-label="Voltar" className="bg-white/15 text-white hover:bg-white/25">
+          <IconButton onClick={onBack} aria-label="Voltar">
             <ArrowLeft className="h-[18px] w-[18px]" />
           </IconButton>
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-extrabold tracking-tight">{title}</h1>
-          {subtitle && <p className="truncate text-[13px] font-medium text-white/65">{subtitle}</p>}
+          <h1 className="truncate text-[19px] font-bold leading-tight tracking-[-0.01em]">{title}</h1>
+          {subtitle && <p className="truncate text-[13px] text-muted-foreground">{subtitle}</p>}
         </div>
-        {showDarkToggle && (
-          <IconButton
-            onClick={toggleDark}
-            aria-label="Alternar modo escuro"
-            className="bg-white/15 text-white hover:bg-white/25"
-          >
-            {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-          </IconButton>
-        )}
         {children}
       </div>
     </header>
   )
 }
 
-// Cartao base — superficie padrao do "centro de operacoes" (hairline + sombra sutil)
+// Superficie padrao: um tom acima do chao e um filete; sem sombra (so o que flutua tem sombra).
 export function Card({
   className,
   interactive = false,
@@ -58,8 +48,8 @@ export function Card({
     <div
       {...props}
       className={cn(
-        "rounded-2xl border border-border bg-card shadow-sm",
-        interactive && "transition-all hover:border-primary/40 active:scale-[0.99]",
+        "rounded-[18px] border border-border bg-card",
+        interactive && "pressable cursor-pointer hover:border-foreground/15",
         className,
       )}
     >
@@ -68,7 +58,7 @@ export function Card({
   )
 }
 
-// Indicador numerico compacto (KPI) com micro-rotulo tecnico
+// Numero com rotulo pequeno em cima (rotulo em caixa normal, numero tabular)
 export function StatCard({
   label,
   value,
@@ -83,50 +73,60 @@ export function StatCard({
   className?: string
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-3",
-        accent ? "border-primary/30 bg-primary/5" : "border-border bg-card",
-        className,
-      )}
-    >
-      <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</div>
-      <div className={cn("num text-[17px] font-bold leading-none", accent && "text-primary")}>{value}</div>
-      {unit && <div className="mt-1 text-[10px] text-muted-foreground">{unit}</div>}
+    <div className={cn("rounded-2xl border border-border bg-card px-3.5 py-3", className)}>
+      <div className="text-[12px] text-muted-foreground">{label}</div>
+      <div className={cn("num mt-0.5 text-[19px] font-bold leading-tight", accent && "text-primary")}>{value}</div>
+      {unit && <div className="text-[12px] text-faint">{unit}</div>}
     </div>
   )
 }
 
-export function SectionTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function SectionTitle({
+  children,
+  count,
+  action,
+  className = "",
+}: {
+  children: ReactNode
+  count?: ReactNode
+  action?: ReactNode
+  className?: string
+}) {
   return (
-    <h2
-      className={cn(
-        "mb-3 mt-1 flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-muted-foreground",
-        className,
-      )}
-    >
-      <span aria-hidden="true" className="h-3 w-[3px] rounded-full bg-primary/60" />
-      {children}
-    </h2>
+    <div className={cn("mb-2.5 mt-1 flex items-baseline justify-between gap-3", className)}>
+      <h2 className="text-[15px] font-bold">{children}</h2>
+      {action ?? (count !== undefined && <span className="num text-[14px] text-faint">{count}</span>)}
+    </div>
   )
 }
 
 export function EmptyState({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-5 py-12 text-center text-muted-foreground">
+    <div className="flex flex-col items-center gap-3 rounded-[18px] border border-dashed border-foreground/15 px-5 py-10 text-center text-muted-foreground">
       {icon}
       <p className="max-w-xs text-sm leading-relaxed text-pretty">{children}</p>
     </div>
   )
 }
 
-export function ProgressBar({ value, className = "" }: { value: number; className?: string }) {
+// Barra de andamento: trilho por tom, preenchimento no sinal (ou neutro quando ja fechou)
+export function ProgressBar({
+  value,
+  done = false,
+  cor,
+  className = "",
+}: {
+  value: number
+  done?: boolean
+  cor?: string
+  className?: string
+}) {
   const pct = Math.min(100, Math.max(0, value))
   return (
-    <div className={cn("overflow-hidden rounded-full bg-green-light", className)}>
+    <div className={cn("h-1 overflow-hidden rounded-full bg-track", className)}>
       <div
-        className="h-full rounded-full bg-cta transition-[width] duration-500"
-        style={{ width: `${pct}%` }}
+        className={cn("h-full rounded-full transition-[width] duration-500 ease-out", done ? "bg-foreground/45" : "bg-primary")}
+        style={{ width: `${pct}%`, ...(cor ? { background: cor } : {}) }}
       />
     </div>
   )

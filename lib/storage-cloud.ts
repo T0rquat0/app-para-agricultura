@@ -75,6 +75,7 @@ const toTalhao = (r: Row): Talhao => ({
   name: r.name,
   identifier: r.identifier ?? "",
   targetHectares: r.target_hectares == null ? null : Number(r.target_hectares),
+  geometry: opt(r.geometry),
   createdAt: r.created_at,
 })
 const fromTalhao = (projectId: string, t: Talhao): Row => ({
@@ -83,6 +84,8 @@ const fromTalhao = (projectId: string, t: Talhao): Row => ({
   name: t.name,
   identifier: t.identifier || null,
   target_hectares: t.targetHectares,
+  // Sem contorno no objeto (ex.: backup antigo), nao mexe no que ja esta no banco.
+  ...(t.geometry !== undefined ? { geometry: t.geometry } : {}),
   ...(t.createdAt ? { created_at: t.createdAt } : {}),
 })
 

@@ -54,7 +54,7 @@ import { Field, TextInput } from "../fields"
 import { PrimaryButton, GhostButton, IconButton } from "../buttons"
 
 export function CommissionScreen() {
-  const { goHome, goReport, currentPeriod: navPeriod, setPeriod: setNavPeriod } = useNav()
+  const { goReport, currentPeriod: navPeriod, setPeriod: setNavPeriod } = useNav()
   const { entries } = useCommissionEntries()
   const { config } = useCommissionConfig()
   const { adjustments } = useCommissionAdjustments()
@@ -344,7 +344,7 @@ export function CommissionScreen() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <TopBar title="Comissão" subtitle="Levantamentos faturados por mês" onBack={goHome}>
+      <TopBar title="Comissão" subtitle="Levantamentos faturados por mês">
         <IconButton
           onClick={() => {
             setPercentInput(String(config.percent))
@@ -353,166 +353,142 @@ export function CommissionScreen() {
             setConfigOpen(true)
           }}
           aria-label="Configurar comissão"
-          className="bg-white/15 text-white hover:bg-white/25"
         >
           <Settings className="h-[18px] w-[18px]" />
         </IconButton>
       </TopBar>
 
-      <div className="bg-topo px-5 pb-6 text-white">
-        <div className="flex items-center justify-between">
-          <IconButton
-            onClick={() => shiftPeriod(-1)}
-            aria-label="Mês anterior"
-            className="bg-white/10 text-white hover:bg-white/20"
-          >
+      <div className="px-4">
+        <div className="flex items-center justify-between rounded-[14px] border border-border bg-card p-1">
+          <button onClick={() => shiftPeriod(-1)} aria-label="Mês anterior" className="pressable flex h-9 w-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground">
             <ChevronLeft className="h-[18px] w-[18px]" />
-          </IconButton>
-          <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-white/85">
-            {periodLabel(period)}
-          </span>
-          <IconButton
-            onClick={() => shiftPeriod(1)}
-            aria-label="Próximo mês"
-            className="bg-white/10 text-white hover:bg-white/20"
-          >
+          </button>
+          <span className="text-[14px] font-bold first-letter:uppercase">{periodLabel(period).toLowerCase()}</span>
+          <button onClick={() => shiftPeriod(1)} aria-label="Próximo mês" className="pressable flex h-9 w-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground">
             <ChevronRight className="h-[18px] w-[18px]" />
-          </IconButton>
+          </button>
         </div>
 
-        <div className="mt-3 rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white/65">
-              <Wallet className="h-3.5 w-3.5" /> Comissão do mês
-            </div>
+        <section className="mt-5 px-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[14px] text-muted-foreground">Comissão do mês</p>
             {monthDelta !== null && (
-              <span
-                className={`num rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                  monthDelta >= 0 ? "bg-emerald-400/20 text-emerald-300" : "bg-red-400/20 text-red-300"
-                }`}
-              >
+              <span className={`num text-[13px] font-semibold ${monthDelta === 0 ? "text-faint" : monthDelta > 0 ? "text-positive" : "text-destructive"}`}>
                 {monthDelta >= 0 ? "+" : ""}
                 {monthDelta.toFixed(0)}% vs. mês anterior
               </span>
             )}
           </div>
-          <div className="num mt-1 text-3xl font-extrabold">{fmtMoney(total)}</div>
-          <div className="mt-1 text-[11px] text-white/60">
-            {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(discount > 0 ? base : revenue)}) +{" "}
-            {fmtMoney(config.fixedSalary)} fixo
+          <p className="num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em]">{fmtMoney(total)}</p>
+          <p className="num mt-1 text-[13px] text-muted-foreground">
+            {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(discount > 0 ? base : revenue)}) + {fmtMoney(config.fixedSalary)} fixo
             {employeeDeduction > 0 && <> − {fmtMoney(employeeDeduction)} adiantamento</>}
-          </div>
+          </p>
+        </section>
 
-          <button
-            onClick={openDiscount}
-            className="mt-2.5 flex w-full items-center justify-between gap-2 rounded-xl bg-white/10 px-3 py-2 text-left transition-colors hover:bg-white/15"
-          >
-            <div className="min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">
-                Descontos do mês
-              </div>
-              {discount > 0 || employeeDeduction > 0 ? (
-                <div className="mt-1 flex flex-col gap-0.5">
-                  {discount > 0 && (
-                    <div className="num truncate text-[12.5px] font-bold text-white">
-                      Cliente: − {fmtMoney(discount)}
-                      {adjustment?.note ? <span className="font-semibold text-white/55">{` · ${adjustment.note}`}</span> : null}
-                    </div>
-                  )}
-                  {employeeDeduction > 0 && (
-                    <div className="num truncate text-[12.5px] font-bold text-white">
-                      Meu adiantamento: − {fmtMoney(employeeDeduction)}
-                      {adjustment?.employeeNote ? (
-                        <span className="font-semibold text-white/55">{` · ${adjustment.employeeNote}`}</span>
-                      ) : null}
-                    </div>
-                  )}
+        <div className="mt-4 flex items-end justify-between gap-1.5 rounded-[18px] border border-border bg-card px-3 pb-2 pt-3">
+          {history.map((h) => {
+            const isCurrent = h.period === period
+            const heightPct = Math.max(6, (h.total / historyMax) * 100)
+            return (
+              <button
+                key={h.period}
+                onClick={() => setPeriod(h.period)}
+                title={`${periodLabel(h.period)}: ${fmtMoney(h.total)}`}
+                aria-label={`${periodLabel(h.period)}: ${fmtMoney(h.total)}. Ver este mês.`}
+                className="group flex flex-1 flex-col items-center gap-1.5 rounded-md pt-1"
+              >
+                <div className="flex h-12 w-full items-end">
+                  <div
+                    className={`w-full rounded-t-[4px] transition-[height,background-color] duration-300 ${isCurrent ? "bg-primary" : "bg-foreground/15 group-hover:bg-foreground/25"}`}
+                    style={{ height: `${heightPct}%` }}
+                  />
                 </div>
-              ) : (
-                <div className="mt-0.5 text-[12px] font-semibold text-white/50">
-                  Toque para lançar desconto ao cliente ou adiantamento seu
-                </div>
-              )}
-            </div>
-            <Pencil className="h-3.5 w-3.5 shrink-0 text-white/60" />
-          </button>
-
-          {periodEntries.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-xl bg-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">Hectares no mês</div>
-                <div className="num mt-0.5 text-[15px] font-extrabold">{fmtHa(monthHectares)} ha</div>
-              </div>
-              <div className="rounded-xl bg-white/10 px-3 py-2">
-                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">Lançamentos</div>
-                <div className="num mt-0.5 text-[15px] font-extrabold leading-none">{periodEntries.length}</div>
-                <div className="num mt-1 text-[10px] font-semibold text-white/55">
-                  {autoCount} auto · {manualCount} manual
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 flex items-end justify-between gap-1.5 border-t border-white/10 pt-3.5">
-            {history.map((h) => {
-              const isCurrent = h.period === period
-              const heightPct = Math.max(6, (h.total / historyMax) * 100)
-              return (
-                <button
-                  key={h.period}
-                  onClick={() => setPeriod(h.period)}
-                  title={`${periodLabel(h.period)}: ${fmtMoney(h.total)}`}
-                  aria-label={`${periodLabel(h.period)}: ${fmtMoney(h.total)}. Ver este mês.`}
-                  className="group flex flex-1 flex-col items-center gap-1 rounded-md pt-1 transition-colors hover:bg-white/5"
-                >
-                  <div className="flex h-10 w-full items-end">
-                    <div
-                      className={`w-full rounded-t-md transition-all ${
-                        isCurrent ? "bg-cta" : "bg-white/25 group-hover:bg-white/40"
-                      }`}
-                      style={{ height: `${heightPct}%` }}
-                    />
-                  </div>
-                  <span className={`text-[9px] font-bold ${isCurrent ? "text-white" : "text-white/45"}`}>
-                    {periodLabel(h.period).slice(0, 3)}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+                <span className={`text-[11px] font-semibold ${isCurrent ? "text-foreground" : "text-faint"}`}>
+                  {periodLabel(h.period).slice(0, 3)}
+                </span>
+              </button>
+            )
+          })}
         </div>
 
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={openPull}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cta px-3 text-[13px] font-bold leading-tight text-cta-foreground transition-all hover:brightness-105"
-          >
-            <Zap className="h-4 w-4 shrink-0" /> Puxar áreas
+        <button
+          onClick={openDiscount}
+          className="pressable mt-2.5 flex w-full items-center justify-between gap-2 rounded-[18px] border border-border bg-card px-4 py-3 text-left hover:border-foreground/15"
+        >
+          <div className="min-w-0">
+            <div className="text-[13px] text-muted-foreground">Descontos do mês</div>
+            {discount > 0 || employeeDeduction > 0 ? (
+              <div className="mt-0.5 flex flex-col gap-0.5">
+                {discount > 0 && (
+                  <div className="num truncate text-[14px] font-semibold">
+                    Cliente: − {fmtMoney(discount)}
+                    {adjustment?.note ? <span className="font-normal text-muted-foreground">{` · ${adjustment.note}`}</span> : null}
+                  </div>
+                )}
+                {employeeDeduction > 0 && (
+                  <div className="num truncate text-[14px] font-semibold">
+                    Meu adiantamento: − {fmtMoney(employeeDeduction)}
+                    {adjustment?.employeeNote ? <span className="font-normal text-muted-foreground">{` · ${adjustment.employeeNote}`}</span> : null}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-0.5 text-[14px] font-semibold">Lançar desconto ao cliente ou adiantamento seu</div>
+            )}
+          </div>
+          <Pencil className="h-4 w-4 shrink-0 text-faint" />
+        </button>
+
+        {periodEntries.length > 0 && (
+          <div className="mt-2.5 grid grid-cols-2 divide-x divide-border rounded-[18px] border border-border bg-card">
+            <div className="px-4 py-3">
+              <div className="text-[13px] text-muted-foreground">Hectares no mês</div>
+              <div className="num text-[18px] font-bold">{fmtHa(monthHectares)} ha</div>
+            </div>
+            <div className="px-4 py-3">
+              <div className="text-[13px] text-muted-foreground">Lançamentos</div>
+              <div className="num text-[18px] font-bold">
+                {periodEntries.length} <span className="text-[13px] font-normal text-faint">{autoCount} auto · {manualCount} manual</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button onClick={openPull} className="pressable flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-border bg-raised px-3 text-[14px] font-bold hover:border-foreground/20">
+            <Zap className="h-4 w-4 shrink-0 text-primary" /> Puxar áreas
           </button>
           <button
             onClick={() => {
               setNavPeriod(period)
               goReport("commissionReport")
             }}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-white/15 px-3 text-[13px] font-bold leading-tight text-white transition-colors hover:bg-white/25"
+            className="pressable flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-border bg-raised px-3 text-[14px] font-bold hover:border-foreground/20"
           >
-            <FileText className="h-4 w-4 shrink-0" /> Relatório
+            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" /> Relatório
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-5">
-        <div className="mb-3 mt-1 flex items-center justify-between">
-          <SectionTitle className="mb-0 mt-0">Levantamentos lançados</SectionTitle>
+      <div className="flex-1 px-4 pb-6 pt-7">
+        <SectionTitle
+          action={
+            <button onClick={openNew} className="pressable -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-[14px] font-bold text-primary">
+              <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo lançamento
+            </button>
+          }
+        >
+          Levantamentos lançados{" "}
           {groupedByClient.length > 0 && (
-            <span className="num text-[11px] font-bold text-muted-foreground">
+            <span className="num ml-1 font-medium text-faint">
               {groupedByClient.length} cliente{groupedByClient.length === 1 ? "" : "s"}
             </span>
           )}
-        </div>
+        </SectionTitle>
         {periodEntries.length === 0 ? (
           <EmptyState icon={<Wallet className="h-8 w-8 text-muted-foreground/50" />}>
-            Nenhum levantamento lançado em {periodLabel(period).toLowerCase()}. Toque em "Novo lançamento" para
+            Nenhum levantamento lançado em {periodLabel(period).toLowerCase()}. Toque em “Novo lançamento” para
             registrar o que foi feito.
           </EmptyState>
         ) : (
@@ -521,7 +497,7 @@ export function CommissionScreen() {
               const isCollapsed = collapsedClients.has(group.clientName)
               const anyMoved = group.entries.some((e) => e.attributedPeriod)
               return (
-                <div key={group.clientName} className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border/60">
+                <div key={group.clientName} className="overflow-hidden rounded-[18px] border border-border bg-card">
                   <button
                     onClick={() => toggleClient(group.clientName)}
                     className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
@@ -530,7 +506,7 @@ export function CommissionScreen() {
                       <div className="flex items-center gap-1.5">
                         <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
                         {anyMoved && (
-                          <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                          <span className="shrink-0 rounded-md bg-warning/15 px-1.5 py-0.5 text-[11px] font-semibold text-warning">
                             Movido
                           </span>
                         )}
@@ -540,7 +516,7 @@ export function CommissionScreen() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <div className="num text-[14px] font-extrabold text-primary">{fmtMoney(group.revenue)}</div>
+                      <div className="num text-[14px] font-bold">{fmtMoney(group.revenue)}</div>
                       <ChevronDown
                         className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
                       />
@@ -548,7 +524,7 @@ export function CommissionScreen() {
                   </button>
 
                   {!isCollapsed && (
-                    <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/30 px-3 pb-3 pt-2.5">
+                    <div className="flex flex-col gap-2 border-t border-border bg-muted/30 px-3 pb-3 pt-2.5">
                       <button
                         onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
                         className="flex items-center justify-center gap-1.5 self-end rounded-lg bg-muted px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
@@ -557,21 +533,21 @@ export function CommissionScreen() {
                         {anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
                       </button>
                       {group.entries.map((e) => (
-                        <div key={e.id} className="rounded-xl bg-card p-3 shadow-sm ring-1 ring-border/50">
+                        <div key={e.id} className="rounded-[14px] border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
                                 {e.auto ? (
-                                  <span className="flex shrink-0 items-center gap-1 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
+                                  <span className="flex shrink-0 items-center gap-1 rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                                     <Zap className="h-2.5 w-2.5" /> Automático
                                   </span>
                                 ) : (
-                                  <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                                  <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
                                     Manual
                                   </span>
                                 )}
                                 {e.attributedPeriod && (
-                                  <span className="shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                                  <span className="shrink-0 rounded-md bg-warning/15 px-1.5 py-0.5 text-[11px] font-semibold text-warning">
                                     Recebido em {periodLabel(e.attributedPeriod).split(" ")[0]}
                                   </span>
                                 )}
@@ -587,7 +563,7 @@ export function CommissionScreen() {
                               <div className="mt-0.5 text-xs text-muted-foreground">{fmtDate(e.date)}</div>
                               {e.note && <div className="mt-1 text-[13px] text-muted-foreground">{e.note}</div>}
                             </div>
-                            <div className="num shrink-0 text-[14px] font-extrabold text-primary">
+                            <div className="num shrink-0 text-[14px] font-bold">
                               {fmtMoney(entryRevenue(e))}
                             </div>
                           </div>
@@ -617,14 +593,6 @@ export function CommissionScreen() {
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t border-border bg-card/95 px-5 py-4 backdrop-blur">
-        <button
-          onClick={openNew}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cta py-3.5 text-sm font-bold text-cta-foreground shadow-sm transition-all hover:brightness-105"
-        >
-          <Plus className="h-[18px] w-[18px]" /> Novo lançamento
-        </button>
-      </div>
 
       {open && (
         <ModalSheet title={editing ? "Editar lançamento" : "Novo lançamento"} onClose={() => setOpen(false)}>
@@ -798,7 +766,7 @@ export function CommissionScreen() {
           </p>
           <button
             onClick={confirmDelete}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-destructive py-3.5 text-sm font-bold text-destructive-foreground transition-all hover:brightness-105"
+            className="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-destructive text-[15px] font-bold text-white"
           >
             <Trash2 className="h-[18px] w-[18px]" /> Excluir lançamento
           </button>
@@ -814,7 +782,7 @@ export function CommissionScreen() {
             <strong>Sem desconto:</strong> comissão do mês seria {fmtMoney(commissionTotal(entries, period, config))}
           </div>
 
-          <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.1em] text-primary">Desconto ao cliente</div>
+          <div className="mb-1 text-[11px] font-bold text-primary">Desconto ao cliente</div>
           <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
             Abate do <strong>faturamento</strong> ({fmtMoney(revenue)}) antes de aplicar seu percentual. Um desconto
             de R$ 1 aqui reduz sua comissão em apenas R$ {(config.percent / 100).toFixed(2).replace(".", ",")} (seu
@@ -839,7 +807,7 @@ export function CommissionScreen() {
 
           <div className="my-4 h-px bg-border" />
 
-          <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
+          <div className="mb-1 text-[11px] font-bold text-primary">
             Meu adiantamento / desconto
           </div>
           <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">

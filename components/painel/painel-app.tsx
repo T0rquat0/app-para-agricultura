@@ -16,6 +16,7 @@ import { ProposalFormScreen } from "./screens/proposal-form-screen"
 import { ProposalDocumentScreen } from "./screens/proposal-document-screen"
 import { SplashScreen } from "./splash-screen"
 import { AuthGate } from "./auth-gate"
+import { TAB_SCREENS, TabBar } from "./tab-bar"
 import { currentPeriod } from "@/lib/calculations"
 
 export function PainelApp() {
@@ -24,7 +25,7 @@ export function PainelApp() {
   const [currentProposalId, setCurrentProposalId] = useState<string | null>(null)
   const [period, setPeriodState] = useState<string>(currentPeriod())
   const [activeTab, setActiveTab] = useState<Tab>("areas")
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(true)
   const [showSplash, setShowSplash] = useState(false)
 
   // Splash apenas no "cold start" (uma vez por sessao), para nao atrapalhar a navegacao
@@ -42,12 +43,10 @@ export function PainelApp() {
     }
   }, [])
 
-  // Tema (preferencia do sistema na primeira carga)
+  // Tema: escuro por padrao (o claro fica como opcao para usar no sol)
   useEffect(() => {
-    const prefersDark =
-      typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ags-theme") : null
-    setDark(saved ? saved === "dark" : prefersDark)
+    setDark(saved ? saved === "dark" : true)
   }, [])
 
   useEffect(() => {
@@ -90,6 +89,8 @@ export function PainelApp() {
     setScreen("proposalForm")
   }, [])
 
+  const withTabs = TAB_SCREENS.includes(screen)
+
   return (
     <NavContext.Provider
       value={{
@@ -115,8 +116,14 @@ export function PainelApp() {
     >
       {showSplash && <SplashScreen onDone={dismissSplash} />}
       <AuthGate>
-        <div className="min-h-dvh w-full bg-background lg:bg-muted">
-          <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background pb-safe shadow-none lg:my-6 lg:min-h-0 lg:rounded-3xl lg:shadow-xl lg:ring-1 lg:ring-border">
+        <div
+          className="min-h-dvh w-full bg-background lg:bg-[#050607]"
+          style={{ ["--tabbar" as string]: withTabs ? "calc(64px + env(safe-area-inset-bottom))" : "0px" }}
+        >
+          <div
+            className="relative mx-auto flex min-h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-background lg:my-6 lg:min-h-[calc(100dvh-3rem)] lg:rounded-3xl lg:ring-1 lg:ring-border"
+            style={{ paddingBottom: withTabs ? "var(--tabbar)" : "calc(env(safe-area-inset-bottom) + 1.25rem)" }}
+          >
             {screen === "home" && <HomeScreen />}
             {screen === "newProject" && <NewProjectScreen />}
             {screen === "project" && <ProjectScreen />}
@@ -129,6 +136,7 @@ export function PainelApp() {
             {screen === "proposals" && <ProposalsScreen />}
             {screen === "proposalForm" && <ProposalFormScreen />}
             {screen === "proposalDocument" && <ProposalDocumentScreen />}
+            {withTabs && <TabBar />}
           </div>
         </div>
       </AuthGate>

@@ -59,9 +59,9 @@ export function ServicesTab({ project }: { project: Project }) {
   return (
     <div>
       {revenue > 0 && (
-        <div className="mb-3 rounded-2xl bg-card p-3 text-center shadow-sm ring-1 ring-border/60">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Faturamento estimado</div>
-          <div className="num mt-1 text-lg font-bold text-primary">{fmtMoney(netRevenue)}</div>
+        <div className="mb-3 rounded-2xl bg-card p-3 text-center border border-border">
+          <div className="text-[11px] font-bold text-muted-foreground">Faturamento estimado</div>
+          <div className="num mt-1 text-[22px] font-bold">{fmtMoney(netRevenue)}</div>
           {discount > 0 && (
             <div className="num mt-0.5 text-[11px] text-muted-foreground">
               {fmtMoney(revenue)} − {fmtMoney(discount)} de desconto
@@ -73,15 +73,13 @@ export function ServicesTab({ project }: { project: Project }) {
       {revenue > 0 && (
         <button
           onClick={openDiscount}
-          className="mb-3 flex w-full items-center justify-between gap-2 rounded-2xl bg-card px-3.5 py-3 text-left shadow-sm ring-1 ring-border/60 transition-colors hover:bg-muted/40"
+          className="mb-3 flex w-full items-center justify-between gap-2 rounded-2xl bg-card px-3.5 py-3 text-left border border-border transition-colors hover:bg-muted/40"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-              <Tag className="h-4 w-4" />
-            </span>
+            <Tag className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <div className="text-[13px] font-bold text-foreground">Desconto ao cliente</div>
-              <div className="truncate text-[11.5px] text-muted-foreground">
+              <div className="text-[14px] font-semibold text-foreground">Desconto ao cliente</div>
+              <div className="truncate text-[12.5px] text-muted-foreground">
                 {discount > 0
                   ? `− ${fmtMoney(discount)}${project.discountNote ? ` · ${project.discountNote}` : ""}`
                   : "Toque para conceder um desconto no total"}
@@ -89,7 +87,7 @@ export function ServicesTab({ project }: { project: Project }) {
             </div>
           </div>
           {discount > 0 ? (
-            <span className="num shrink-0 text-[13px] font-extrabold text-accent">− {fmtMoney(discount)}</span>
+            <span className="num shrink-0 text-[14px] font-bold">− {fmtMoney(discount)}</span>
           ) : (
             <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
@@ -98,18 +96,18 @@ export function ServicesTab({ project }: { project: Project }) {
 
       <SectionTitle>Serviços contratados</SectionTitle>
       {services.length === 0 ? (
-        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border/60">
+        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground border border-border">
           Nenhum serviço cadastrado.
         </div>
       ) : (
-        <div className="rounded-2xl bg-card p-1 shadow-sm ring-1 ring-border/60">
+        <div className="overflow-hidden rounded-[18px] border border-border bg-card">
           {services.map((s) => (
-            <div key={s.id} className="border-b border-border/60 px-3 py-3.5 last:border-0">
+            <div key={s.id} className="border-b border-border px-3 py-3.5 last:border-0">
               <div className="mb-2.5 flex items-start gap-2">
                 <button onClick={() => setPricingFor(s)} className="min-w-0 flex-1 text-left">
                   <div className="flex items-center gap-1 text-sm font-bold text-foreground">
                     {s.name}
-                    <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-faint" />
                   </div>
                   <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{pricingSummary(project, s)}</div>
                 </button>
@@ -184,17 +182,17 @@ export function ServicesTab({ project }: { project: Project }) {
 
 function StatusTrack({ status, onChange }: { status: ServiceStatus; onChange: (s: ServiceStatus) => void }) {
   const segs: { key: ServiceStatus; label: string; sel: string }[] = [
-    { key: "pendente", label: "Pendente", sel: "bg-secondary text-secondary-foreground" },
-    { key: "andamento", label: "Andamento", sel: "bg-amber-status text-white" },
-    { key: "concluido", label: "✓ Concluído", sel: "bg-primary text-primary-foreground" },
+    { key: "pendente", label: "Pendente", sel: "bg-raised text-foreground" },
+    { key: "andamento", label: "Andamento", sel: "bg-warning/15 text-warning" },
+    { key: "concluido", label: "Concluído", sel: "bg-positive/15 text-positive" },
   ]
   return (
-    <div className="flex h-8 overflow-hidden rounded-full border border-border bg-background">
+    <div className="flex h-10 overflow-hidden rounded-[12px] border border-border bg-background">
       {segs.map((seg, i) => (
         <button
           key={seg.key}
           onClick={() => onChange(seg.key)}
-          className={`flex-1 text-[11.5px] font-bold transition-colors ${i > 0 ? "border-l border-border" : ""} ${
+          className={`flex-1 text-[13px] font-semibold transition-colors ${i > 0 ? "border-l border-border" : ""} ${
             status === seg.key ? seg.sel : "text-muted-foreground"
           }`}
         >

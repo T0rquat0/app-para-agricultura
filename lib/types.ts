@@ -14,11 +14,16 @@ export interface Area {
   createdAt?: string
 }
 
+// Contorno vindo do KML, no formato de coordenadas de um MultiPolygon GeoJSON:
+// poligonos -> aneis (o primeiro e o limite, os outros sao buracos) -> [longitude, latitude].
+export type Geometria = number[][][][]
+
 export interface Talhao {
   id: string
   name: string
   identifier?: string
   targetHectares: number | null
+  geometry?: Geometria
   createdAt: string
 }
 

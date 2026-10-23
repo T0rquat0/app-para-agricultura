@@ -1,19 +1,13 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Manrope, IBM_Plex_Mono } from 'next/font/google'
+import { Hanken_Grotesk } from 'next/font/google'
 import { ServiceWorkerRegister } from '@/components/painel/service-worker-register'
 import './globals.css'
 
-const manrope = Manrope({
-  variable: '--font-manrope',
+const hanken = Hanken_Grotesk({
+  variable: '--font-hanken',
   subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-})
-
-const plexMono = IBM_Plex_Mono({
-  variable: '--font-plex-mono',
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 export const metadata: Metadata = {
@@ -48,8 +42,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#0C231A' },
-    { media: '(prefers-color-scheme: dark)', color: '#0A0E11' },
+    { media: '(prefers-color-scheme: light)', color: '#0A0C0E' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0C0E' },
   ],
 }
 
@@ -59,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} ${plexMono.variable} bg-background`}>
+    <html lang="pt-BR" className={`${hanken.variable} dark bg-background`}>
       <body className="bg-background font-sans antialiased">
         {children}
         <ServiceWorkerRegister />

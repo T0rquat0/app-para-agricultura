@@ -148,9 +148,9 @@ export function ParteModal({
     <ModalSheet title="Adicionar parte voada" onClose={onClose}>
       {/* Resumo do talhão */}
       {talhao && (
-        <div className="mb-4 rounded-2xl bg-secondary/50 px-4 py-3">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            Talhão: {talhao.name}{talhao.identifier ? ` · ${talhao.identifier}` : ""}
+        <div className="mb-4 rounded-[14px] border border-border bg-card px-4 py-3">
+          <p className="text-[11px] font-bold text-muted-foreground">
+            Matrícula: {talhao.name}{talhao.identifier ? ` · ${talhao.identifier}` : ""}
           </p>
           {target > 0 ? (
             <div className="mt-1.5 flex items-baseline gap-3">
@@ -158,8 +158,8 @@ export function ParteModal({
                 Já voados: <span className="font-bold text-foreground">{fmtHa(alreadyFlown)} ha</span>
               </span>
               <span className="text-[13px] text-muted-foreground">
-                Restam: <span className={`font-bold ${remaining === 0 ? "text-primary" : "text-foreground"}`}>
-                  {remaining === 0 ? "completo ✓" : `${fmtHa(remaining!)} ha`}
+                Restam: <span className={`font-bold ${remaining === 0 ? "text-positive" : "text-foreground"}`}>
+                  {remaining === 0 ? "completa" : `${fmtHa(remaining!)} ha`}
                 </span>
               </span>
             </div>
@@ -233,7 +233,7 @@ export function EditParteModal({
     <ModalSheet title="Editar parte voada" onClose={onClose}>
       {talhao && (
         <div className="mb-4 rounded-2xl bg-secondary/50 px-4 py-3">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          <p className="text-[11px] font-bold text-muted-foreground">
             Talhão: {talhao.name}{talhao.identifier ? ` · ${talhao.identifier}` : ""}
           </p>
           {target > 0 && (

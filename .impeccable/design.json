@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T00:00:00Z",
+  "title": "Design System: AGS GEO",
+  "extensions": {
+    "colorMeta": {
+      "ground": { "role": "neutral", "displayName": "Chão quase preto", "canonical": "#0a0c0e", "tonalRamp": ["#0a0c0e", "#14171a", "#1c2024", "#2a2f34", "#4a525a", "#7b848c", "#c9d0d6", "#f2f4f5"] },
+      "surface": { "role": "neutral", "displayName": "Superfície", "canonical": "#14171a", "tonalRamp": ["#0a0c0e", "#14171a", "#1c2024", "#2a2f34", "#4a525a", "#7b848c", "#c9d0d6", "#f2f4f5"] },
+      "surface-raised": { "role": "neutral", "displayName": "Superfície elevada", "canonical": "#1c2024", "tonalRamp": ["#0a0c0e", "#14171a", "#1c2024", "#2a2f34", "#4a525a", "#7b848c", "#c9d0d6", "#f2f4f5"] },
+      "ink": { "role": "neutral", "displayName": "Tinta", "canonical": "#f2f4f5" },
+      "ink-muted": { "role": "neutral", "displayName": "Tinta média", "canonical": "#a3abb2" },
+      "ink-faint": { "role": "neutral", "displayName": "Tinta fraca", "canonical": "#868f97" },
+      "signal": { "role": "primary", "displayName": "Azul-ciano de sinal", "canonical": "#4cc3ff", "tonalRamp": ["#04141f", "#063550", "#0a5c88", "#0a7fbf", "#1fa3e6", "#4cc3ff", "#9adcff", "#e3f5ff"] },
+      "light-signal": { "role": "primary", "displayName": "Sinal no tema claro", "canonical": "#0a7fbf" },
+      "positive": { "role": "secondary", "displayName": "Verde positivo", "canonical": "#4fd18b" },
+      "warning": { "role": "secondary", "displayName": "Âmbar de aviso", "canonical": "#f2b544" },
+      "danger": { "role": "secondary", "displayName": "Vermelho de perigo", "canonical": "#ff6b63" },
+      "progress-start": { "role": "tertiary", "displayName": "Andamento: começo (até 25%)", "canonical": "#ff5a4e" },
+      "progress-advancing": { "role": "tertiary", "displayName": "Andamento: avançando (até 50%)", "canonical": "#ff9a3c" },
+      "progress-half": { "role": "tertiary", "displayName": "Andamento: metade (até 75%)", "canonical": "#ffd23f" },
+      "progress-almost": { "role": "tertiary", "displayName": "Andamento: quase (abaixo de 100%)", "canonical": "#a8e05f" },
+      "progress-closed": { "role": "tertiary", "displayName": "Andamento: fechada (100%)", "canonical": "#34d17a" },
+      "unflown-outline": { "role": "tertiary", "displayName": "Contorno não voado", "canonical": "#ffffff" },
+      "map-glass": { "role": "neutral", "displayName": "Vidro do mapa (fixo escuro)", "canonical": "rgba(20, 23, 26, 0.85)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "O número \"Falta voar\" da tela inicial. Um por tela." },
+      "headline": { "displayName": "Headline", "purpose": "Número principal de tela interna (Falta voar do projeto)." },
+      "title": { "displayName": "Title", "purpose": "Título da TopBar e da folha; valores do StatCard." },
+      "section": { "displayName": "Section", "purpose": "SectionTitle com contagem tabular." },
+      "body-strong": { "displayName": "Body strong", "purpose": "Título de linha de lista e cartão; texto de botão." },
+      "body": { "displayName": "Body", "purpose": "Frases de apoio." },
+      "meta": { "displayName": "Meta", "purpose": "Subtítulo, fazenda, datas, rótulo acima de número." },
+      "label": { "displayName": "Label", "purpose": "Rótulo de campo e de StatCard, legenda do mapa." },
+      "tab-label": { "displayName": "Tab label", "purpose": "Rótulos da barra de abas." }
+    },
+    "shadows": [
+      { "name": "sheet", "value": "0 -16px 40px rgba(0,0,0,0.5)", "purpose": "Folha que sobe de baixo (ModalSheet), com véu black/60." },
+      { "name": "map-panel", "value": "0 8px 24px rgba(0,0,0,0.45)", "purpose": "Painel da matrícula selecionada sobre o mapa." },
+      { "name": "launch", "value": "0 8px 20px rgba(0,0,0,0.45)", "purpose": "Botão Lançar que sobe da barra de abas." },
+      { "name": "map-glass", "value": "backdrop-filter: blur(12px)", "purpose": "Botões e legenda de vidro sobre o satélite (sem sombra)." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "Pressionar (pressable): escala 0.97 em 160ms." },
+      { "name": "ease-drawer", "value": "cubic-bezier(0.32, 0.72, 0, 1)", "purpose": "Folha subindo, 300ms, com fade do véu em 200ms." },
+      { "name": "hatch-advance", "value": "900ms ease-out cúbico (1-(1-k)^3)", "purpose": "Risco do mapa avança até o novo % ao lançar; salta direto com prefers-reduced-motion." },
+      { "name": "progress-width", "value": "500ms ease-out", "purpose": "Largura da barra de progresso." },
+      { "name": "field-focus", "value": "150ms border-color, box-shadow", "purpose": "Foco de campo." }
+    ],
+    "breakpoints": [
+      { "name": "column", "value": "480px", "purpose": "Largura máxima da coluna do app." },
+      { "name": "sm", "value": "640px", "purpose": "Folha deixa de ser de baixo e fica centralizada." },
+      { "name": "lg", "value": "1024px", "purpose": "App vira um aparelho emoldurado sobre #050607." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A ação principal da tela; um botão cheio no sinal por tela.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Lançar área voada</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: none; border-radius: 14px; background: var(--primary, #4cc3ff); color: var(--primary-foreground, #04141f); font: 700 15px 'Hanken Grotesk', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease; } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #0a0c0e, 0 0 0 4px rgba(76, 195, 255, 0.7); } .ds-btn-primary:disabled { opacity: 0.45; pointer-events: none; }"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ações de apoio: tom elevado e filete.",
+      "html": "<button class=\"ds-btn-secondary\">Importar KML</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 14px; background: var(--raised, #1c2024); color: var(--foreground, #f2f4f5); font: 700 15px 'Hanken Grotesk', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms ease; } .ds-btn-secondary:hover { border-color: rgba(242, 244, 245, 0.2); } .ds-btn-secondary:active { transform: scale(0.97); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--ring, #4cc3ff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão de ícone",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Quadrado de 40px: voltar, editar.",
+      "html": "<button class=\"ds-btn-icon\" aria-label=\"Voltar\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 12H5M12 19l-7-7 7-7\"/></svg></button>",
+      "css": ".ds-btn-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 17.5px; background: var(--raised, #1c2024); color: var(--foreground, #f2f4f5); cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms ease; } .ds-btn-icon:hover { border-color: rgba(242, 244, 245, 0.2); } .ds-btn-icon:active { transform: scale(0.97); } .ds-btn-icon:focus-visible { outline: 2px solid var(--ring, #4cc3ff); outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo com rótulo acima; 16px para o iPhone não dar zoom.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Hectares voados</span><input class=\"ds-input\" inputmode=\"decimal\" placeholder=\"0,0\"></label>",
+      "css": ".ds-field { display: block; font-family: 'Hanken Grotesk', system-ui, sans-serif; } .ds-field-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--muted-foreground, #a3abb2); } .ds-input { width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--input, rgba(255,255,255,0.14)); border-radius: 14px; background: var(--raised, #1c2024); color: var(--foreground, #f2f4f5); font: 400 16px 'Hanken Grotesk', system-ui, sans-serif; font-variant-numeric: tabular-nums; outline: none; caret-color: var(--primary, #4cc3ff); transition: border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color: var(--faint, #868f97); } .ds-input:focus { border-color: var(--primary, #4cc3ff); box-shadow: 0 0 0 2px rgba(76, 195, 255, 0.25); }"
+    },
+    {
+      "name": "Linha de projeto",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Cartão da lista de projetos: miniatura riscada, nome, falta voar e barra na cor do andamento.",
+      "html": "<button class=\"ds-project\"><span class=\"ds-project-thumb\"><svg viewBox=\"0 0 88 88\" width=\"88\" height=\"88\"><defs><pattern id=\"dsr\" width=\"5\" height=\"5\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\"><rect width=\"1.7\" height=\"5\" fill=\"#ffd23f\"/></pattern></defs><path d=\"M20 24 L64 18 L70 62 L26 68 Z\" fill=\"none\" stroke=\"#ffd23f\" stroke-width=\"1.4\"/><path d=\"M20 24 L44 20.7 L47 65 L26 68 Z\" fill=\"url(#dsr)\"/></svg></span><span class=\"ds-project-body\"><span class=\"ds-project-top\"><span class=\"ds-project-name\">Jorge Fukuda</span><span class=\"ds-project-num\">1.258,8</span></span><span class=\"ds-project-sub\"><span>Ouro verde</span><span>ha a voar</span></span><span class=\"ds-track\"><span class=\"ds-fill\"></span></span></span></button>",
+      "css": ".ds-project { display: grid; grid-template-columns: 88px 1fr; width: 100%; max-width: 448px; overflow: hidden; padding: 0; border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 18px; background: var(--card, #14171a); color: var(--foreground, #f2f4f5); text-align: left; font-family: 'Hanken Grotesk', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms ease; } .ds-project:hover { border-color: rgba(242,244,245,0.15); } .ds-project:active { transform: scale(0.97); } .ds-project:focus-visible { outline: 2px solid var(--ring, #4cc3ff); outline-offset: 2px; } .ds-project-thumb { display: block; background: #1b2026; } .ds-project-body { display: block; padding: 12px 14px; min-width: 0; } .ds-project-top, .ds-project-sub { display: flex; justify-content: space-between; gap: 8px; } .ds-project-name { font-size: 16px; font-weight: 700; } .ds-project-num { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-project-sub { margin-top: 2px; font-size: 13px; color: var(--muted-foreground, #a3abb2); } .ds-track { display: block; height: 4px; margin-top: 10px; border-radius: 9999px; background: var(--track, rgba(255,255,255,0.1)); overflow: hidden; } .ds-fill { display: block; width: 62%; height: 100%; border-radius: 9999px; background: #ffd23f; }"
+    },
+    {
+      "name": "Barra de abas com Lançar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Navegação de primeiro nível: Campo, Dinheiro, Lançar ao centro, Comissão, Propostas.",
+      "html": "<nav class=\"ds-tabbar\"><button class=\"ds-tab ds-tab-on\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\"><path d=\"M14.1 5.9 9 3 3 6v15l6-3 6 3 6-3V3l-6 3\"/></svg>Campo</button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M3 3v18h18M8 17v-4M13 17V9M18 17v-7\"/></svg>Dinheiro</button><button class=\"ds-tab ds-tab-launch\"><span class=\"ds-launch\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></span>Lançar</button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v10\"/></svg>Comissão</button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6\"/></svg>Propostas</button></nav>",
+      "css": ".ds-tabbar { display: grid; grid-template-columns: repeat(5, 1fr); height: 64px; max-width: 480px; border-top: 1px solid var(--border, rgba(255,255,255,0.08)); background: rgba(10, 12, 14, 0.95); font-family: 'Hanken Grotesk', system-ui, sans-serif; } .ds-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding-top: 8px; border: none; background: none; color: var(--faint, #868f97); font-size: 11px; font-weight: 600; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), color 160ms ease; } .ds-tab:hover { color: var(--muted-foreground, #a3abb2); } .ds-tab:active { transform: scale(0.97); } .ds-tab:focus-visible { outline: 2px solid var(--ring, #4cc3ff); outline-offset: -2px; } .ds-tab-on { color: var(--foreground, #f2f4f5); } .ds-tab-launch { justify-content: flex-start; padding-top: 0; color: var(--foreground, #f2f4f5); } .ds-launch { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-top: -14px; border-radius: 21px; background: var(--primary, #4cc3ff); color: var(--primary-foreground, #04141f); box-shadow: 0 8px 20px rgba(0,0,0,0.45); }"
+    },
+    {
+      "name": "Abas segmentadas do projeto",
+      "kind": "nav",
+      "refersTo": "segmented",
+      "description": "Matrículas, Serviços, Gastos, Histórico.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button class=\"ds-seg-tab ds-seg-on\" role=\"tab\">Matrículas</button><button class=\"ds-seg-tab\" role=\"tab\">Serviços</button><button class=\"ds-seg-tab\" role=\"tab\">Gastos</button><button class=\"ds-seg-tab\" role=\"tab\">Histórico</button></div>",
+      "css": ".ds-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; max-width: 448px; padding: 4px; border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 14px; background: var(--card, #14171a); font-family: 'Hanken Grotesk', system-ui, sans-serif; } .ds-seg-tab { min-height: 36px; border: none; border-radius: 10px; background: none; color: var(--faint, #868f97); font-size: 13px; font-weight: 600; cursor: pointer; transition: color 150ms, background-color 150ms; } .ds-seg-tab:hover { color: var(--muted-foreground, #a3abb2); } .ds-seg-tab:focus-visible { outline: 2px solid var(--ring, #4cc3ff); outline-offset: 2px; } .ds-seg-on { background: var(--raised, #1c2024); color: var(--foreground, #f2f4f5); }"
+    },
+    {
+      "name": "Legenda do mapa",
+      "kind": "chip",
+      "refersTo": "map-legend",
+      "description": "Pílula de vidro sobre o satélite, só com as faixas de andamento presentes.",
+      "html": "<div class=\"ds-legend\"><span class=\"ds-legend-item\"><span class=\"ds-dot\" style=\"background:#ff5a4e\"></span>começo</span><span class=\"ds-legend-item\"><span class=\"ds-dot\" style=\"background:#ffd23f\"></span>metade</span><span class=\"ds-legend-item\"><span class=\"ds-dot\" style=\"background:#34d17a\"></span>fechada</span></div>",
+      "css": ".ds-legend { display: inline-flex; align-items: center; gap: 12px; padding: 6px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 9999px; background: rgba(20, 23, 26, 0.85); backdrop-filter: blur(12px); color: #c9d0d6; font: 600 12px 'Hanken Grotesk', system-ui, sans-serif; } .ds-legend-item { display: flex; align-items: center; gap: 6px; } .ds-dot { width: 10px; height: 10px; border-radius: 3px; }"
+    },
+    {
+      "name": "Painel da matrícula selecionada",
+      "kind": "custom",
+      "refersTo": "button-map",
+      "description": "Flutua sobre o mapa ao tocar numa matrícula: cor do andamento, voado/meta e Lançar.",
+      "html": "<div class=\"ds-sel\"><span class=\"ds-sel-dot\"></span><span class=\"ds-sel-body\"><span class=\"ds-sel-name\">Maravilha</span><span class=\"ds-sel-meta\">412,0 / 693,0 ha · 59%</span></span><button class=\"ds-sel-btn\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Lançar</button></div>",
+      "css": ".ds-sel { display: flex; align-items: center; gap: 12px; max-width: 420px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; background: rgba(20, 23, 26, 0.95); box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-family: 'Hanken Grotesk', system-ui, sans-serif; } .ds-sel-dot { width: 12px; height: 12px; flex-shrink: 0; border-radius: 9999px; background: #ffd23f; } .ds-sel-body { flex: 1; min-width: 0; } .ds-sel-name { display: block; font-size: 14px; font-weight: 700; color: #f2f4f5; } .ds-sel-meta { display: block; font-size: 12.5px; color: #a3abb2; font-variant-numeric: tabular-nums; } .ds-sel-btn { display: flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border: none; border-radius: 9999px; background: #4cc3ff; color: #04141f; font: 700 13px 'Hanken Grotesk', system-ui, sans-serif; cursor: pointer; transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-sel-btn:active { transform: scale(0.97); } .ds-sel-btn:focus-visible { outline: 2px solid #4cc3ff; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A fazenda vista do satélite",
+    "overview": "O app é a própria fazenda vista de cima. Cada matrícula é o polígono do KML sobre a imagem real de satélite, riscada a 45° da esquerda (oeste) para a direita (leste) na proporção exata do que já foi voado. Todo o resto do sistema existe para deixar esse desenho e os números (hectares, reais) legíveis de relance: um chão quase preto e neutro, superfícies separadas por tom e por um filete fino, um único sinal azul-ciano para a ação, e as cores do andamento reservadas ao que foi voado.\n\nA densidade é de ferramenta de trabalho no celular: uma coluna de 480px no máximo, margem lateral de 16px, alvos de toque de 48px, listas em cartões agrupados. É escuro e cinematográfico por padrão (linha de app de drone e GNSS), com um tema claro de mesma estrutura para usar no sol. Recusas confirmadas pelo dono: o \"centro de operações\" preto com verde neon e textura de curvas de nível do app antigo, e o app branco genérico de agro com cartões e barrinhas verdes.\n\nO movimento é curto e físico: tudo que se aperta encolhe para 97% em 160ms; folhas sobem de baixo com a curva de gaveta; o risco do mapa avança até o novo ponto em 900ms quando se lança uma área. Nada se mexe só para enfeitar.",
+    "keyCharacteristics": [
+      "Chão quase preto neutro (sem tingir de verde ou azul), superfícies por tom, filete branco de 8%.",
+      "Um sinal azul-ciano, só em ação, seleção, foco e progresso neutro.",
+      "Cinco faixas fixas de cor do andamento (vermelho, laranja, amarelo, verde-claro, verde), nunca degradê.",
+      "Risco a 45° como marca do voado, em mapa, miniaturas e barras.",
+      "Hanken Grotesk com algarismos tabulares em todo número.",
+      "Plano por padrão; sombra só no que flutua (folha, painel sobre o mapa, botão Lançar)."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "O azul-ciano é a única cor de ação. Uma tela tem no máximo um botão cheio nele; o resto é secundário (tom), fantasma (texto no sinal) ou ícone.", "section": "colors" },
+      { "name": "The Earned Colour Rule", "body": "As cinco cores do andamento só aparecem ligadas a um percentual voado real (risco, contorno, barra, legenda, ponto de seleção). Nunca como decoração, categoria ou status de outra coisa. Faixas fixas, nunca interpoladas: a mesma cor quer dizer sempre a mesma coisa.", "section": "colors" },
+      { "name": "The Neutral Ground Rule", "body": "O chão e as superfícies não levam matiz (nada de verde-escuro ou azul-marinho de fundo). A cor vem do satélite e do andamento.", "section": "colors" },
+      { "name": "The Tabular Number Rule", "body": "Todo número que se compara ou se soma (ha, R$, %, datas em lista) leva `num`. Campos de número também.", "section": "typography" },
+      { "name": "The Sentence Case Rule", "body": "Rótulos em caixa normal, em português do Brasil. Sem caixa alta espaçada, sem \"eyebrow\" acima de títulos.", "section": "typography" },
+      { "name": "The Only What Floats Rule", "body": "Cartão, linha e campo nunca têm sombra. Se não está flutuando sobre o mapa ou sobre a tela, é tom e filete.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do montar telas novas com os componentes de `components/painel` (TopBar, Card, StatCard, SectionTitle, EmptyState, ProgressBar, botões, campos, ModalSheet) e os papéis de cor, nunca hex.",
+      "Do deixar o número como o maior elemento do bloco, com `num` e unidade menor em tinta média.",
+      "Do usar `corDoAndamento(pct)` para qualquer coisa que mostre o voado, e contorno branco para 0%.",
+      "Do manter alvos de toque de 48px (ícones 40px) e `pressable` em tudo que se aperta.",
+      "Do pôr etapas novas de fluxo em folhas que sobem, uma pergunta por folha.",
+      "Do conferir cada tela nos dois temas; os controles sobre o mapa continuam escuros no tema claro."
+    ],
+    "donts": [
+      "Don't usar o azul-ciano em mais de um botão cheio por tela, nem como cor decorativa.",
+      "Don't usar as cores do andamento para categorias, status de pagamento ou enfeite, nem interpolar entre elas.",
+      "Don't pôr sombra em cartão, linha ou campo; sombra é só do que flutua.",
+      "Don't tingir o chão de verde ou azul, nem usar verde neon, textura de curvas de nível ou degradês decorativos.",
+      "Don't usar caixa alta espaçada, eyebrows acima de títulos ou fonte monoespaçada para números.",
+      "Don't usar campo com fonte menor que 16px (o iPhone dá zoom)."
+    ]
+  }
+}

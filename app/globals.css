@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-manrope), 'Manrope Fallback', sans-serif;
-  --font-sans: var(--font-manrope), 'Manrope Fallback', sans-serif;
-  --font-mono: var(--font-plex-mono), 'IBM Plex Mono Fallback', monospace;
+  --font-heading: var(--font-hanken), 'Hanken Grotesk Fallback', system-ui, sans-serif;
+  --font-sans: var(--font-hanken), 'Hanken Grotesk Fallback', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -23,135 +23,160 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-raised: var(--raised);
+  --color-track: var(--track);
 
+  /* nomes antigos, mantidos apontando para os papeis novos */
   --color-brand-dark: var(--brand-dark);
-  --color-brand: var(--brand);
-  --color-sand: var(--sand);
-  --color-sand-bg: var(--sand-bg);
-  --color-green-pale: var(--green-pale);
-  --color-green-light: var(--green-light);
-  --color-amber-status: var(--amber-status);
-  --color-gold: var(--gold);
+  --color-brand: var(--primary);
+  --color-sand: var(--primary);
+  --color-sand-bg: var(--raised);
+  --color-green-pale: var(--raised);
+  --color-green-light: var(--track);
+  --color-amber-status: var(--warning);
+  --color-gold: var(--primary);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 1.85);
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ============================================================
-   AGS GEO — Identidade "Inteligência Geoespacial"
-   Paleta: grafite + verde RTK (precisão) + azul satélite
-   Tema CLARO = documento técnico limpo
-   Tema ESCURO = centro de operações (herói da marca)
+   AGS GEO — a fazenda vista do satelite
+   Escuro (padrao): chao quase preto neutro, superficies por tom,
+   um sinal azul-ciano so no limite do KML, no progresso e na acao.
+   Claro: a mesma estrutura para usar no sol.
    ============================================================ */
 
 :root {
   color-scheme: light;
-  --radius: 0.9rem;
+  --radius: 0.875rem;
 
-  --background: #eef1f3;
-  --foreground: #0e1518;
+  --background: #f2f4f6;
+  --foreground: #0b1218;
   --card: #ffffff;
-  --card-foreground: #0e1518;
+  --card-foreground: #0b1218;
   --popover: #ffffff;
-  --popover-foreground: #0e1518;
-  --primary: #0e9e63;
+  --popover-foreground: #0b1218;
+  --raised: #eceff2;
+  --track: rgba(11, 18, 24, 0.1);
+  --primary: #0a7fbf;
   --primary-foreground: #ffffff;
-  --cta: #0e9e63;
+  --cta: #0a7fbf;
   --cta-foreground: #ffffff;
-  --secondary: #e6eef1;
-  --secondary-foreground: #123640;
-  --muted: #f2f6f7;
-  --muted-foreground: #63727a;
-  --accent: #1f77bf;
+  --secondary: #eceff2;
+  --secondary-foreground: #0b1218;
+  --muted: #eceff2;
+  --muted-foreground: #4f5a64;
+  --faint: #66717b;
+  --accent: #0a7fbf;
   --accent-foreground: #ffffff;
-  --destructive: #b0453f;
-  --border: #dae2e6;
-  --input: #dae2e6;
-  --ring: #0e9e63;
-
-  --brand-dark: #0c231a;
-  --brand: #0e9e63;
-  --sand: #1f77bf;
-  --sand-bg: #eef4f9;
-  --green-pale: #eef6f2;
-  --green-light: #e2efe9;
-  --amber-status: #8a5a12;
-  --gold: #0e9e63;
+  --destructive: #c4242a;
+  --positive: #1d7a4f;
+  --warning: #9a6200;
+  --border: rgba(11, 18, 24, 0.1);
+  --input: rgba(11, 18, 24, 0.16);
+  --ring: #0a7fbf;
+  --brand-dark: #0a0c0e;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0a0e11;
-  --foreground: #e6edf2;
-  --card: #111820;
-  --card-foreground: #e6edf2;
-  --popover: #111820;
-  --popover-foreground: #e6edf2;
-  --primary: #2fd48a;
-  --primary-foreground: #04130c;
-  --cta: #17b877;
-  --cta-foreground: #04140c;
-  --secondary: #13212b;
-  --secondary-foreground: #cfe6f0;
-  --muted: #0f171d;
-  --muted-foreground: #8496a0;
-  --accent: #3aa0e6;
-  --accent-foreground: #04121d;
-  --destructive: #e5675f;
-  --border: #1e2a33;
-  --input: #1e2a33;
-  --ring: #2fd48a;
-
-  --brand-dark: #06100b;
-  --brand: #2fd48a;
-  --sand: #3aa0e6;
-  --sand-bg: #0e1922;
-  --green-pale: #0f1b16;
-  --green-light: #14241d;
-  --amber-status: #d9a441;
-  --gold: #2fd48a;
+  --background: #0a0c0e;
+  --foreground: #f2f4f5;
+  --card: #14171a;
+  --card-foreground: #f2f4f5;
+  --popover: #1c2024;
+  --popover-foreground: #f2f4f5;
+  --raised: #1c2024;
+  --track: rgba(255, 255, 255, 0.1);
+  --primary: #4cc3ff;
+  --primary-foreground: #04141f;
+  --cta: #4cc3ff;
+  --cta-foreground: #04141f;
+  --secondary: #1c2024;
+  --secondary-foreground: #f2f4f5;
+  --muted: #1c2024;
+  --muted-foreground: #a3abb2;
+  --faint: #868f97;
+  --accent: #4cc3ff;
+  --accent-foreground: #04141f;
+  --destructive: #ff6b63;
+  --positive: #4fd18b;
+  --warning: #f2b544;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #4cc3ff;
+  --brand-dark: #0a0c0e;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/40;
   }
+  html {
+    @apply font-sans;
+    background: var(--background);
+  }
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "tnum" 0;
   }
-  html {
-    @apply font-sans;
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 35%, transparent);
+    color: var(--foreground);
+  }
+  input,
+  textarea {
+    caret-color: var(--primary);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 20%, transparent) transparent;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--date-icon-filter, none);
+  }
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.7);
   }
 }
 
-/* Padrao de curvas de nivel (topografia) — identidade de geoprocessamento */
-@utility bg-topo {
-  background-color: var(--brand-dark);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='180' viewBox='0 0 300 180'><g fill='none' stroke='%23ffffff' stroke-opacity='0.08' stroke-width='1'><path d='M-20,40 C60,10 120,70 200,40 C280,10 320,70 380,40'/><path d='M-20,70 C60,40 120,100 200,70 C280,40 320,100 380,70'/><path d='M-20,100 C60,70 120,130 200,100 C280,70 320,130 380,100'/><path d='M-20,130 C60,100 120,160 200,130 C280,100 320,160 380,130'/><path d='M-20,160 C60,130 120,190 200,160 C280,130 320,190 380,160'/></g></svg>");
-  background-size: 380px 180px;
-}
-
+/* Numeros: algarismos tabulares na propria fonte do app (sem monoespacada). */
 @utility num {
-  font-family: var(--font-mono);
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Riscos do voado: o mesmo desenho do mapa, para barras e miniaturas (textura de hachura, nao degrade). taste-skill-ignore */
+@utility bg-risco {
+  background-image: repeating-linear-gradient(135deg, currentColor 0 1.6px, transparent 1.6px 6px); /* taste-skill-ignore */
 }
 
 /* Respeita o notch / status bar no modo PWA (standalone) */
 @utility pt-safe {
-  padding-top: calc(env(safe-area-inset-top) + 1.5rem);
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
 }
 
 @utility pb-safe {
@@ -163,6 +188,14 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Toque: tudo que aperta responde (escala curta, sai rapido) */
+@utility pressable {
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+  &:active {
+    transform: scale(0.97);
   }
 }
 
@@ -238,4 +271,36 @@
   .ags-wordmark {
     opacity: 1;
   }
+}
+
+/* ---- Mapa (MapLibre): controles no mesmo vidro escuro dos botoes do app ---- */
+.ags-mapa .maplibregl-ctrl-bottom-right {
+  bottom: 28px;
+}
+.ags-mapa .maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgba(20, 23, 26, 0.85);
+  color: #c9d0d6;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.ags-mapa .maplibregl-ctrl-attrib a {
+  color: #c9d0d6;
+}
+.ags-mapa .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+.ags-mapa .maplibregl-ctrl-scale {
+  background: rgba(20, 23, 26, 0.7);
+  color: #f2f4f5;
+  border-color: #f2f4f5;
+  font: 600 11px var(--font-sans);
+}
+.ags-rotulo {
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(10, 12, 14, 0.82);
+  border: 1px solid color-mix(in srgb, var(--cor) 60%, transparent);
+  color: #f2f4f5;
+  font: 700 11px var(--font-sans);
+  white-space: nowrap;
+  pointer-events: none;
 }

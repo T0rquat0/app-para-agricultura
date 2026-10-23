@@ -234,7 +234,7 @@ export function ProposalFormScreen() {
         </Field>
 
         <div className="mt-2 mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="text-[11px] font-bold text-muted-foreground">
             Itens da proposta
           </span>
         </div>
@@ -327,7 +327,7 @@ export function ProposalFormScreen() {
           <Plus className="h-4 w-4" /> Adicionar item
         </SecondaryButton>
 
-        <div className="mt-6 mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="mt-6 mb-2 text-[11px] font-bold text-muted-foreground">
           O que será entregue
         </div>
         <Hint className="-mt-1 mb-3">
@@ -353,7 +353,7 @@ export function ProposalFormScreen() {
                 </span>
                 <span>
                   <span className="block text-[13px] font-bold text-foreground">{opt.label}</span>
-                  <span className="block text-[11.5px] text-muted-foreground">{opt.desc}</span>
+                  <span className="block text-[12.5px] text-muted-foreground">{opt.desc}</span>
                 </span>
               </button>
             )
@@ -373,7 +373,7 @@ export function ProposalFormScreen() {
           <TextInput value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="Ex: PIX ou boleto" />
         </Field>
 
-        <div className="mt-6 mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="mt-6 mb-2 text-[11px] font-bold text-muted-foreground">
           Cronograma estimado
         </div>
         <Hint className="-mt-1 mb-2">Ajuste os prazos pra realidade dessa proposta — os valores abaixo são só um ponto de partida.</Hint>
@@ -439,7 +439,7 @@ export function ProposalFormScreen() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex gap-2.5 border-t border-border bg-card/95 px-5 py-4 backdrop-blur">
+      <div className="sticky bottom-0 z-10 flex gap-2.5 border-t border-border bg-background/95 px-4 py-3">
         <GhostButton className="flex-1" onClick={save}>
           Salvar
         </GhostButton>

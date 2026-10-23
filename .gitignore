@@ -25,3 +25,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# rascunhos de design (maquetes, fotos de tela com dados reais, KML do cliente)
+/.impeccable/mocks/
+/.impeccable/before/
+/.impeccable/review/
+/.impeccable/questions/
+/.impeccable/decision/
+/.taste-skill/

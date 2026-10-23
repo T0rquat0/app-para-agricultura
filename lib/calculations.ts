@@ -1,7 +1,9 @@
 // Calculos derivados — copiados fielmente do app original.
 // NAO alterar: estas formulas definem faturamento, progresso e margens.
+// (andamentoProjeto, mais abaixo, e novo: e o "falta voar" das telas, contando as matriculas.)
 
 import { fmtHa, fmtMoney, todayISO } from "./format"
+import { areaHa } from "./geo"
 import type { CommissionConfig, CommissionEntry, Project, Proposal, ProposalItem, ProposalPaymentPhase, Service, Talhao } from "./types"
 
 export function mappedHa(p: Project): number {
@@ -39,6 +41,31 @@ export function talhaoFlown(p: Project, talhaoId: string): number {
   return (p.areas || [])
     .filter((a) => a.talhaoId === talhaoId)
     .reduce((s, a) => s + Number(a.hectares || 0), 0)
+}
+
+// Meta da matricula: o tamanho previsto digitado ou, sem ele, a area do contorno do KML.
+export function metaMatricula(t: Talhao): number {
+  return Number(t.targetHectares || 0) || (t.geometry?.length ? areaHa(t.geometry) : 0)
+}
+
+// Quanto falta voar e o andamento do projeto. Com matriculas que tem meta, vale a soma do que
+// falta em cada uma (o mapa e a lista mostram isso); sem nenhuma, vale o contratado menos o voado.
+export function andamentoProjeto(p: Project): { falta: number; pct: number; fechado: boolean } {
+  const comMeta = (p.talhoes || []).filter((t) => metaMatricula(t) > 0)
+  const voado = mappedHa(p)
+  if (!comMeta.length) {
+    const total = Number(p.totalHectares || 0)
+    return { falta: Math.max(0, total - voado), pct: projectPercent(voado, total), fechado: isProjectComplete(voado, total) }
+  }
+  let meta = 0
+  let feito = 0
+  for (const t of comMeta) {
+    const m = metaMatricula(t)
+    meta += m
+    feito += Math.min(talhaoFlown(p, t.id), m)
+  }
+  const pctFeito = meta > 0 ? (feito / meta) * 100 : 0
+  return { falta: Math.max(0, meta - feito), pct: pctFeito, fechado: Math.round(pctFeito) >= 100 }
 }
 
 export function talhaoBadge(p: Project, t: Talhao): string {

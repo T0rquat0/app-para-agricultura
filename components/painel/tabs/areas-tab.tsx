@@ -1,14 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Check, ChevronDown, Pencil, Plus, X } from "lucide-react"
+import { ChevronDown, Pencil, Plus, X } from "lucide-react"
 import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
-import { effectiveCommissionRate, mappedHa, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
+import { effectiveCommissionRate, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import { deleteArea, deleteTalhao } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
-import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
+import { cn } from "@/lib/utils"
+import { corDoAndamento } from "@/lib/geo"
+import { GeoThumb } from "../geo-thumb"
+import { EmptyState, SectionTitle } from "../chrome"
 import { SecondaryButton, GhostButton } from "../buttons"
 import { EditParteModal, EditTalhaoModal, ParteModal, TalhaoModal } from "../modals"
 
@@ -20,8 +23,6 @@ export function AreasTab({ project }: { project: Project }) {
   const [editingTalhao, setEditingTalhao] = useState<Talhao | null>(null)
   const [editingParte, setEditingParte] = useState<Area | null>(null)
 
-  const mapped = mappedHa(project)
-  const pctVal = project.totalHectares ? (mapped / project.totalHectares) * 100 : 0
   const commissionRate = effectiveCommissionRate(project)
 
   function toggle(id: string) {
@@ -43,8 +44,8 @@ export function AreasTab({ project }: { project: Project }) {
     const count = (project.areas || []).filter((a) => a.talhaoId === talhaoId).length
     const msg =
       count > 0
-        ? `Esse talhão tem ${count} parte(s) voada(s) lançada(s). Remover o talhão e todas as partes?`
-        : "Remover este talhão?"
+        ? `Essa matrícula tem ${count} parte(s) voada(s) lançada(s). Remover a matrícula e todas as partes?`
+        : "Remover esta matrícula?"
     if (!confirm(msg)) return
     await deleteTalhao(project.id, talhaoId)
     refresh()
@@ -52,125 +53,87 @@ export function AreasTab({ project }: { project: Project }) {
 
   const talhoes = (project.talhoes || []).slice().sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""))
   const ungrouped = ungroupedAreas(project)
+  const fechadas = talhoes.filter((t) => Number(t.targetHectares || 0) > 0 && talhaoFlown(project, t.id) >= Number(t.targetHectares)).length
 
   return (
     <div>
-      {/* Resumo */}
-      <div className="mb-3 grid grid-cols-3 gap-2.5">
-        <SummaryStat label="Mapeado" value={`${fmtHa(mapped)} ha`} />
-        <SummaryStat label="Contratado" value={`${fmtHa(project.totalHectares)} ha`} />
-        <SummaryStat label="Progresso" value={`${pctVal.toFixed(0)}%`} />
-      </div>
-      <ProgressBar value={pctVal} className="mb-2 h-2.5" />
-      {commissionRate > 0 ? (
-        <div className="mb-5 text-[11.5px] text-muted-foreground">
-          Comissão: <span className="font-bold text-foreground">{fmtMoney(commissionRate)}/ha</span>
-          {project.commissionRate ? " (valor manual)" : " (do serviço por hectare)"}
-        </div>
-      ) : (
-        <div className="mb-5 text-[11.5px] text-muted-foreground">
-          Valor de comissão não identificado · configure o valor por hectare em "Serviços" ou defina manualmente no
-          lápis no topo
-        </div>
-      )}
-
-      <SectionTitle>Talhões / matrículas</SectionTitle>
+      <SectionTitle count={talhoes.length > 0 ? `${fechadas} de ${talhoes.length} fechadas` : undefined}>Matrículas</SectionTitle>
       {talhoes.length === 0 ? (
         <EmptyState>
-          Nenhum talhão cadastrado ainda. Crie um pra cada matrícula ou área grande, e lance dentro dele os pedaços que
-          for voando.
+          Nenhuma matrícula ainda. Crie uma para cada matrícula ou área grande, e lance nela os pedaços que for voando.
         </EmptyState>
       ) : (
-        <div className="space-y-3">
+        <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
           {talhoes.map((t) => {
             const flown = talhaoFlown(project, t.id)
             const target = Number(t.targetHectares || 0)
             const badge = talhaoBadge(project, t)
             const isOpen = expanded.has(t.id)
             const isDone = target > 0 && flown >= target
-            const ringPct = target > 0 ? Math.min(100, (flown / target) * 100) : 0
+            const pct = target > 0 ? Math.min(100, (flown / target) * 100) : 0
             const partes = (project.areas || [])
               .filter((a) => a.talhaoId === t.id)
               .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
 
             return (
-              <div key={t.id} className={`overflow-hidden rounded-2xl shadow-sm ring-1 ${isDone ? "bg-green-pale ring-primary/30" : "bg-card ring-border/60"}`}>
-                {/* Cabeçalho do talhão */}
-                <div className="flex w-full items-center gap-2 p-4">
-                  {/* Área clicável para expandir */}
-                  <button onClick={() => toggle(t.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 text-[15px] font-bold text-foreground">
+              <div key={t.id}>
+                <div className="flex items-center gap-1 pr-2">
+                  <button onClick={() => toggle(t.id)} aria-expanded={isOpen} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3.5 text-left">
+                    <Hatch pct={pct} talhao={t} />
+                    <span className="min-w-0 flex-1">
+                      <span className={cn("flex items-center gap-2 text-[15px] font-bold", isDone && "font-semibold text-muted-foreground")}>
                         <span className="truncate">{t.name}</span>
                         {badge && (
-                          <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">
-                            {badge}
-                          </span>
+                          <span className="shrink-0 rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{badge}</span>
                         )}
-                      </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {target > 0
-                          ? `${fmtHa(flown)} / ${fmtHa(target)} ha · ${Math.round((flown / target) * 100)}%`
-                          : `${fmtHa(flown)} ha voados`}
-                      </div>
-                    </div>
-                    {isDone ? (
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Check className="h-4 w-4" strokeWidth={3} />
                       </span>
-                    ) : (
-                      <Ring pct={ringPct} />
-                    )}
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <span className="num block text-[13px] text-muted-foreground">
+                        {target > 0 ? `${fmtHa(flown)} de ${fmtHa(target)} ha · ${Math.round((flown / target) * 100)}%` : `${fmtHa(flown)} ha voados`}
+                      </span>
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-faint transition-transform duration-200", isOpen && "rotate-180")} />
                   </button>
-                  {/* Botão editar talhão */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setEditingTalhao(t) }}
-                    aria-label="Editar talhão"
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    onClick={() => setEditingTalhao(t)}
+                    aria-label="Editar matrícula"
+                    className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint hover:bg-raised hover:text-foreground"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                {target > 0 && <ProgressBar value={(flown / target) * 100} className="mx-4 mb-1 h-1" />}
-
-                {/* Partes voadas (expandido) */}
                 {isOpen && (
-                  <div className="border-t border-border px-4 py-2">
+                  <div className="bg-background/40 px-3.5 pb-2">
                     {partes.length === 0 ? (
-                      <div className="py-2 text-[13px] text-muted-foreground">Nenhuma parte voada ainda.</div>
+                      <div className="py-2.5 text-[13px] text-muted-foreground">Nenhuma parte voada ainda.</div>
                     ) : (
                       partes.map((a, i) => (
-                        <div key={a.id} className="flex items-center justify-between border-b border-border/60 py-2.5 last:border-0">
+                        <div key={a.id} className="flex items-center justify-between gap-2 border-b border-border py-2.5 last:border-0">
                           <div className="min-w-0 flex-1">
-                            <div className="text-[13.5px] font-bold text-foreground">
+                            <div className="truncate text-[14px] font-semibold">
                               Parte {i + 1}
-                              {a.note ? ` — ${a.note}` : ""}
+                              {a.note ? ` · ${a.note}` : ""}
                             </div>
-                            <div className="text-[11.5px] text-muted-foreground">{fmtDate(a.date)}</div>
+                            <div className="text-[12.5px] text-muted-foreground">{fmtDate(a.date)}</div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="num text-[13.5px] font-bold text-foreground">{fmtHa(a.hectares)} ha</span>
-                            {/* Botão editar parte */}
-                            <button
-                              onClick={() => setEditingParte(a)}
-                              aria-label="Editar parte"
-                              className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <DelButton onClick={() => removeArea(a.id)} />
-                          </div>
+                          <span className="num text-[14px] font-bold">{fmtHa(a.hectares)} ha</span>
+                          <button
+                            onClick={() => setEditingParte(a)}
+                            aria-label="Editar parte"
+                            className="pressable flex h-8 w-8 items-center justify-center rounded-full text-faint hover:bg-raised hover:text-foreground"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <DelButton onClick={() => removeArea(a.id)} />
                         </div>
                       ))
                     )}
                     <div className="flex items-center justify-between pt-1">
                       <GhostButton className="px-0" onClick={() => setParteFor(t.id)}>
-                        <Plus className="h-4 w-4" /> Adicionar parte voada
+                        <Plus className="h-4 w-4" /> Lançar parte voada
                       </GhostButton>
-                      <GhostButton className="px-0 text-destructive hover:bg-destructive/10" onClick={() => removeTalhao(t.id)}>
-                        Excluir talhão
+                      <GhostButton className="px-2 text-destructive hover:bg-destructive/10" onClick={() => removeTalhao(t.id)}>
+                        Excluir matrícula
                       </GhostButton>
                     </div>
                   </div>
@@ -181,24 +144,33 @@ export function AreasTab({ project }: { project: Project }) {
         </div>
       )}
 
-      <div className="mt-3">
-        <SecondaryButton className="w-full" onClick={() => setShowTalhao(true)}>
-          <Plus className="h-4 w-4" /> Novo talhão
-        </SecondaryButton>
-      </div>
+      <SecondaryButton className="mt-3 w-full" onClick={() => setShowTalhao(true)}>
+        <Plus className="h-4 w-4" /> Nova matrícula
+      </SecondaryButton>
+
+      <p className="mt-3 px-1 text-[12.5px] text-faint">
+        {commissionRate > 0 ? (
+          <>
+            Comissão: <span className="num font-semibold text-muted-foreground">{fmtMoney(commissionRate)}/ha</span>
+            {project.commissionRate ? " (valor manual)" : " (do serviço por hectare)"}
+          </>
+        ) : (
+          <>Valor de comissão não identificado: defina o valor por hectare em Serviços ou no lápis do topo.</>
+        )}
+      </p>
 
       {ungrouped.length > 0 && (
         <>
-          <SectionTitle className="mt-5">Outras áreas</SectionTitle>
-          <div className="rounded-2xl bg-card p-1 shadow-sm ring-1 ring-border/60">
+          <SectionTitle className="mt-6">Outras áreas</SectionTitle>
+          <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
             {ungrouped.map((a) => (
-              <div key={a.id} className="flex items-center justify-between border-b border-border/60 px-3 py-2.5 last:border-0">
-                <div>
-                  <div className="text-[13.5px] font-bold text-foreground">{a.name || "Área"}</div>
-                  <div className="text-[11.5px] text-muted-foreground">{fmtDate(a.date)}</div>
+              <div key={a.id} className="flex items-center justify-between gap-2 px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <div className="truncate text-[14px] font-semibold">{a.name || "Área"}</div>
+                  <div className="text-[12.5px] text-muted-foreground">{fmtDate(a.date)}</div>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="num text-[13.5px] font-bold text-foreground">{fmtHa(a.hectares)} ha</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="num text-[14px] font-bold">{fmtHa(a.hectares)} ha</span>
                   <DelButton onClick={() => removeArea(a.id)} />
                 </div>
               </div>
@@ -207,7 +179,6 @@ export function AreasTab({ project }: { project: Project }) {
         </>
       )}
 
-      {/* Modais */}
       {showTalhao && <TalhaoModal project={project} onClose={() => setShowTalhao(false)} onSaved={refresh} />}
       {parteFor && (
         <ParteModal
@@ -240,12 +211,23 @@ export function AreasTab({ project }: { project: Project }) {
   )
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+// Quadrinho da matricula riscado pela cor do andamento: o contorno do KML quando existe
+function Hatch({ pct, talhao }: { pct: number; talhao: Talhao }) {
+  if (talhao.geometry?.length) {
+    return (
+      <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-raised">
+        <GeoThumb formas={[{ geometry: talhao.geometry, pct }]} className="h-9 w-9 text-foreground" />
+      </span>
+    )
+  }
   return (
-    <div className="rounded-2xl bg-card p-3 text-center shadow-sm ring-1 ring-border/60">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="num mt-1 text-base font-bold text-foreground">{value}</div>
-    </div>
+    <span
+      aria-hidden="true"
+      className="relative block h-9 w-9 shrink-0 overflow-hidden rounded-[7px] border-[1.5px] bg-raised"
+      style={{ borderColor: pct > 0 ? corDoAndamento(pct) : "color-mix(in srgb, var(--foreground) 35%, transparent)" }}
+    >
+      <span className="bg-risco absolute inset-y-0 left-0" style={{ width: `${pct}%`, color: corDoAndamento(pct) }} />
+    </span>
   )
 }
 
@@ -254,37 +236,9 @@ function DelButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       aria-label="Remover"
-      className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      className="pressable flex h-8 w-8 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive"
     >
       <X className="h-4 w-4" />
     </button>
-  )
-}
-
-function Ring({ pct }: { pct: number }) {
-  const r = 18
-  const circ = 2 * Math.PI * r
-  const dash = circ * (pct / 100)
-  const gap = circ - dash
-  return (
-    <svg width="40" height="40" viewBox="0 0 46 46" className="shrink-0">
-      <circle cx="23" cy="23" r={r} fill="none" stroke="var(--green-light)" strokeWidth="4" />
-      {pct > 0 && (
-        <circle
-          cx="23"
-          cy="23"
-          r={r}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth="4"
-          strokeDasharray={`${dash.toFixed(1)} ${gap.toFixed(1)}`}
-          strokeLinecap="round"
-          transform="rotate(-90 23 23)"
-        />
-      )}
-      <text x="23" y="24" textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="800" fill="var(--muted-foreground)" className="num">
-        {pct.toFixed(0)}%
-      </text>
-    </svg>
   )
 }

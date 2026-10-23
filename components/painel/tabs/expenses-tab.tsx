@@ -44,23 +44,23 @@ export function ExpensesTab({ project }: { project: Project }) {
 
       <SectionTitle className="mt-3">Gastos do projeto</SectionTitle>
       {rows.length === 0 ? (
-        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-sm ring-1 ring-border/60">
+        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground border border-border">
           Nenhum gasto lançado ainda.
         </div>
       ) : (
-        <div className="rounded-2xl bg-card p-1 shadow-sm ring-1 ring-border/60">
+        <div className="overflow-hidden rounded-[18px] border border-border bg-card">
           {rows.map((e) => (
-            <div key={e.id} className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2.5 last:border-0">
+            <div key={e.id} className="flex items-start justify-between gap-2 border-b border-border px-3 py-2.5 last:border-0">
               <div className="min-w-0">
                 <div className="truncate text-[13.5px] font-bold text-foreground">{e.description || e.category}</div>
-                <div className="text-[11.5px] text-muted-foreground">{fmtDate(e.date)}</div>
+                <div className="text-[12.5px] text-muted-foreground">{fmtDate(e.date)}</div>
                 {(e.description || e.vehicle) && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {e.description && (
-                      <span className="rounded-md bg-sand-bg px-1.5 py-0.5 text-[10px] font-bold text-accent">{e.category}</span>
+                      <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{e.category}</span>
                     )}
                     {e.vehicle && (
-                      <span className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-secondary-foreground">{e.vehicle}</span>
+                      <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{e.vehicle}</span>
                     )}
                   </div>
                 )}
@@ -103,8 +103,8 @@ function Card({
   negative?: boolean
 }) {
   return (
-    <div className={`rounded-2xl p-3 text-center shadow-sm ring-1 ${tone === "sand" ? "bg-sand-bg ring-accent/20" : "bg-card ring-border/60"}`}>
-      <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</div>
+    <div className={`rounded-2xl p-3 text-center ring-1 ${tone === "sand" ? "bg-sand-bg ring-accent/20" : "bg-card ring-border/60"}`}>
+      <div className="text-[11px] font-bold text-muted-foreground">{label}</div>
       <div className={`num mt-1 text-base font-bold ${negative ? "text-destructive" : "text-foreground"}`}>{value}</div>
     </div>
   )

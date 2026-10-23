@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Pencil, Plus, Trash2, TrendingUp, Wallet } from "lucide-react"
+import { FileText, Pencil, Plus, Trash2, Wallet } from "lucide-react"
 import { useNav } from "../nav-context"
 import { useFinancialOverview, useInvestments, useRefresh } from "@/lib/hooks"
 import { deleteInvestment, saveInvestment, totalInvested } from "@/lib/storage"
@@ -13,7 +13,7 @@ import { Field, TextInput } from "../fields"
 import { PrimaryButton, GhostButton } from "../buttons"
 
 export function InvestmentsScreen() {
-  const { goHome, goReport } = useNav()
+  const { goReport } = useNav()
   const { investments } = useInvestments()
   const { overview } = useFinancialOverview()
   const refresh = useRefresh()
@@ -77,77 +77,79 @@ export function InvestmentsScreen() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <TopBar title="Investimentos" subtitle="CAPEX da divisão de levantamento" onBack={goHome} />
+      <TopBar title="Dinheiro" subtitle="Saldo, custos e investimentos da operação" />
 
-      <div className="bg-topo px-5 pb-6 text-white">
-        <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-white/65">
-            <TrendingUp className="h-3.5 w-3.5" /> Total investido
-          </div>
-          <div className="num mt-1 text-3xl font-extrabold">{fmtMoney(invested)}</div>
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-2.5">
-          <MiniStat label="Contratado" value={fmtMoney(contract)} />
-          <MiniStat label="Custos op." value={fmtMoney(opex)} />
-          <MiniStat label="Saldo" value={fmtMoney(balance)} positive={balance >= 0} />
-        </div>
+      <div className="px-4">
+        <section className="px-1 pt-2">
+          <p className="text-[14px] text-muted-foreground">Saldo da operação</p>
+          <p className={`num text-[36px] font-extrabold leading-[1.1] tracking-[-0.025em] ${balance < 0 ? "text-destructive" : ""}`}>
+            {fmtMoney(balance)}
+          </p>
+          <p className="num mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
+            <span className="font-semibold text-foreground">{fmtMoney(contract)}</span> faturados, menos{" "}
+            <span className="font-semibold text-foreground">{fmtMoney(opex)}</span> de custos de campo e{" "}
+            <span className="font-semibold text-foreground">{fmtMoney(invested)}</span> investidos.
+          </p>
+        </section>
+
+
         <button
           onClick={() => goReport("investmentsReport")}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/15 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/25"
+          className="pressable mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-border bg-raised text-[14px] font-bold hover:border-foreground/20"
         >
-          <FileText className="h-4 w-4" /> Relatório financeiro
+          <FileText className="h-4 w-4 text-muted-foreground" /> Relatório financeiro
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-5">
-        <SectionTitle>Equipamentos e aportes</SectionTitle>
+      <div className="flex-1 px-4 pb-6 pt-7">
+        <SectionTitle
+          action={
+            <button onClick={openNew} className="pressable -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-[14px] font-bold text-primary">
+              <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo
+            </button>
+          }
+        >
+          Equipamentos e aportes <span className="num ml-1 font-medium text-faint">{investments.length || ""}</span>
+        </SectionTitle>
         {investments.length === 0 ? (
-          <EmptyState icon={<Wallet className="h-8 w-8 text-muted-foreground/50" />}>
+          <EmptyState icon={<Wallet className="h-8 w-8 opacity-40" />}>
             Cadastre os investimentos em drones, computadores, softwares e outros ativos da operação.
           </EmptyState>
         ) : (
-          <div className="flex flex-col gap-2.5">
+          <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
             {investments
               .slice()
               .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
               .map((inv) => (
-                <div key={inv.id} className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border/60">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-[15px] font-bold text-foreground">{inv.name}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{fmtDate(inv.date)}</div>
-                      {inv.note && <div className="mt-1 text-[13px] text-muted-foreground">{inv.note}</div>}
+                <div key={inv.id} className="flex items-center gap-2 py-3 pl-4 pr-2">
+                  <button onClick={() => openEdit(inv)} className="min-w-0 flex-1 text-left">
+                    <div className="truncate text-[15px] font-semibold">{inv.name}</div>
+                    <div className="truncate text-[13px] text-muted-foreground">
+                      {fmtDate(inv.date)}
+                      {inv.note ? ` · ${inv.note}` : ""}
                     </div>
-                    <div className="num shrink-0 text-[15px] font-extrabold text-primary">{fmtMoney(inv.value)}</div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => openEdit(inv)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-muted py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted/70"
-                    >
-                      <Pencil className="h-3.5 w-3.5" /> Editar
-                    </button>
-                    <button
-                      onClick={() => remove(inv)}
-                      className="flex items-center justify-center gap-1.5 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  </button>
+                  <span className="num shrink-0 text-[15px] font-bold">{fmtMoney(inv.value)}</span>
+                  <button
+                    onClick={() => openEdit(inv)}
+                    aria-label={`Editar ${inv.name}`}
+                    className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint hover:bg-raised hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => remove(inv)}
+                    aria-label={`Excluir ${inv.name}`}
+                    className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))}
           </div>
         )}
       </div>
 
-      <div className="sticky bottom-0 border-t border-border bg-card/95 px-5 py-4 backdrop-blur">
-        <button
-          onClick={openNew}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cta py-3.5 text-sm font-bold text-cta-foreground shadow-sm transition-all hover:brightness-105"
-        >
-          <Plus className="h-[18px] w-[18px]" /> Novo investimento
-        </button>
-      </div>
 
       {open && (
         <ModalSheet title={editing ? "Editar investimento" : "Novo investimento"} onClose={() => setOpen(false)}>
@@ -171,21 +173,6 @@ export function InvestmentsScreen() {
           </GhostButton>
         </ModalSheet>
       )}
-    </div>
-  )
-}
-
-function MiniStat({ label, value, positive }: { label: string; value: string; positive?: boolean }) {
-  return (
-    <div className="rounded-xl bg-white/10 p-2.5 ring-1 ring-white/10">
-      <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-white/60">{label}</div>
-      <div
-        className={`num mt-0.5 text-[12.5px] font-bold leading-tight ${
-          positive === false ? "text-red-300" : positive === true ? "text-green-200" : "text-white"
-        }`}
-      >
-        {value}
-      </div>
     </div>
   )
 }

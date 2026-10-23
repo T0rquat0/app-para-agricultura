@@ -1,56 +1,201 @@
 "use client"
 
-import { useRef } from "react"
-import { Banknote, Check, ChevronRight, Download, FileText, Map, Moon, Plus, Radar, Sun, Trash2, TrendingUp, Upload } from "lucide-react"
-import { useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
-import { deleteProjectById, exportBackup, importBackup } from "@/lib/storage"
-import { isProjectComplete, projectPercent } from "@/lib/calculations"
-import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
+import { useRef, useState } from "react"
+import { ChevronRight, Download, LogOut, Map, Moon, Plus, Sun, Upload } from "lucide-react"
+import { useAllProjects, useFinancialOverview, useIndex, useRefresh } from "@/lib/hooks"
+import { exportBackup, importBackup } from "@/lib/storage"
+import { andamentoProjeto, isProjectComplete, metaMatricula, projectPercent, talhaoFlown } from "@/lib/calculations"
+import { corDoAndamento } from "@/lib/geo"
+import { fmtHa, fmtMoney } from "@/lib/format"
+import type { Project, ProjectSummary } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { useNav } from "../nav-context"
 import { useAuth } from "../auth-gate"
-import { Logo } from "../logo"
-import { Card, EmptyState, ProgressBar, SectionTitle } from "../chrome"
-import { IconButton } from "../buttons"
+import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
+import { ModalSheet } from "../modal-sheet"
+import { GhostButton } from "../buttons"
+import { SatThumb } from "../sat-thumb"
+
+// Andamento de um projeto: pelas matriculas quando o projeto completo ja carregou,
+// senao pelo resumo (contratado menos voado), que chega antes.
+function andamento(s: ProjectSummary, full?: Project) {
+  if (full) return { ...andamentoProjeto(full), voado: Number(s.mappedHectares || 0) }
+  const m = Number(s.mappedHectares || 0)
+  const t = Number(s.totalHectares || 0)
+  return { falta: Math.max(0, t - m), pct: projectPercent(m, t), fechado: isProjectComplete(m, t), voado: m }
+}
 
 export function HomeScreen() {
   const { index, isLoading } = useIndex()
+  const { projects } = useAllProjects()
   const { overview } = useFinancialOverview()
-  const { openProject, goNewProject, goInvestments, goCommission, goProposals, dark, toggleDark } = useNav()
-  const refresh = useRefresh()
-  const { email, signOut } = useAuth()
-  const fileRef = useRef<HTMLInputElement>(null)
+  const { openProject, goNewProject, goInvestments } = useNav()
+  const { email } = useAuth()
+  const [account, setAccount] = useState(false)
 
-  const totalHa = index.reduce((s, p) => s + Number(p.totalHectares || 0), 0)
-  const mapped = index.reduce((s, p) => s + Number(p.mappedHectares || 0), 0)
-  const globalPct = totalHa > 0 ? (mapped / totalHa) * 100 : 0
-
-  const activeList = index.filter((p) => {
-    const m = Number(p.mappedHectares || 0)
-    const t = Number(p.totalHectares || 0)
-    return t > 0 && m > 0 && !isProjectComplete(m, t)
-  })
-  const active = activeList.length
-  const done = index.filter((p) => {
-    const m = Number(p.mappedHectares || 0)
-    const t = Number(p.totalHectares || 0)
-    return isProjectComplete(m, t)
-  }).length
+  const linhas = index.map((s) => ({ s, full: projects.find((x) => x.id === s.id), a: andamento(s, projects.find((x) => x.id === s.id)) }))
+  const emCampo = linhas.filter((l) => !l.a.fechado && l.a.voado > 0)
+  const totalFalta = linhas.reduce((s, l) => s + l.a.falta, 0)
+  const totalVoado = linhas.reduce((s, l) => s + l.a.voado, 0)
+  // Em campo primeiro, depois os que nem comecaram, por ultimo os fechados
+  const ordem = (l: (typeof linhas)[number]) => (l.a.fechado ? 2 : l.a.voado > 0 ? 0 : 1)
+  const lista = linhas.slice().sort((a, b) => ordem(a) - ordem(b))
 
   const balance = overview?.balance ?? 0
-  const totalContract = overview?.totalContract ?? 0
-  const totalOpEx = overview?.totalOpEx ?? 0
-  const invested = overview?.invested ?? 0
-  const isPositive = balance >= 0
-  const margin = totalContract > 0 ? (balance / totalContract) * 100 : 0
-  const balanceLabel = fmtMoney(balance)
-  const balanceFontSize =
-    balanceLabel.length >= 17
-      ? "text-[18px]"
-      : balanceLabel.length >= 14
-        ? "text-[22px]"
-        : balanceLabel.length >= 12
-          ? "text-[27px]"
-          : "text-[34px]"
+
+  return (
+    <div className="flex flex-1 flex-col px-4 pt-safe">
+      <header className="flex h-10 items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Mark />
+          <span className="text-[16px] font-extrabold tracking-[-0.01em]">AGS GEO</span>
+        </div>
+        <button
+          onClick={() => setAccount(true)}
+          aria-label="Conta e ajustes"
+          className="pressable flex h-9 w-9 items-center justify-center rounded-full border border-border bg-raised text-[13px] font-bold text-muted-foreground"
+        >
+          {(email || "A").slice(0, 1).toUpperCase()}
+        </button>
+      </header>
+
+      <section className="mt-7 px-1">
+        <p className="text-[14px] text-muted-foreground">Falta voar</p>
+        {isLoading ? (
+          <div className="mt-2 h-[52px] w-48 rounded-lg bg-raised" />
+        ) : (
+          <p className="num text-[56px] font-extrabold leading-[1.02] tracking-[-0.035em]">
+            {fmtHa(totalFalta)}
+            <span className="ml-1.5 text-[22px] font-semibold tracking-normal text-muted-foreground">ha</span>
+          </p>
+        )}
+        <p className="mt-1.5 text-[14px] text-muted-foreground">
+          <span className="font-semibold text-foreground">
+            {emCampo.length === 0 ? "Nenhuma frente em campo" : `${emCampo.length} ${emCampo.length === 1 ? "frente" : "frentes"} em campo`}
+          </span>
+          <span className="num"> · {fmtHa(totalVoado)} ha voados</span>
+        </p>
+      </section>
+
+      <div className="mt-8 pb-4">
+        <SectionTitle
+          action={
+            <button onClick={goNewProject} className="pressable -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-[14px] font-bold text-primary">
+              <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo projeto
+            </button>
+          }
+        >
+          Projetos <span className="num ml-1 font-medium text-faint">{index.length || ""}</span>
+        </SectionTitle>
+
+        {isLoading ? (
+          <div className="space-y-2.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[92px] rounded-[18px] border border-border bg-card" />
+            ))}
+          </div>
+        ) : index.length === 0 ? (
+          <EmptyState icon={<Map className="h-8 w-8 opacity-40" />}>
+            Nenhum projeto ainda. Toque em “Novo projeto” para cadastrar o levantamento do próximo cliente.
+          </EmptyState>
+        ) : (
+          <div className="space-y-2.5">
+            {lista.map((l) => (
+              <ProjectRow key={l.s.id} summary={l.s} full={l.full} a={l.a} onClick={() => openProject(l.s.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {!isLoading && index.length > 0 && (
+        <button onClick={goInvestments} className="pressable mb-6 flex items-center justify-between gap-2 rounded-xl px-1 py-2 text-left text-[14px] text-muted-foreground">
+          <span>
+            Saldo da operação <span className={cn("num font-semibold text-foreground", balance < 0 && "text-destructive")}>{fmtMoney(balance)}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-faint" />
+        </button>
+      )}
+
+      {account && <AccountSheet onClose={() => setAccount(false)} />}
+    </div>
+  )
+}
+
+// Simbolo da marca: um alvo de levantamento (losango no sinal)
+function Mark() {
+  return (
+    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-raised" aria-hidden="true">
+      <span className="h-2.5 w-2.5 rotate-45 border-2 border-primary" />
+    </span>
+  )
+}
+
+function ProjectRow({
+  summary,
+  full,
+  a,
+  onClick,
+}: {
+  summary: ProjectSummary
+  full?: Project
+  a: ReturnType<typeof andamento>
+  onClick: () => void
+}) {
+  const done = a.fechado
+  return (
+    <button
+      onClick={onClick}
+      className="pressable grid w-full grid-cols-[88px_1fr] overflow-hidden rounded-[18px] border border-border bg-card text-left hover:border-foreground/15"
+    >
+      <AreaThumb project={full} />
+      <span className="min-w-0 px-3.5 py-3">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className={cn("truncate text-[16px] font-bold", done && "font-semibold text-muted-foreground")}>{summary.clientName}</span>
+          <span className={cn("num shrink-0 text-[16px] font-bold", done && "font-semibold text-muted-foreground")}>
+            {done ? fmtHa(a.voado) : fmtHa(a.falta)}
+          </span>
+        </span>
+        <span className="mt-0.5 flex justify-between gap-2 text-[13px] text-muted-foreground">
+          <span className="truncate">{summary.fazenda || "Sem fazenda"}</span>
+          <span className="shrink-0">{done ? "ha · fechado" : "ha a voar"}</span>
+        </span>
+        <ProgressBar value={a.pct} cor={a.pct > 0 ? corDoAndamento(a.pct) : undefined} className="mt-2.5" />
+      </span>
+    </button>
+  )
+}
+
+// Miniatura: a fazenda no satelite com as matriculas riscadas pela cor do andamento.
+// Sem KML ainda, um quadro neutro que diz isso (nada de desenho que pareca terra).
+function AreaThumb({ project }: { project?: Project }) {
+  const formas = (project?.talhoes || [])
+    .filter((t) => t.geometry?.length)
+    .map((t) => {
+      const meta = metaMatricula(t)
+      return { geometry: t.geometry!, pct: meta > 0 ? Math.min(100, (talhaoFlown(project!, t.id) / meta) * 100) : 0 }
+    })
+  if (formas.length) {
+    return (
+      <span className="relative block h-full min-h-[88px] overflow-hidden">
+        <span className="absolute inset-0 flex items-center justify-center">
+          <SatThumb formas={formas} lado={112} />
+        </span>
+      </span>
+    )
+  }
+  return (
+    <span className="flex h-full min-h-[88px] flex-col items-center justify-center gap-1 bg-raised text-faint" aria-label="Sem KML">
+      <Map className="h-5 w-5" strokeWidth={1.7} />
+      <span className="text-[11px] font-semibold">sem KML</span>
+    </span>
+  )
+}
+
+function AccountSheet({ onClose }: { onClose: () => void }) {
+  const { email, signOut } = useAuth()
+  const { dark, toggleDark } = useNav()
+  const refresh = useRefresh()
+  const fileRef = useRef<HTMLInputElement>(null)
 
   async function onImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -58,8 +203,7 @@ export function HomeScreen() {
     if (!file) return
     try {
       const data = JSON.parse(await file.text())
-      if (!confirm("Importar vai adicionar/atualizar os projetos desse backup no painel atual. Continuar?"))
-        return
+      if (!confirm("Importar vai adicionar/atualizar os projetos desse backup no painel atual. Continuar?")) return
       await importBackup(data)
       refresh()
       alert("Backup importado com sucesso.")
@@ -68,322 +212,28 @@ export function HomeScreen() {
     }
   }
 
-  async function onDeleteProject(id: string, name: string) {
-    if (!confirm("Excluir o projeto de " + name + "? Todos os dados serao removidos permanentemente.")) return
-    await deleteProjectById(id)
-    refresh()
-  }
-
+  const row = "pressable flex w-full items-center gap-3 px-4 py-3.5 text-left text-[15px] font-semibold hover:bg-raised"
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="relative z-10 rounded-b-[28px] bg-topo px-5 pb-7 pt-safe text-white shadow-[0_12px_30px_-16px_rgba(0,0,0,0.5)]">
-        <div className="mb-5 flex items-start justify-between">
-          <Logo size={44} />
-          <IconButton
-            onClick={toggleDark}
-            aria-label="Alternar modo escuro"
-            className="bg-white/15 text-white hover:bg-white/25"
-          >
-            {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-          </IconButton>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2FD48A] opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2FD48A]" />
-          </span>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-            Centro de operações
-          </p>
-        </div>
-        <h1 className="mt-1 text-[22px] font-extrabold tracking-tight">
-          {active > 0
-            ? `${active} ${active === 1 ? "frente ativa" : "frentes ativas"} em campo`
-            : "Operação pronta para iniciar"}
-        </h1>
-
-        {/* Progresso global de mapeamento */}
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3.5">
-          <div className="flex items-end justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">
-              Progresso do levantamento
-            </span>
-            <span className="num text-[13px] font-extrabold text-[#2FD48A]">{globalPct.toFixed(0)}%</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/15">
-            <div
-              className="h-full rounded-full bg-[#2FD48A] transition-[width] duration-700"
-              style={{ width: `${Math.min(100, globalPct)}%` }}
-            />
-          </div>
-          <p className="num mt-2 text-[11px] text-white/60">
-            {fmtHa(mapped)} de {fmtHa(totalHa)} ha mapeados
-          </p>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 gap-2.5">
-          <HeaderStat label="Em campo" value={String(active)} unit={active !== 1 ? "projetos" : "projeto"} />
-          <HeaderStat label="Concluídos" value={String(done)} unit={done !== 1 ? "projetos" : "projeto"} />
-          <HeaderStat label="Clientes" value={String(index.length)} unit={index.length !== 1 ? "no total" : "no total"} />
-        </div>
-      </header>
-
-      <div className="px-4 -mt-1 pt-5">
-        <button
-          onClick={goInvestments}
-          className={
-            "w-full rounded-3xl p-5 text-left shadow-lg transition-transform active:scale-[0.99] " +
-            (isPositive
-              ? "bg-gradient-to-br from-[#0c3a26] to-[#12694a]"
-              : "bg-gradient-to-br from-[#4a1414] to-[#8a2626]")
-          }
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
-                Saldo da operação
-              </p>
-              <p
-                className={
-                  `num mt-1.5 ${balanceFontSize} font-extrabold leading-tight tracking-tight break-words ` +
-                  (isPositive ? "text-[#5fe3a0]" : "text-[#ffaaaa]")
-                }
-              >
-                {balanceLabel}
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </span>
-              {totalContract > 0 && (
-                <span className="num whitespace-nowrap rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/75">
-                  {margin >= 0 ? "+" : ""}{margin.toFixed(0)}% margem
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="my-4 h-px bg-white/10" />
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <BalanceItem label="Faturado" value={fmtMoney(totalContract)} />
-            <BalanceItem label="Gastos" value={fmtMoney(totalOpEx)} dimmed />
-            <BalanceItem label="Investido" value={fmtMoney(invested)} dimmed />
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-[11px] text-white/50">Toque para ver detalhes completos</p>
-            <ChevronRight className="h-4 w-4 text-white/40" />
-          </div>
+    <ModalSheet title="Conta e ajustes" onClose={onClose}>
+      {email && <p className="-mt-3 mb-4 truncate text-[13px] text-muted-foreground">Conectado como {email}</p>}
+      <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
+        <button onClick={toggleDark} className={row}>
+          {dark ? <Sun className="h-[18px] w-[18px] text-muted-foreground" /> : <Moon className="h-[18px] w-[18px] text-muted-foreground" />}
+          {dark ? "Usar tema claro (para o sol)" : "Usar tema escuro"}
         </button>
-      </div>
-
-      <div className="px-4 pt-3">
-        <button
-          onClick={goCommission}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:bg-muted active:scale-[0.99]"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Banknote className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="text-[14px] font-extrabold text-foreground">Comissão</div>
-              <div className="text-xs text-muted-foreground">Lançar levantamentos e gerar relatório do mês</div>
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <button onClick={() => exportBackup()} className={row}>
+          <Download className="h-[18px] w-[18px] text-muted-foreground" /> Exportar backup
         </button>
-      </div>
-
-      <div className="px-4 pt-3">
-        <button
-          onClick={goProposals}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition-colors hover:bg-muted active:scale-[0.99]"
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <FileText className="h-5 w-5" />
-            </span>
-            <div>
-              <div className="text-[14px] font-extrabold text-foreground">Propostas</div>
-              <div className="text-xs text-muted-foreground">Montar e gerar PDF de proposta comercial</div>
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <button onClick={() => fileRef.current?.click()} className={row}>
+          <Upload className="h-[18px] w-[18px] text-muted-foreground" /> Importar backup
         </button>
+        <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
       </div>
-
-      <div className="flex-1 px-4 pb-24 pt-4">
-        <div className="mb-6 flex gap-2">
-          <button
-            onClick={() => exportBackup()}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-card py-2.5 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-muted"
-          >
-            <Download className="h-3.5 w-3.5" /> Exportar backup
-          </button>
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border bg-card py-2.5 text-xs font-bold text-secondary-foreground shadow-sm transition-colors hover:bg-muted"
-          >
-            <Upload className="h-3.5 w-3.5" /> Importar backup
-          </button>
-          <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={onImportFile} />
-        </div>
-        {signOut && (
-          <div className="-mt-4 mb-6 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span className="truncate">Conectado como {email}</span>
-            <button onClick={() => signOut()} className="shrink-0 font-bold text-primary hover:underline">
-              Sair
-            </button>
-          </div>
-        )}
-
-        {/* Frentes ativas em destaque */}
-        {activeList.length > 0 && (
-          <div className="mb-6">
-            <SectionTitle>Frentes ativas</SectionTitle>
-            <div className="space-y-3">
-              {activeList.slice(0, 3).map((p) => (
-                <ActiveFrontCard key={p.id} summary={p} onClick={() => openProject(p.id)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <SectionTitle>Clientes</SectionTitle>
-        {isLoading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />
-            ))}
-          </div>
-        ) : index.length === 0 ? (
-          <EmptyState icon={<Map className="h-9 w-9 opacity-40" />}>
-            Nenhum projeto cadastrado ainda. Comece criando o levantamento do seu proximo cliente.
-          </EmptyState>
-        ) : (
-          <div className="space-y-3">
-            {index.map((p) => (
-              <ProjectCard
-                key={p.id}
-                summary={p}
-                onClick={() => openProject(p.id)}
-                onDelete={() => onDeleteProject(p.id, p.clientName)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] px-4 pb-5">
-        <button
-          onClick={goNewProject}
-          className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-cta py-3.5 text-sm font-bold text-cta-foreground shadow-lg shadow-black/25 transition-transform active:scale-[0.98]"
-        >
-          <Plus className="h-5 w-5" /> Novo projeto
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function HeaderStat({ label, value, unit }: { label: string; value: string; unit: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
-      <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.1em] text-white/65">{label}</div>
-      <div className="num text-[17px] font-bold leading-none">{value}</div>
-      <div className="mt-1 text-[10px] text-white/70">{unit}</div>
-    </div>
-  )
-}
-
-function BalanceItem({ label, value, dimmed }: { label: string; value: string; dimmed?: boolean }) {
-  return (
-    <div>
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">{label}</p>
-      <p className={"num mt-0.5 text-[12.5px] font-bold " + (dimmed ? "text-white/60" : "text-white")}>{value}</p>
-    </div>
-  )
-}
-
-// Card de frente ativa — visual de "operacao em andamento" com radar e progresso
-function ActiveFrontCard({
-  summary,
-  onClick,
-}: {
-  summary: ReturnType<typeof useIndex>["index"][number]
-  onClick: () => void
-}) {
-  const m = Number(summary.mappedHectares || 0)
-  const total = Number(summary.totalHectares || 0)
-  const pct = projectPercent(m, total)
-  return (
-    <Card interactive onClick={onClick} className="cursor-pointer p-4">
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Radar className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
-            <span className="num text-[13px] font-bold text-primary">{pct.toFixed(0)}%</span>
-          </div>
-          {summary.fazenda && <div className="truncate text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
-          <ProgressBar value={pct} className="mt-2.5 h-[5px]" />
-          <div className="num mt-1.5 text-[11px] text-muted-foreground">
-            {fmtHa(m)} / {fmtHa(total)} ha
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function ProjectCard({
-  summary,
-  onClick,
-  onDelete,
-}: {
-  summary: ReturnType<typeof useIndex>["index"][number]
-  onClick: () => void
-  onDelete: () => void | Promise<void>
-}) {
-  const m = Number(summary.mappedHectares || 0)
-  const total = Number(summary.totalHectares || 0)
-  const pctReal = projectPercent(m, total)
-  const isDone = isProjectComplete(m, total)
-
-  return (
-    <div
-      className="relative rounded-2xl shadow-sm bg-card"
-      style={isDone ? { boxShadow: "0 0 0 2px var(--color-primary)" } : { boxShadow: "0 0 0 1px var(--color-border)" }}
-    >
-      <button
-        onClick={onClick}
-        className="block w-full p-4 text-left transition-opacity active:opacity-70"
-      >
-        <div className="flex items-center justify-between gap-2 pr-6">
-          <span className="text-[15px] font-extrabold text-foreground">{summary.clientName}</span>
-          <span className="num flex items-center gap-1 text-[13px] font-bold text-primary">
-            {isDone && <Check className="h-3.5 w-3.5" />}{pctReal.toFixed(0)}%
-          </span>
-        </div>
-        {summary.fazenda && <div className="mt-0.5 text-xs font-medium text-muted-foreground">{summary.fazenda}</div>}
-        <ProgressBar value={pctReal} className="mt-3 h-[5px]" />
-        <div className="mt-2 flex justify-between text-[11.5px] text-muted-foreground">
-          <span className="num">
-            {fmtHa(m)} / {fmtHa(total)} ha
-          </span>
-          <span>{fmtDate((summary.updatedAt || summary.createdAt || "").slice(0, 10))}</span>
-        </div>
-      </button>
-      <button
-        onClick={onDelete}
-        aria-label="Excluir projeto"
-        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground opacity-30 transition-all hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </div>
+      {signOut && (
+        <GhostButton className="mt-3 w-full text-destructive" onClick={() => signOut()}>
+          <LogOut className="h-4 w-4" /> Sair da conta
+        </GhostButton>
+      )}
+    </ModalSheet>
   )
 }
