@@ -48,14 +48,36 @@ import {
 } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { CommissionEntry } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { TopBar, EmptyState, SectionTitle } from "../chrome"
 import { ModalSheet } from "../modal-sheet"
-import { Field, TextInput } from "../fields"
-import { PrimaryButton, GhostButton, IconButton } from "../buttons"
+import { Field, Hint, NumberInput, TextInput } from "../fields"
+import { IconButton, SecondaryButton } from "../buttons"
+import { ConfirmDeleteSheet, FormAlert, SheetActions } from "../modals"
+
+// Pilula de estado: tinta palida do papel, 12px/600
+function Pill({ tone = "neutral", children }: { tone?: "neutral" | "warning"; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold leading-[18px]",
+        tone === "neutral" && "bg-foreground/[0.07] text-muted-foreground",
+        tone === "warning" && "bg-warning/12 text-warning",
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+const AUTO_NOTE = "Puxado automaticamente das áreas mapeadas"
+
+const rowIconBtn =
+  "pressable flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
 
 export function CommissionScreen() {
   const { goReport, currentPeriod: navPeriod, setPeriod: setNavPeriod } = useNav()
-  const { entries } = useCommissionEntries()
+  const { entries, isLoading: entriesLoading } = useCommissionEntries()
   const { config } = useCommissionConfig()
   const { adjustments } = useCommissionAdjustments()
   const { index } = useIndex()
@@ -197,7 +219,7 @@ export function CommissionScreen() {
       hectares: d.hectares,
       rate: d.rate,
       date: d.date,
-      note: "Puxado automaticamente das áreas mapeadas",
+      note: AUTO_NOTE,
       createdAt: new Date().toISOString(),
       auto: true,
       sourceProjectId: d.projectId,
@@ -342,6 +364,8 @@ export function CommissionScreen() {
     refresh()
   }
 
+  const hasDiscounts = discount > 0 || employeeDeduction > 0
+
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title="Comissão" subtitle="Levantamentos faturados por mês">
@@ -359,34 +383,74 @@ export function CommissionScreen() {
       </TopBar>
 
       <div className="px-4">
+        {/* Troca de mes */}
         <div className="flex items-center justify-between rounded-[14px] border border-border bg-card p-1">
-          <button onClick={() => shiftPeriod(-1)} aria-label="Mês anterior" className="pressable flex h-9 w-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground">
-            <ChevronLeft className="h-[18px] w-[18px]" />
+          <button
+            onClick={() => shiftPeriod(-1)}
+            aria-label="Mês anterior"
+            className="pressable flex h-10 w-10 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+          >
+            <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="text-[14px] font-bold first-letter:uppercase">{periodLabel(period).toLowerCase()}</span>
-          <button onClick={() => shiftPeriod(1)} aria-label="Próximo mês" className="pressable flex h-9 w-9 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground">
-            <ChevronRight className="h-[18px] w-[18px]" />
+          <span className="num text-[15px] font-bold first-letter:uppercase" aria-live="polite">
+            {periodLabel(period).toLowerCase()}
+          </span>
+          <button
+            onClick={() => shiftPeriod(1)}
+            aria-label="Próximo mês"
+            className="pressable flex h-10 w-10 items-center justify-center rounded-[10px] text-muted-foreground hover:bg-raised hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+          >
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
 
-        <section className="mt-5 px-1">
+        {/* Numero do mes */}
+        <section className="mt-6 px-1" aria-busy={entriesLoading}>
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-[14px] text-muted-foreground">Comissão do mês</p>
             {monthDelta !== null && (
-              <span className={`num text-[13px] font-semibold ${monthDelta === 0 ? "text-faint" : monthDelta > 0 ? "text-positive" : "text-destructive"}`}>
-                {monthDelta >= 0 ? "+" : ""}
-                {monthDelta.toFixed(0)}% vs. mês anterior
+              <span
+                className={cn(
+                  "num text-[13px] font-semibold",
+                  monthDelta === 0 ? "text-faint" : monthDelta > 0 ? "text-positive" : "text-destructive",
+                )}
+              >
+                {monthDelta > 0 ? "+" : monthDelta < 0 ? "−" : ""}
+                {Math.abs(monthDelta).toFixed(0)}% vs. mês anterior
               </span>
             )}
           </div>
-          <p className="num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em]">{fmtMoney(total)}</p>
-          <p className="num mt-1 text-[13px] text-muted-foreground">
-            {fmtMoney(variable)} variável ({config.percent}% de {fmtMoney(discount > 0 ? base : revenue)}) + {fmtMoney(config.fixedSalary)} fixo
-            {employeeDeduction > 0 && <> − {fmtMoney(employeeDeduction)} adiantamento</>}
+          <p
+            className={cn(
+              "num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em] transition-opacity duration-200",
+              entriesLoading && "opacity-40",
+            )}
+          >
+            {fmtMoney(total)}
+          </p>
+          <p className="num mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
+            <span className="whitespace-nowrap font-semibold text-foreground">{fmtMoney(variable)}</span> variável (
+            {config.percent}% de <span className="whitespace-nowrap">{fmtMoney(discount > 0 ? base : revenue)}</span>) +{" "}
+            <span className="whitespace-nowrap">
+              <span className="font-semibold text-foreground">{fmtMoney(config.fixedSalary)}</span> fixo
+            </span>
+            {employeeDeduction > 0 && (
+              <>
+                {" "}−{" "}
+                <span className="whitespace-nowrap">
+                  <span className="font-semibold text-foreground">{fmtMoney(employeeDeduction)}</span> adiantamento
+                </span>
+              </>
+            )}
           </p>
         </section>
 
-        <div className="mt-4 flex items-end justify-between gap-1.5 rounded-[18px] border border-border bg-card px-3 pb-2 pt-3">
+        {/* Ultimos 6 meses */}
+        <div
+          className="mt-5 flex items-end justify-between gap-1.5 rounded-[18px] border border-border bg-card px-2.5 pb-1.5 pt-3"
+          role="group"
+          aria-label="Comissão dos últimos seis meses"
+        >
           {history.map((h) => {
             const isCurrent = h.period === period
             const heightPct = Math.max(6, (h.total / historyMax) * 100)
@@ -396,15 +460,19 @@ export function CommissionScreen() {
                 onClick={() => setPeriod(h.period)}
                 title={`${periodLabel(h.period)}: ${fmtMoney(h.total)}`}
                 aria-label={`${periodLabel(h.period)}: ${fmtMoney(h.total)}. Ver este mês.`}
-                className="group flex flex-1 flex-col items-center gap-1.5 rounded-md pt-1"
+                aria-current={isCurrent ? "date" : undefined}
+                className="group flex min-h-11 flex-1 flex-col items-center gap-1.5 rounded-[10px] px-0.5 pt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
               >
-                <div className="flex h-12 w-full items-end">
+                <div className="flex h-14 w-full items-end">
                   <div
-                    className={`w-full rounded-t-[4px] transition-[height,background-color] duration-300 ${isCurrent ? "bg-primary" : "bg-foreground/15 group-hover:bg-foreground/25"}`}
+                    className={cn(
+                      "w-full rounded-t-[5px] rounded-b-[2px] transition-[height,background-color] duration-300 ease-out",
+                      isCurrent ? "bg-primary" : "bg-foreground/15 group-hover:bg-foreground/25",
+                    )}
                     style={{ height: `${heightPct}%` }}
                   />
                 </div>
-                <span className={`text-[11px] font-semibold ${isCurrent ? "text-foreground" : "text-faint"}`}>
+                <span className={cn("pb-1 text-[12px] font-semibold", isCurrent ? "text-foreground" : "text-faint")}>
                   {periodLabel(h.period).slice(0, 3)}
                 </span>
               </button>
@@ -412,179 +480,202 @@ export function CommissionScreen() {
           })}
         </div>
 
-        <button
-          onClick={openDiscount}
-          className="pressable mt-2.5 flex w-full items-center justify-between gap-2 rounded-[18px] border border-border bg-card px-4 py-3 text-left hover:border-foreground/15"
-        >
-          <div className="min-w-0">
-            <div className="text-[13px] text-muted-foreground">Descontos do mês</div>
-            {discount > 0 || employeeDeduction > 0 ? (
-              <div className="mt-0.5 flex flex-col gap-0.5">
-                {discount > 0 && (
-                  <div className="num truncate text-[14px] font-semibold">
-                    Cliente: − {fmtMoney(discount)}
-                    {adjustment?.note ? <span className="font-normal text-muted-foreground">{` · ${adjustment.note}`}</span> : null}
-                  </div>
-                )}
-                {employeeDeduction > 0 && (
-                  <div className="num truncate text-[14px] font-semibold">
-                    Meu adiantamento: − {fmtMoney(employeeDeduction)}
-                    {adjustment?.employeeNote ? <span className="font-normal text-muted-foreground">{` · ${adjustment.employeeNote}`}</span> : null}
-                  </div>
-                )}
+        {/* Resumo do mes + descontos */}
+        <div className="mt-2.5 overflow-hidden rounded-[18px] border border-border bg-card">
+          {periodEntries.length > 0 && (
+            <div className="grid grid-cols-2 divide-x divide-border border-b border-border">
+              <div className="px-4 py-3">
+                <div className="text-[13px] text-muted-foreground">Hectares no mês</div>
+                <div className="num mt-0.5 text-[19px] font-bold leading-tight">
+                  {fmtHa(monthHectares)} <span className="text-[13px] font-semibold text-muted-foreground">ha</span>
+                </div>
               </div>
-            ) : (
-              <div className="mt-0.5 text-[14px] font-semibold">Lançar desconto ao cliente ou adiantamento seu</div>
-            )}
-          </div>
-          <Pencil className="h-4 w-4 shrink-0 text-faint" />
-        </button>
-
-        {periodEntries.length > 0 && (
-          <div className="mt-2.5 grid grid-cols-2 divide-x divide-border rounded-[18px] border border-border bg-card">
-            <div className="px-4 py-3">
-              <div className="text-[13px] text-muted-foreground">Hectares no mês</div>
-              <div className="num text-[18px] font-bold">{fmtHa(monthHectares)} ha</div>
-            </div>
-            <div className="px-4 py-3">
-              <div className="text-[13px] text-muted-foreground">Lançamentos</div>
-              <div className="num text-[18px] font-bold">
-                {periodEntries.length} <span className="text-[13px] font-normal text-faint">{autoCount} auto · {manualCount} manual</span>
+              <div className="px-4 py-3">
+                <div className="text-[13px] text-muted-foreground">Lançamentos</div>
+                <div className="num mt-0.5 text-[19px] font-bold leading-tight">{periodEntries.length}</div>
+                <div className="num text-[12px] text-faint">
+                  {autoCount} auto · {manualCount} manual
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={openPull} className="pressable flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-border bg-raised px-3 text-[14px] font-bold hover:border-foreground/20">
-            <Zap className="h-4 w-4 shrink-0 text-primary" /> Puxar áreas
-          </button>
+          )}
           <button
+            onClick={openDiscount}
+            className="pressable flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold">Descontos do mês</div>
+              {hasDiscounts ? (
+                <div className="mt-0.5 space-y-0.5">
+                  {discount > 0 && (
+                    <div className="num truncate text-[13px] text-muted-foreground">
+                      Ao cliente: <span className="font-semibold text-foreground">− {fmtMoney(discount)}</span>
+                      {adjustment?.note ? ` · ${adjustment.note}` : ""}
+                    </div>
+                  )}
+                  {employeeDeduction > 0 && (
+                    <div className="num truncate text-[13px] text-muted-foreground">
+                      Meu adiantamento: <span className="font-semibold text-foreground">− {fmtMoney(employeeDeduction)}</span>
+                      {adjustment?.employeeNote ? ` · ${adjustment.employeeNote}` : ""}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[13px] text-muted-foreground">Desconto ao cliente ou adiantamento seu</div>
+              )}
+            </div>
+            {hasDiscounts ? (
+              <Pencil className="h-4 w-4 shrink-0 text-faint" />
+            ) : (
+              <Plus className="h-4 w-4 shrink-0 text-faint" />
+            )}
+          </button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2.5">
+          <SecondaryButton onClick={openPull} className="px-3">
+            <Zap className="h-4 w-4 shrink-0 text-muted-foreground" /> Puxar áreas
+          </SecondaryButton>
+          <SecondaryButton
             onClick={() => {
               setNavPeriod(period)
               goReport("commissionReport")
             }}
-            className="pressable flex min-h-12 items-center justify-center gap-2 rounded-[14px] border border-border bg-raised px-3 text-[14px] font-bold hover:border-foreground/20"
+            className="px-3"
           >
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" /> Relatório
-          </button>
+          </SecondaryButton>
         </div>
       </div>
 
-      <div className="flex-1 px-4 pb-6 pt-7">
+      {/* Lancamentos agrupados por cliente */}
+      <div className="flex-1 px-4 pb-8 pt-8">
         <SectionTitle
           action={
-            <button onClick={openNew} className="pressable -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-[14px] font-bold text-primary">
+            <button
+              onClick={openNew}
+              className="pressable -my-2 -mr-2 flex min-h-10 items-center gap-1 rounded-full px-2 text-[14px] font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+            >
               <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo lançamento
             </button>
           }
         >
-          Levantamentos lançados{" "}
+          Lançados no mês{" "}
           {groupedByClient.length > 0 && (
             <span className="num ml-1 font-medium text-faint">
               {groupedByClient.length} cliente{groupedByClient.length === 1 ? "" : "s"}
             </span>
           )}
         </SectionTitle>
-        {periodEntries.length === 0 ? (
-          <EmptyState icon={<Wallet className="h-8 w-8 text-muted-foreground/50" />}>
-            Nenhum levantamento lançado em {periodLabel(period).toLowerCase()}. Toque em “Novo lançamento” para
-            registrar o que foi feito.
+        {entriesLoading ? (
+          <div className="space-y-2.5" aria-busy>
+            {[0, 1].map((i) => (
+              <div key={i} className="h-[68px] rounded-[18px] border border-border bg-card" />
+            ))}
+          </div>
+        ) : periodEntries.length === 0 ? (
+          <EmptyState icon={<Wallet className="h-8 w-8 opacity-40" />}>
+            Nada lançado em {periodLabel(period).toLowerCase()}. Use “Puxar áreas” para trazer o que foi voado ou “Novo
+            lançamento” para registrar à mão.
           </EmptyState>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {groupedByClient.map((group) => {
               const isCollapsed = collapsedClients.has(group.clientName)
               const anyMoved = group.entries.some((e) => e.attributedPeriod)
+              const groupHa = group.entries.reduce((s, e) => s + Number(e.hectares || 0), 0)
               return (
                 <div key={group.clientName} className="overflow-hidden rounded-[18px] border border-border bg-card">
                   <button
                     onClick={() => toggleClient(group.clientName)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    aria-expanded={!isCollapsed}
+                    className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <div className="truncate text-[14px] font-extrabold text-foreground">{group.clientName}</div>
-                        {anyMoved && (
-                          <span className="shrink-0 rounded-md bg-warning/15 px-1.5 py-0.5 text-[11px] font-semibold text-warning">
-                            Movido
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[16px] font-bold">{group.clientName}</div>
+                        {anyMoved && <Pill tone="warning">Movido</Pill>}
                       </div>
-                      <div className="num mt-0.5 text-[11px] text-muted-foreground">
-                        {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"}
+                      <div className="num mt-0.5 text-[13px] text-muted-foreground">
+                        {group.entries.length} lançamento{group.entries.length === 1 ? "" : "s"} · {fmtHa(groupHa)} ha
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <div className="num text-[14px] font-bold">{fmtMoney(group.revenue)}</div>
+                      <div className="num text-[15px] font-bold">{fmtMoney(group.revenue)}</div>
                       <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+                        className={cn(
+                          "h-4 w-4 text-faint transition-transform duration-200 ease-out",
+                          isCollapsed ? "" : "rotate-180",
+                        )}
                       />
                     </div>
                   </button>
 
                   {!isCollapsed && (
-                    <div className="flex flex-col gap-2 border-t border-border bg-muted/30 px-3 pb-3 pt-2.5">
-                      <button
-                        onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
-                        className="flex items-center justify-center gap-1.5 self-end rounded-lg bg-muted px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
-                      >
-                        <ArrowRightLeft className="h-3.5 w-3.5" />
-                        {anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
-                      </button>
-                      {group.entries.map((e) => (
-                        <div key={e.id} className="rounded-[14px] border border-border bg-card p-3">
-                          <div className="flex items-start justify-between gap-3">
+                    <>
+                      <ul className="divide-y divide-border border-t border-border">
+                        {group.entries.map((e) => (
+                          <li key={e.id} className="grid grid-cols-[1fr_auto] gap-x-3 py-3 pl-4 pr-2">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
+                              <div className="truncate text-[15px] font-semibold">
+                                {e.talhaoName || `${fmtHa(e.hectares)} ha × ${fmtMoney(e.rate)}/ha`}
+                              </div>
+                              <div className="num mt-0.5 text-[13px] text-muted-foreground">
+                                {e.talhaoName && (
+                                  <span className="whitespace-nowrap">
+                                    {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
+                                  </span>
+                                )}
+                                {e.talhaoName ? " · " : ""}
+                                <span className="whitespace-nowrap">{fmtDate(e.date)}</span>
+                              </div>
+                              {/* a nota padrao do "puxar" repete o que a pilula Automatico ja diz */}
+                              {e.note && !(e.auto && e.note === AUTO_NOTE) && (
+                                <div className="mt-0.5 text-[13px] text-faint">{e.note}</div>
+                              )}
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                 {e.auto ? (
-                                  <span className="flex shrink-0 items-center gap-1 rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                                    <Zap className="h-2.5 w-2.5" /> Automático
-                                  </span>
+                                  <Pill>
+                                    <Zap className="h-3 w-3" /> Automático
+                                  </Pill>
                                 ) : (
-                                  <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-bold text-muted-foreground">
-                                    Manual
-                                  </span>
+                                  <Pill>Manual</Pill>
                                 )}
                                 {e.attributedPeriod && (
-                                  <span className="shrink-0 rounded-md bg-warning/15 px-1.5 py-0.5 text-[11px] font-semibold text-warning">
-                                    Recebido em {periodLabel(e.attributedPeriod).split(" ")[0]}
-                                  </span>
+                                  <Pill tone="warning">Recebido em {periodLabel(e.attributedPeriod).split(" ")[0]}</Pill>
                                 )}
                               </div>
-                              {e.talhaoName && (
-                                <div className="mt-1 truncate text-[13px] font-semibold text-foreground">
-                                  {e.talhaoName}
-                                </div>
-                              )}
-                              <div className="num mt-1 text-xs text-muted-foreground">
-                                {fmtHa(e.hectares)} ha × {fmtMoney(e.rate)}/ha
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <div className="num pr-2 text-[15px] font-bold">{fmtMoney(entryRevenue(e))}</div>
+                              <div className="mt-auto flex items-center pt-1">
+                              <button
+                                onClick={() => openEdit(e)}
+                                aria-label="Editar lançamento"
+                                className={cn(rowIconBtn, "hover:bg-raised hover:text-foreground")}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setPendingDelete(e)}
+                                aria-label="Excluir lançamento"
+                                className={cn(rowIconBtn, "hover:bg-destructive/10 hover:text-destructive")}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                               </div>
-                              <div className="mt-0.5 text-xs text-muted-foreground">{fmtDate(e.date)}</div>
-                              {e.note && <div className="mt-1 text-[13px] text-muted-foreground">{e.note}</div>}
                             </div>
-                            <div className="num shrink-0 text-[14px] font-bold">
-                              {fmtMoney(entryRevenue(e))}
-                            </div>
-                          </div>
-                          <div className="mt-2.5 flex gap-2">
-                            <button
-                              onClick={() => openEdit(e)}
-                              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-muted py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted/70"
-                            >
-                              <Pencil className="h-3.5 w-3.5" /> Editar
-                            </button>
-                            <button
-                              onClick={() => setPendingDelete(e)}
-                              aria-label="Excluir lançamento"
-                              className="flex items-center justify-center gap-1.5 rounded-xl bg-destructive/10 px-3 py-1.5 text-xs font-bold text-destructive transition-colors hover:bg-destructive/20"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        onClick={() => (anyMoved ? resetMove(group.clientName) : openMove(group.clientName))}
+                        className="pressable flex min-h-12 w-full items-center justify-center gap-2 border-t border-border text-[14px] font-semibold text-primary hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                        {anyMoved ? "Trazer de volta para este mês" : "Mover para outro mês"}
+                      </button>
+                    </>
                   )}
                 </div>
               )
@@ -593,15 +684,15 @@ export function CommissionScreen() {
         )}
       </div>
 
-
       {open && (
         <ModalSheet title={editing ? "Editar lançamento" : "Novo lançamento"} onClose={() => setOpen(false)}>
           <Field label="Cliente">
             <TextInput
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              placeholder="Ex: Fábio Fukuda"
+              placeholder="Ex.: Fábio Fukuda"
               list="commission-clients"
+              autoComplete="off"
               autoFocus
             />
             <datalist id="commission-clients">
@@ -610,227 +701,178 @@ export function CommissionScreen() {
               ))}
             </datalist>
           </Field>
-          <Field label="Hectares levantados">
-            <TextInput
-              value={hectares}
-              onChange={(e) => setHectares(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 605"
-            />
-          </Field>
-          <Field label="Valor por hectare (R$)">
-            <TextInput
-              value={rate}
-              onChange={(e) => setRate(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 20.00"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Hectares">
+              <NumberInput value={hectares} onChange={(e) => setHectares(e.target.value)} type="number" placeholder="605" />
+            </Field>
+            <Field label="Valor por ha (R$)">
+              <NumberInput value={rate} onChange={(e) => setRate(e.target.value)} type="number" placeholder="20.00" />
+            </Field>
+          </div>
           <Field label="Data do levantamento" hint="Define em qual mês o lançamento entra na comissão.">
-            <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
+            <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" className="num" />
           </Field>
           <Field label="Observação (opcional)">
-            <TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Fazenda, talhão, contrato…" />
+            <TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Fazenda, matrícula, contrato…" />
           </Field>
           {hectares && rate && !Number.isNaN(Number(hectares)) && !Number.isNaN(Number(rate)) && (
-            <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
-              Faturamento deste lançamento: <span className="text-primary">{fmtMoney(Number(hectares) * Number(rate))}</span>
-            </div>
+            <FormAlert tone="info" className="flex items-baseline justify-between gap-3">
+              <span>Faturamento deste lançamento</span>
+              <span className="num shrink-0 whitespace-nowrap text-[17px] font-bold text-foreground">{fmtMoney(Number(hectares) * Number(rate))}</span>
+            </FormAlert>
           )}
-          {formError && (
-            <div className="mb-3.5 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-[13px] font-semibold text-destructive ring-1 ring-destructive/20">
-              {formError}
-            </div>
-          )}
-          <PrimaryButton className="w-full" onClick={save}>
-            {editing ? "Salvar alterações" : "Adicionar lançamento"}
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setOpen(false)}>
-            Cancelar
-          </GhostButton>
+          {formError && <FormAlert>{formError}</FormAlert>}
+          <SheetActions
+            label={editing ? "Salvar alterações" : "Adicionar lançamento"}
+            onConfirm={save}
+            onCancel={() => setOpen(false)}
+          />
         </ModalSheet>
       )}
 
       {moveOpen && (
-        <ModalSheet title={`Mover ${moveClient} para outro mês`} onClose={() => setMoveOpen(false)}>
-          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
-            Os lançamentos de <strong>{moveClient}</strong> em {periodLabel(period).toLowerCase()} vão contar como
-            comissão do mês escolhido abaixo. A data original de cada lançamento não muda — só o mês em que ele entra
-            no total pago.
+        <ModalSheet title="Mover para outro mês" onClose={() => setMoveOpen(false)}>
+          <p className="mb-5 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+            Os lançamentos de <strong className="font-semibold text-foreground">{moveClient}</strong> em{" "}
+            {periodLabel(period).toLowerCase()} passam a contar na comissão do mês escolhido. A data de cada lançamento não
+            muda, só o mês em que entra no total pago.
           </p>
-          <Field label="Receber comissão em">
-            <TextInput value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} type="month" />
+          <Field label="Receber comissão em" hint={moveTarget ? periodLabel(moveTarget) : undefined}>
+            <TextInput value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} type="month" className="num" />
           </Field>
-          {moveTarget && <p className="mb-3.5 text-[13px] font-semibold text-foreground">{periodLabel(moveTarget)}</p>}
-          <PrimaryButton className="w-full" onClick={runMove}>
-            Mover lançamentos
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setMoveOpen(false)}>
-            Cancelar
-          </GhostButton>
+          <SheetActions label="Mover lançamentos" onConfirm={runMove} onCancel={() => setMoveOpen(false)} />
         </ModalSheet>
       )}
 
       {pullOpen && (
         <ModalSheet
-          title="Puxar comissão automaticamente"
+          title="Puxar áreas voadas"
           onClose={() => {
             setPullOpen(false)
             setPullResultMsg(null)
           }}
         >
-          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
-            Busca nas áreas mapeadas de todos os clientes, dentro do intervalo abaixo, e calcula o valor de cada uma
-            usando o valor por hectare configurado em cada projeto.
+          <p className="mb-5 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+            Busca as áreas mapeadas de todos os clientes no intervalo abaixo e calcula cada uma pelo valor por hectare do
+            projeto. Lançamentos automáticos do intervalo são refeitos.
           </p>
-          <Field label="Data de início">
-            <TextInput value={pullStart} onChange={(e) => setPullStart(e.target.value)} type="date" />
-          </Field>
-          <Field label="Data de fim">
-            <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="De">
+              <TextInput value={pullStart} onChange={(e) => setPullStart(e.target.value)} type="date" className="num" />
+            </Field>
+            <Field label="Até">
+              <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" className="num" />
+            </Field>
+          </div>
 
           {pullResultMsg && (
-            <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
-              {pullResultMsg}
-            </div>
+            <FormAlert tone="info" className="font-semibold text-foreground">
+              <span role="status">{pullResultMsg}</span>
+            </FormAlert>
           )}
 
           {pullMissing.length > 0 && (
-            <div className="mb-3.5 rounded-xl bg-amber-500/10 px-3.5 py-2.5 text-[13px] text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-400">
-              <div className="font-bold">Sem valor por hectare configurado — ignorados:</div>
+            <FormAlert tone="warning">
+              <div className="font-semibold">Ignorados por falta de valor por hectare:</div>
               <div className="mt-0.5">{pullMissing.join(", ")}</div>
-              <div className="mt-1 text-[12px] opacity-80">
-                Configure o serviço "Levantamento Altimétrico" com o valor, ou defina manualmente em "Editar projeto".
+              <div className="mt-1.5 text-[13px] opacity-90">
+                Defina o valor do serviço &quot;Levantamento Altimétrico&quot; ou a comissão por hectare em Editar projeto.
               </div>
-            </div>
+            </FormAlert>
           )}
 
-          <PrimaryButton className="w-full" onClick={runPull}>
-            Puxar lançamentos
-          </PrimaryButton>
-          <GhostButton
-            className="mt-1.5 w-full"
-            onClick={() => {
+          <SheetActions
+            label="Puxar lançamentos"
+            onConfirm={runPull}
+            cancelLabel="Fechar"
+            onCancel={() => {
               setPullOpen(false)
               setPullResultMsg(null)
             }}
-          >
-            Fechar
-          </GhostButton>
+          />
         </ModalSheet>
       )}
 
       {configOpen && (
         <ModalSheet title="Configurar comissão" onClose={() => setConfigOpen(false)}>
           <Field label="Percentual de comissão (%)" hint="Aplicado sobre o faturamento dos levantamentos do mês.">
-            <TextInput
-              value={percentInput}
-              onChange={(e) => setPercentInput(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 10"
-            />
+            <NumberInput value={percentInput} onChange={(e) => setPercentInput(e.target.value)} type="number" placeholder="Ex.: 10" />
           </Field>
           <Field label="Salário fixo mensal (R$)" hint="Somado à comissão variável, independente do que foi levantado.">
-            <TextInput
-              value={salaryInput}
-              onChange={(e) => setSalaryInput(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 2000"
-            />
+            <NumberInput value={salaryInput} onChange={(e) => setSalaryInput(e.target.value)} type="number" placeholder="Ex.: 2000" />
           </Field>
-          {configError && (
-            <div className="mb-3.5 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-[13px] font-semibold text-destructive ring-1 ring-destructive/20">
-              {configError}
-            </div>
-          )}
-          <PrimaryButton className="w-full" onClick={saveConfig}>
-            Salvar configuração
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setConfigOpen(false)}>
-            Cancelar
-          </GhostButton>
+          {configError && <FormAlert>{configError}</FormAlert>}
+          <SheetActions label="Salvar configuração" onConfirm={saveConfig} onCancel={() => setConfigOpen(false)} />
         </ModalSheet>
       )}
 
       {pendingDelete && (
-        <ModalSheet title="Excluir lançamento" onClose={() => setPendingDelete(null)}>
-          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
-            Tem certeza que deseja excluir o lançamento de <strong>{pendingDelete.clientName}</strong> (
-            {fmtHa(pendingDelete.hectares)} ha × {fmtMoney(pendingDelete.rate)}/ha ={" "}
-            {fmtMoney(entryRevenue(pendingDelete))})? Esta ação não pode ser desfeita.
-          </p>
-          <button
-            onClick={confirmDelete}
-            className="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-destructive text-[15px] font-bold text-white"
-          >
-            <Trash2 className="h-[18px] w-[18px]" /> Excluir lançamento
-          </button>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setPendingDelete(null)}>
-            Cancelar
-          </GhostButton>
-        </ModalSheet>
+        <ConfirmDeleteSheet
+          title="Excluir lançamento"
+          confirmLabel="Excluir lançamento"
+          onConfirm={confirmDelete}
+          onClose={() => setPendingDelete(null)}
+        >
+          O lançamento de <strong className="font-semibold text-foreground">{pendingDelete.clientName}</strong> (
+          <span className="num">
+            {fmtHa(pendingDelete.hectares)} ha × {fmtMoney(pendingDelete.rate)}/ha = {fmtMoney(entryRevenue(pendingDelete))}
+          </span>
+          ) será apagado. Esta ação não pode ser desfeita.
+        </ConfirmDeleteSheet>
       )}
 
       {discountOpen && (
         <ModalSheet title="Descontos do mês" onClose={() => setDiscountOpen(false)}>
-          <div className="mb-4 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] text-foreground">
-            <strong>Sem desconto:</strong> comissão do mês seria {fmtMoney(commissionTotal(entries, period, config))}
+          <FormAlert tone="info" className="flex items-baseline justify-between gap-3">
+            <span>Sem desconto, a comissão seria</span>
+            <span className="num shrink-0 whitespace-nowrap font-bold text-foreground">{fmtMoney(commissionTotal(entries, period, config))}</span>
+          </FormAlert>
+
+          <h3 className="mt-6 text-[15px] font-bold">Desconto ao cliente</h3>
+          <p className="mb-4 mt-1 text-[14px] leading-relaxed text-muted-foreground text-pretty">
+            Abate do faturamento (<span className="num">{fmtMoney(revenue)}</span>) antes do seu percentual: cada R$ 1 aqui
+            reduz sua comissão em{" "}
+            <span className="num">R$ {(config.percent / 100).toFixed(2).replace(".", ",")}</span> ({config.percent}%). Use
+            quando deu desconto no serviço ao cliente.
+          </p>
+          <div className="grid grid-cols-[0.8fr_1fr] gap-3">
+            <Field label="Valor (R$)">
+              <NumberInput value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} type="number" placeholder="6000" />
+            </Field>
+            <Field label="Motivo (opcional)">
+              <TextInput
+                value={discountNoteInput}
+                onChange={(e) => setDiscountNoteInput(e.target.value)}
+                placeholder="Combinado"
+              />
+            </Field>
           </div>
 
-          <div className="mb-1 text-[11px] font-bold text-primary">Desconto ao cliente</div>
-          <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
-            Abate do <strong>faturamento</strong> ({fmtMoney(revenue)}) antes de aplicar seu percentual. Um desconto
-            de R$ 1 aqui reduz sua comissão em apenas R$ {(config.percent / 100).toFixed(2).replace(".", ",")} (seu
-            {" " + config.percent}%) — não R$ 1. Use quando você deu desconto no serviço para o cliente.
+          <div className="my-5 h-px bg-border" />
+
+          <h3 className="text-[15px] font-bold">Meu adiantamento</h3>
+          <p className="mb-4 mt-1 text-[14px] leading-relaxed text-muted-foreground text-pretty">
+            Abate direto e por inteiro da comissão final: cada R$ 1 aqui reduz exatamente R$ 1. Use quando já recebeu um
+            adiantamento e quer ver só o que falta.
           </p>
-          <Field label="Valor do desconto ao cliente (R$)" hint="Deixe em branco ou 0 para remover.">
-            <TextInput
-              value={discountInput}
-              onChange={(e) => setDiscountInput(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 6000"
-            />
-          </Field>
-          <Field label="Motivo (opcional)">
-            <TextInput
-              value={discountNoteInput}
-              onChange={(e) => setDiscountNoteInput(e.target.value)}
-              placeholder="Ex: desconto combinado com o cliente"
-            />
-          </Field>
-
-          <div className="my-4 h-px bg-border" />
-
-          <div className="mb-1 text-[11px] font-bold text-primary">
-            Meu adiantamento / desconto
+          <div className="grid grid-cols-[0.8fr_1fr] gap-3">
+            <Field label="Valor (R$)">
+              <NumberInput
+                value={employeeDeductionInput}
+                onChange={(e) => setEmployeeDeductionInput(e.target.value)}
+                type="number"
+                placeholder="641"
+              />
+            </Field>
+            <Field label="Motivo (opcional)">
+              <TextInput
+                value={employeeNoteInput}
+                onChange={(e) => setEmployeeNoteInput(e.target.value)}
+                placeholder="Recebido dia 10"
+              />
+            </Field>
           </div>
-          <p className="mb-3 text-[13px] leading-relaxed text-muted-foreground">
-            Abate <strong>direto e por inteiro</strong> da sua comissão final, depois de tudo calculado. Um valor de
-            R$ 1 aqui reduz sua comissão em exatamente R$ 1. Use quando você já recebeu um adiantamento em dinheiro
-            e quer ver só o que ainda falta.
-          </p>
-          <Field label="Valor já adiantado (R$)" hint="Deixe em branco ou 0 para remover.">
-            <TextInput
-              value={employeeDeductionInput}
-              onChange={(e) => setEmployeeDeductionInput(e.target.value)}
-              type="number"
-              inputMode="decimal"
-              placeholder="Ex: 641"
-            />
-          </Field>
-          <Field label="Motivo (opcional)">
-            <TextInput
-              value={employeeNoteInput}
-              onChange={(e) => setEmployeeNoteInput(e.target.value)}
-              placeholder="Ex: adiantamento recebido dia 10"
-            />
-          </Field>
+          <Hint className="-mt-1 mb-4">Em branco ou 0 remove o valor.</Hint>
 
           {(() => {
             const previewDiscount = Math.max(0, Number(discountInput) || 0)
@@ -838,21 +880,17 @@ export function CommissionScreen() {
             if (previewDiscount <= 0 && previewDeduction <= 0) return null
             const previewTotal = commissionTotal(entries, period, config, previewDiscount, previewDeduction)
             return (
-              <div className="mb-3.5 rounded-xl bg-primary/10 px-3.5 py-2.5 text-[13px] font-bold text-foreground ring-1 ring-primary/20">
-                Comissão final com esses descontos:{" "}
-                <span className="text-primary">{fmtMoney(previewTotal)}</span>
-              </div>
+              <FormAlert tone="info" className="flex items-baseline justify-between gap-3">
+                <span>Comissão final com esses descontos</span>
+                <span className="num shrink-0 whitespace-nowrap text-[17px] font-bold text-foreground">{fmtMoney(previewTotal)}</span>
+              </FormAlert>
             )
           })()}
 
-          <PrimaryButton className="w-full" onClick={saveDiscount}>
-            Salvar descontos
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setDiscountOpen(false)}>
-            Cancelar
-          </GhostButton>
+          <SheetActions label="Salvar descontos" onConfirm={saveDiscount} onCancel={() => setDiscountOpen(false)} />
         </ModalSheet>
       )}
     </div>
   )
 }
+

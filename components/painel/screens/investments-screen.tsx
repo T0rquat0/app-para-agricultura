@@ -1,21 +1,23 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Pencil, Plus, Trash2, Wallet } from "lucide-react"
+import { FileText, Plus, Trash2, Wallet } from "lucide-react"
 import { useNav } from "../nav-context"
 import { useFinancialOverview, useInvestments, useRefresh } from "@/lib/hooks"
 import { deleteInvestment, saveInvestment, totalInvested } from "@/lib/storage"
 import { fmtDate, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { Investment } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { TopBar, EmptyState, SectionTitle } from "../chrome"
 import { ModalSheet } from "../modal-sheet"
-import { Field, TextInput } from "../fields"
-import { PrimaryButton, GhostButton } from "../buttons"
+import { Field, NumberInput, TextInput } from "../fields"
+import { SecondaryButton } from "../buttons"
+import { ConfirmDeleteSheet, FormAlert, SheetActions } from "../modals"
 
 export function InvestmentsScreen() {
   const { goReport } = useNav()
-  const { investments } = useInvestments()
-  const { overview } = useFinancialOverview()
+  const { investments, isLoading } = useInvestments()
+  const { overview, isLoading: overviewLoading } = useFinancialOverview()
   const refresh = useRefresh()
 
   const [open, setOpen] = useState(false)
@@ -24,11 +26,14 @@ export function InvestmentsScreen() {
   const [value, setValue] = useState("")
   const [date, setDate] = useState(todayISO())
   const [note, setNote] = useState("")
+  const [formError, setFormError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Investment | null>(null)
 
   const invested = totalInvested(investments)
   const contract = overview?.totalContract || 0
   const opex = overview?.totalOpEx || 0
   const balance = contract - opex - invested
+  const loading = isLoading || overviewLoading
 
   function openNew() {
     setEditing(null)
@@ -36,6 +41,7 @@ export function InvestmentsScreen() {
     setValue("")
     setDate(todayISO())
     setNote("")
+    setFormError(null)
     setOpen(true)
   }
 
@@ -45,12 +51,13 @@ export function InvestmentsScreen() {
     setValue(String(inv.value ?? ""))
     setDate(inv.date || todayISO())
     setNote(inv.note || "")
+    setFormError(null)
     setOpen(true)
   }
 
   async function save() {
     if (!name.trim()) {
-      alert("Informe o nome do investimento.")
+      setFormError("Informe o nome do investimento.")
       return
     }
     await saveInvestment(
@@ -70,108 +77,146 @@ export function InvestmentsScreen() {
   }
 
   async function remove(inv: Investment) {
-    if (!confirm(`Excluir o investimento "${inv.name}"?`)) return
     await deleteInvestment(inv.id)
+    setPendingDelete(null)
+    setOpen(false)
     refresh()
   }
+
+  const sorted = investments.slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
 
   return (
     <div className="flex min-h-dvh flex-col">
       <TopBar title="Dinheiro" subtitle="Saldo, custos e investimentos da operação" />
 
       <div className="px-4">
-        <section className="px-1 pt-2">
+        <section className="px-1 pt-3" aria-busy={loading}>
           <p className="text-[14px] text-muted-foreground">Saldo da operação</p>
-          <p className={`num text-[36px] font-extrabold leading-[1.1] tracking-[-0.025em] ${balance < 0 ? "text-destructive" : ""}`}>
+          <p
+            className={cn(
+              "num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em] transition-opacity duration-200",
+              balance < 0 && "text-destructive",
+              loading && "opacity-40",
+            )}
+          >
             {fmtMoney(balance)}
-          </p>
-          <p className="num mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground">{fmtMoney(contract)}</span> faturados, menos{" "}
-            <span className="font-semibold text-foreground">{fmtMoney(opex)}</span> de custos de campo e{" "}
-            <span className="font-semibold text-foreground">{fmtMoney(invested)}</span> investidos.
           </p>
         </section>
 
+        <dl className="mt-4 divide-y divide-border rounded-[18px] border border-border bg-card">
+          {[
+            { label: "Faturado nos projetos", value: contract },
+            { label: "Custos de campo", value: -opex },
+            { label: "Investido", value: -invested },
+          ].map((it) => (
+            <div key={it.label} className="flex items-baseline justify-between gap-3 px-4 py-3">
+              <dt className="text-[14px] text-muted-foreground">{it.label}</dt>
+              <dd className={cn("num text-[15px] font-bold", loading && "opacity-40")}>
+                {it.value < 0 ? "− " : ""}
+                {fmtMoney(Math.abs(it.value))}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
-        <button
-          onClick={() => goReport("investmentsReport")}
-          className="pressable mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-border bg-raised text-[14px] font-bold hover:border-foreground/20"
-        >
+        <SecondaryButton className="mt-3 w-full" onClick={() => goReport("investmentsReport")}>
           <FileText className="h-4 w-4 text-muted-foreground" /> Relatório financeiro
-        </button>
+        </SecondaryButton>
       </div>
 
-      <div className="flex-1 px-4 pb-6 pt-7">
+      <div className="flex-1 px-4 pb-8 pt-8">
         <SectionTitle
           action={
-            <button onClick={openNew} className="pressable -my-1 flex items-center gap-1 rounded-full px-2 py-1 text-[14px] font-bold text-primary">
-              <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo
+            <button
+              onClick={openNew}
+              className="pressable -my-2 -mr-2 flex min-h-10 items-center gap-1 rounded-full px-2 text-[14px] font-bold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.4} /> Novo investimento
             </button>
           }
         >
           Equipamentos e aportes <span className="num ml-1 font-medium text-faint">{investments.length || ""}</span>
         </SectionTitle>
-        {investments.length === 0 ? (
+        {isLoading ? (
+          <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card" aria-busy>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[64px]" />
+            ))}
+          </div>
+        ) : investments.length === 0 ? (
           <EmptyState icon={<Wallet className="h-8 w-8 opacity-40" />}>
             Cadastre os investimentos em drones, computadores, softwares e outros ativos da operação.
           </EmptyState>
         ) : (
           <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
-            {investments
-              .slice()
-              .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-              .map((inv) => (
-                <div key={inv.id} className="flex items-center gap-2 py-3 pl-4 pr-2">
-                  <button onClick={() => openEdit(inv)} className="min-w-0 flex-1 text-left">
+            {sorted.map((inv) => (
+              <div key={inv.id} className="flex items-center gap-1 py-1.5 pl-1.5 pr-1.5">
+                <button
+                  onClick={() => openEdit(inv)}
+                  aria-label={`Editar ${inv.name}`}
+                  className="pressable flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[12px] px-2.5 py-1.5 text-left hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+                >
+                  <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] font-semibold">{inv.name}</div>
-                    <div className="truncate text-[13px] text-muted-foreground">
+                    <div className="num truncate text-[13px] text-muted-foreground">
                       {fmtDate(inv.date)}
                       {inv.note ? ` · ${inv.note}` : ""}
                     </div>
-                  </button>
+                  </div>
                   <span className="num shrink-0 text-[15px] font-bold">{fmtMoney(inv.value)}</span>
-                  <button
-                    onClick={() => openEdit(inv)}
-                    aria-label={`Editar ${inv.name}`}
-                    className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint hover:bg-raised hover:text-foreground"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => remove(inv)}
-                    aria-label={`Excluir ${inv.name}`}
-                    className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+                </button>
+                <button
+                  onClick={() => setPendingDelete(inv)}
+                  aria-label={`Excluir ${inv.name}`}
+                  className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <div className="flex items-baseline justify-between px-4 py-3">
+              <span className="text-[13px] text-muted-foreground">Total investido</span>
+              <span className="num text-[15px] font-bold">{fmtMoney(invested)}</span>
+            </div>
           </div>
         )}
       </div>
 
-
       {open && (
         <ModalSheet title={editing ? "Editar investimento" : "Novo investimento"} onClose={() => setOpen(false)}>
           <Field label="Descrição">
-            <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Drone DJI Mavic 3M" autoFocus />
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Drone DJI Mavic 3M" autoFocus />
           </Field>
-          <Field label="Valor (R$)">
-            <TextInput value={value} onChange={(e) => setValue(e.target.value)} type="number" inputMode="decimal" placeholder="Ex: 45000.00" />
-          </Field>
-          <Field label="Data">
-            <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Valor (R$)">
+              <NumberInput value={value} onChange={(e) => setValue(e.target.value)} type="number" placeholder="45000.00" />
+            </Field>
+            <Field label="Data">
+              <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" className="num" />
+            </Field>
+          </div>
           <Field label="Observação (opcional)">
             <TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota fiscal, fornecedor…" />
           </Field>
-          <PrimaryButton className="w-full" onClick={save}>
-            {editing ? "Salvar alterações" : "Adicionar investimento"}
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setOpen(false)}>
-            Cancelar
-          </GhostButton>
+          {formError && <FormAlert>{formError}</FormAlert>}
+          <SheetActions
+            label={editing ? "Salvar alterações" : "Adicionar investimento"}
+            onConfirm={save}
+            onCancel={() => setOpen(false)}
+          />
         </ModalSheet>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDeleteSheet
+          title="Excluir investimento"
+          confirmLabel="Excluir investimento"
+          onConfirm={() => remove(pendingDelete)}
+          onClose={() => setPendingDelete(null)}
+        >
+          <strong className="font-semibold text-foreground">{pendingDelete.name}</strong> (
+          <span className="num">{fmtMoney(pendingDelete.value)}</span>) sai da lista e do saldo da operação.
+        </ConfirmDeleteSheet>
       )}
     </div>
   )

@@ -1,22 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowUpRight, Check, Plus, Tag, X } from "lucide-react"
+import { Briefcase, Check, ChevronRight, Plus, Tag, Trash2 } from "lucide-react"
 import type { Project, Service, ServiceStatus } from "@/lib/types"
 import { pricingSummary, projectDiscount, projectNetRevenue, projectRevenue } from "@/lib/calculations"
 import { fmtMoney, todayISO } from "@/lib/format"
 import { deleteService, updateProject, updateService } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
-import { SectionTitle } from "../chrome"
-import { Field, Hint, TextInput } from "../fields"
-import { PrimaryButton, GhostButton, SecondaryButton } from "../buttons"
+import { cn } from "@/lib/utils"
+import { EmptyState, SectionTitle } from "../chrome"
+import { Field, Hint, NumberInput, TextInput } from "../fields"
+import { SecondaryButton } from "../buttons"
 import { ModalSheet } from "../modal-sheet"
-import { ServiceModal, ServicePricingModal } from "../modals"
+import { ConfirmDeleteSheet, FormAlert, SheetActions, ServiceModal, ServicePricingModal } from "../modals"
 
 export function ServicesTab({ project }: { project: Project }) {
   const refresh = useRefresh()
   const [showAdd, setShowAdd] = useState(false)
   const [pricingFor, setPricingFor] = useState<Service | null>(null)
+  const [pendingRemove, setPendingRemove] = useState<Service | null>(null)
   const [discountOpen, setDiscountOpen] = useState(false)
   const [discountInput, setDiscountInput] = useState("")
   const [discountNoteInput, setDiscountNoteInput] = useState("")
@@ -51,72 +53,70 @@ export function ServicesTab({ project }: { project: Project }) {
   }
 
   async function removeService(serviceId: string) {
-    if (!confirm("Remover este serviço?")) return
     await deleteService(project.id, serviceId)
+    setPendingRemove(null)
     refresh()
   }
 
   return (
     <div>
       {revenue > 0 && (
-        <div className="mb-3 rounded-2xl bg-card p-3 text-center border border-border">
-          <div className="text-[11px] font-bold text-muted-foreground">Faturamento estimado</div>
-          <div className="num mt-1 text-[22px] font-bold">{fmtMoney(netRevenue)}</div>
-          {discount > 0 && (
-            <div className="num mt-0.5 text-[11px] text-muted-foreground">
-              {fmtMoney(revenue)} − {fmtMoney(discount)} de desconto
-            </div>
-          )}
-        </div>
-      )}
-
-      {revenue > 0 && (
-        <button
-          onClick={openDiscount}
-          className="mb-3 flex w-full items-center justify-between gap-2 rounded-2xl bg-card px-3.5 py-3 text-left border border-border transition-colors hover:bg-muted/40"
-        >
-          <div className="flex min-w-0 items-center gap-2.5">
+        <div className="mb-6 overflow-hidden rounded-[18px] border border-border bg-card">
+          <div className="px-4 py-3.5">
+            <div className="text-[13px] text-muted-foreground">Faturamento estimado</div>
+            <div className="num mt-0.5 text-[26px] font-extrabold leading-tight tracking-[-0.02em]">{fmtMoney(netRevenue)}</div>
+            {discount > 0 && (
+              <div className="num mt-0.5 text-[13px] text-muted-foreground">
+                {fmtMoney(revenue)} menos {fmtMoney(discount)} de desconto
+              </div>
+            )}
+          </div>
+          <button
+            onClick={openDiscount}
+            className="pressable flex min-h-14 w-full items-center gap-3 border-t border-border px-4 py-3 text-left hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70"
+          >
             <Tag className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />
-            <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-foreground">Desconto ao cliente</div>
-              <div className="truncate text-[12.5px] text-muted-foreground">
-                {discount > 0
-                  ? `− ${fmtMoney(discount)}${project.discountNote ? ` · ${project.discountNote}` : ""}`
-                  : "Toque para conceder um desconto no total"}
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold">Desconto ao cliente</div>
+              <div className="truncate text-[13px] text-muted-foreground">
+                {discount > 0 ? project.discountNote || "Abatido do total dos serviços" : "Conceder um desconto no total"}
               </div>
             </div>
-          </div>
-          {discount > 0 ? (
-            <span className="num shrink-0 text-[14px] font-bold">− {fmtMoney(discount)}</span>
-          ) : (
-            <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
-          )}
-        </button>
+            {discount > 0 ? (
+              <span className="num shrink-0 text-[15px] font-bold">− {fmtMoney(discount)}</span>
+            ) : (
+              <Plus className="h-4 w-4 shrink-0 text-faint" />
+            )}
+          </button>
+        </div>
       )}
 
-      <SectionTitle>Serviços contratados</SectionTitle>
+      <SectionTitle count={services.length || undefined}>Serviços contratados</SectionTitle>
       {services.length === 0 ? (
-        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground border border-border">
-          Nenhum serviço cadastrado.
-        </div>
+        <EmptyState icon={<Briefcase className="h-8 w-8 opacity-40" />}>
+          Nenhum serviço no projeto. Adicione o que foi contratado para calcular o faturamento.
+        </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-[18px] border border-border bg-card">
+        <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
           {services.map((s) => (
-            <div key={s.id} className="border-b border-border px-3 py-3.5 last:border-0">
-              <div className="mb-2.5 flex items-start gap-2">
-                <button onClick={() => setPricingFor(s)} className="min-w-0 flex-1 text-left">
-                  <div className="flex items-center gap-1 text-sm font-bold text-foreground">
-                    {s.name}
-                    <ArrowUpRight className="h-3.5 w-3.5 text-faint" />
+            <div key={s.id} className="px-4 pb-4 pt-3">
+              <div className="mb-3 flex items-start gap-1">
+                <button
+                  onClick={() => setPricingFor(s)}
+                  className="pressable -ml-2 flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-[12px] px-2 py-1 text-left hover:bg-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15px] font-bold leading-snug">{s.name}</div>
+                    <div className="num mt-0.5 text-[13px] leading-snug text-muted-foreground">{pricingSummary(project, s).replace(/R$ /g, "R$00a0")}</div>
                   </div>
-                  <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{pricingSummary(project, s)}</div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-faint" />
                 </button>
                 <button
-                  onClick={() => removeService(s.id)}
-                  aria-label="Remover serviço"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setPendingRemove(s)}
+                  aria-label={`Remover ${s.name}`}
+                  className="pressable -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
               <StatusTrack status={s.status} onChange={(st) => setStatus(s.id, st)} />
@@ -125,86 +125,94 @@ export function ServicesTab({ project }: { project: Project }) {
         </div>
       )}
 
-      <Hint className="mx-0.5 mt-2">
-        Toque no nome pra configurar o preço · toque no status pra avançar Pendente → Em andamento → Concluído.
-      </Hint>
+      {services.length > 0 && (
+        <Hint className="mt-2.5 px-0.5">Toque no serviço para definir o preço e no status para marcar o andamento.</Hint>
+      )}
 
-      <div className="mt-3.5">
-        <SecondaryButton className="w-full" onClick={() => setShowAdd(true)}>
-          <Plus className="h-4 w-4" /> Adicionar serviço
-        </SecondaryButton>
-      </div>
+      <SecondaryButton className="mt-4 w-full" onClick={() => setShowAdd(true)}>
+        <Plus className="h-4 w-4" /> Adicionar serviço
+      </SecondaryButton>
 
       {showAdd && <ServiceModal project={project} onClose={() => setShowAdd(false)} onSaved={refresh} />}
       {pricingFor && (
         <ServicePricingModal project={project} service={pricingFor} onClose={() => setPricingFor(null)} onSaved={refresh} />
       )}
+      {pendingRemove && (
+        <ConfirmDeleteSheet
+          title="Remover serviço"
+          confirmLabel="Remover serviço"
+          onConfirm={() => removeService(pendingRemove.id)}
+          onClose={() => setPendingRemove(null)}
+        >
+          <strong className="font-semibold text-foreground">{pendingRemove.name}</strong> sai do projeto e deixa de contar
+          no faturamento.
+        </ConfirmDeleteSheet>
+      )}
 
       {discountOpen && (
         <ModalSheet title="Desconto ao cliente" onClose={() => setDiscountOpen(false)}>
-          <p className="mb-3.5 text-[13px] leading-relaxed text-muted-foreground">
-            Abatido do subtotal de <strong>{fmtMoney(revenue)}</strong>. Aparece no relatório do cliente como desconto e
-            reduz o valor total dos serviços.
+          <p className="mb-5 text-[15px] leading-relaxed text-muted-foreground">
+            Abatido do subtotal de <span className="num font-semibold text-foreground">{fmtMoney(revenue)}</span>. Aparece no
+            relatório do cliente e reduz o total dos serviços.
           </p>
-          <Field label="Valor do desconto (R$)" hint="Deixe em branco ou 0 para remover o desconto.">
-            <TextInput
+          <Field label="Valor do desconto (R$)" hint="Em branco ou 0 remove o desconto.">
+            <NumberInput
               value={discountInput}
               onChange={(e) => setDiscountInput(e.target.value)}
               type="number"
-              inputMode="decimal"
-              placeholder="Ex: 5000"
+              placeholder="Ex.: 5000"
+              autoFocus
             />
           </Field>
-          <Field label="Motivo (opcional)" hint="Ex.: parceria, negociação de fechamento.">
+          <Field label="Motivo (opcional)">
             <TextInput
               value={discountNoteInput}
               onChange={(e) => setDiscountNoteInput(e.target.value)}
-              placeholder="Ex: negociação"
+              placeholder="Ex.: parceria, negociação de fechamento"
             />
           </Field>
           {discountInput && !Number.isNaN(Number(discountInput)) && Number(discountInput) > 0 && (
-            <div className="mb-3.5 rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-foreground">
-              Total ao cliente:{" "}
-              <span className="text-primary">{fmtMoney(Math.max(0, revenue - Number(discountInput)))}</span>
-            </div>
+            <FormAlert tone="info" className="flex items-baseline justify-between gap-3">
+              <span>Total ao cliente</span>
+              <span className="num shrink-0 whitespace-nowrap text-[17px] font-bold text-foreground">
+                {fmtMoney(Math.max(0, revenue - Number(discountInput)))}
+              </span>
+            </FormAlert>
           )}
-          <PrimaryButton className="w-full" onClick={saveDiscount}>
-            Salvar desconto
-          </PrimaryButton>
-          <GhostButton className="mt-1.5 w-full" onClick={() => setDiscountOpen(false)}>
-            Cancelar
-          </GhostButton>
+          <SheetActions label="Salvar desconto" onConfirm={saveDiscount} onCancel={() => setDiscountOpen(false)} />
         </ModalSheet>
       )}
     </div>
   )
 }
 
+// Status do servico: controle segmentado; o ativo ganha a tinta palida do estado.
 function StatusTrack({ status, onChange }: { status: ServiceStatus; onChange: (s: ServiceStatus) => void }) {
   const segs: { key: ServiceStatus; label: string; sel: string }[] = [
     { key: "pendente", label: "Pendente", sel: "bg-raised text-foreground" },
-    { key: "andamento", label: "Andamento", sel: "bg-warning/15 text-warning" },
-    { key: "concluido", label: "Concluído", sel: "bg-positive/15 text-positive" },
+    { key: "andamento", label: "Em andamento", sel: "bg-warning/12 text-warning" },
+    { key: "concluido", label: "Concluído", sel: "bg-positive/12 text-positive" },
   ]
   return (
-    <div className="flex h-10 overflow-hidden rounded-[12px] border border-border bg-background">
-      {segs.map((seg, i) => (
-        <button
-          key={seg.key}
-          onClick={() => onChange(seg.key)}
-          className={`flex-1 text-[13px] font-semibold transition-colors ${i > 0 ? "border-l border-border" : ""} ${
-            status === seg.key ? seg.sel : "text-muted-foreground"
-          }`}
-        >
-          {seg.key === "concluido" && status === "concluido" ? (
-            <span className="flex items-center justify-center gap-1">
-              <Check className="h-3 w-3" strokeWidth={3} /> Concluído
-            </span>
-          ) : (
-            seg.label
-          )}
-        </button>
-      ))}
+    <div role="radiogroup" aria-label="Status do serviço" className="flex gap-1 rounded-[14px] border border-border bg-background p-1">
+      {segs.map((seg) => {
+        const on = status === seg.key
+        return (
+          <button
+            key={seg.key}
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(seg.key)}
+            className={cn(
+              "pressable flex min-h-10 flex-1 items-center justify-center gap-1 rounded-[10px] px-1 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+              on ? seg.sel : "text-faint hover:text-foreground",
+            )}
+          >
+            {on && seg.key === "concluido" && <Check className="h-3.5 w-3.5" strokeWidth={2.6} />}
+            {seg.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

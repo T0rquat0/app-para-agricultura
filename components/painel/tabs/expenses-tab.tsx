@@ -1,20 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, X } from "lucide-react"
-import type { Project } from "@/lib/types"
+import { Plus, Receipt, Trash2 } from "lucide-react"
+import type { Expense, Project } from "@/lib/types"
 import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
 import { fmtDate, fmtMoney } from "@/lib/format"
 import { deleteExpense } from "@/lib/storage"
 import { useRefresh, useVehicles } from "@/lib/hooks"
-import { SectionTitle } from "../chrome"
+import { EmptyState, SectionTitle, StatCard } from "../chrome"
 import { SecondaryButton } from "../buttons"
-import { ExpenseModal } from "../modals"
+import { ConfirmDeleteSheet, ExpenseModal } from "../modals"
 
 export function ExpensesTab({ project }: { project: Project }) {
   const refresh = useRefresh()
   const { vehicles } = useVehicles()
   const [showAdd, setShowAdd] = useState(false)
+  const [pendingRemove, setPendingRemove] = useState<Expense | null>(null)
 
   const total = totalExpenses(project)
   const revenue = projectNetRevenue(project)
@@ -24,88 +25,73 @@ export function ExpensesTab({ project }: { project: Project }) {
   const rows = (project.expenses || []).slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
 
   async function removeExpense(expId: string) {
-    if (!confirm("Remover este gasto?")) return
     await deleteExpense(project.id, expId)
+    setPendingRemove(null)
     refresh()
   }
 
   return (
     <div>
-      <div className="mb-2.5 grid grid-cols-2 gap-2.5">
-        <Card label="Total gasto" value={fmtMoney(total)} tone="sand" />
-        <Card label="Lançamentos" value={String((project.expenses || []).length)} tone="sand" />
+      <div className="mb-6 grid grid-cols-2 gap-2.5">
+        <StatCard label="Total gasto" value={fmtMoney(total)} unit={`${rows.length} lançamento${rows.length === 1 ? "" : "s"}`} />
+        {hasRevenue ? (
+          <StatCard
+            label="Margem estimada"
+            value={fmtMoney(margin)}
+            unit={`de ${fmtMoney(revenue)} faturados`}
+            className={margin < 0 ? "text-destructive" : undefined}
+          />
+        ) : (
+          <StatCard label="Margem estimada" value="—" unit="Defina o preço dos serviços" />
+        )}
       </div>
-      {hasRevenue && (
-        <div className="mb-2.5 grid grid-cols-2 gap-2.5">
-          <Card label="Faturamento estimado" value={fmtMoney(revenue)} />
-          <Card label="Margem estimada" value={fmtMoney(margin)} negative={margin < 0} />
-        </div>
-      )}
 
-      <SectionTitle className="mt-3">Gastos do projeto</SectionTitle>
+      <SectionTitle count={rows.length || undefined}>Gastos do projeto</SectionTitle>
       {rows.length === 0 ? (
-        <div className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground border border-border">
-          Nenhum gasto lançado ainda.
-        </div>
+        <EmptyState icon={<Receipt className="h-8 w-8 opacity-40" />}>
+          Nenhum gasto lançado. Registre combustível, diárias e peças para ver a margem do projeto.
+        </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-[18px] border border-border bg-card">
-          {rows.map((e) => (
-            <div key={e.id} className="flex items-start justify-between gap-2 border-b border-border px-3 py-2.5 last:border-0">
-              <div className="min-w-0">
-                <div className="truncate text-[13.5px] font-bold text-foreground">{e.description || e.category}</div>
-                <div className="text-[12.5px] text-muted-foreground">{fmtDate(e.date)}</div>
-                {(e.description || e.vehicle) && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {e.description && (
-                      <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{e.category}</span>
-                    )}
-                    {e.vehicle && (
-                      <span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{e.vehicle}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-2.5">
-                <span className="num text-[14px] font-bold text-foreground">{fmtMoney(e.value)}</span>
+        <div className="divide-y divide-border overflow-hidden rounded-[18px] border border-border bg-card">
+          {rows.map((e) => {
+            const meta = [fmtDate(e.date), e.description ? e.category : "", e.vehicle].filter(Boolean).join(" · ")
+            return (
+              <div key={e.id} className="flex items-center gap-2 py-3 pl-4 pr-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-semibold">{e.description || e.category}</div>
+                  <div className="num truncate text-[13px] text-muted-foreground">{meta}</div>
+                </div>
+                <span className="num shrink-0 text-[15px] font-bold">{fmtMoney(e.value)}</span>
                 <button
-                  onClick={() => removeExpense(e.id)}
-                  aria-label="Remover gasto"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setPendingRemove(e)}
+                  aria-label={`Remover gasto ${e.description || e.category}`}
+                  className="pressable flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-faint hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
                 >
-                  <X className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      <div className="mt-4">
-        <SecondaryButton className="w-full" onClick={() => setShowAdd(true)}>
-          <Plus className="h-4 w-4" /> Adicionar gasto
-        </SecondaryButton>
-      </div>
+      <SecondaryButton className="mt-4 w-full" onClick={() => setShowAdd(true)}>
+        <Plus className="h-4 w-4" /> Adicionar gasto
+      </SecondaryButton>
 
       {showAdd && <ExpenseModal project={project} vehicles={vehicles} onClose={() => setShowAdd(false)} onSaved={refresh} />}
-    </div>
-  )
-}
-
-function Card({
-  label,
-  value,
-  tone,
-  negative,
-}: {
-  label: string
-  value: string
-  tone?: "sand"
-  negative?: boolean
-}) {
-  return (
-    <div className={`rounded-2xl p-3 text-center ring-1 ${tone === "sand" ? "bg-sand-bg ring-accent/20" : "bg-card ring-border/60"}`}>
-      <div className="text-[11px] font-bold text-muted-foreground">{label}</div>
-      <div className={`num mt-1 text-base font-bold ${negative ? "text-destructive" : "text-foreground"}`}>{value}</div>
+      {pendingRemove && (
+        <ConfirmDeleteSheet
+          title="Remover gasto"
+          confirmLabel="Remover gasto"
+          onConfirm={() => removeExpense(pendingRemove.id)}
+          onClose={() => setPendingRemove(null)}
+        >
+          <strong className="font-semibold text-foreground">{pendingRemove.description || pendingRemove.category}</strong> (
+          <span className="num">{fmtMoney(pendingRemove.value)}</span>, {fmtDate(pendingRemove.date)}) sai do projeto e do
+          relatório de gastos.
+        </ConfirmDeleteSheet>
+      )}
     </div>
   )
 }
