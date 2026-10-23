@@ -37,6 +37,8 @@ create table if not exists talhoes (
   target_hectares numeric(12,4) check (target_hectares is null or target_hectares >= 0),
   -- Contorno do KML (coordenadas de MultiPolygon GeoJSON: poligonos > aneis > [lon, lat]).
   geometry jsonb check (geometry is null or jsonb_typeof(geometry) = 'array'),
+  -- Nome de cada poligono do contorno (as "trilhas" do KML), na mesma ordem.
+  geometry_names jsonb check (geometry_names is null or jsonb_typeof(geometry_names) = 'array'),
   created_at timestamptz not null default now(),
   unique (id, owner_id),
   -- (projeto, dono) juntos: impede pendurar um talhao no projeto de outra conta.
@@ -46,6 +48,8 @@ create table if not exists talhoes (
 -- Bancos criados antes do contorno do KML: acrescenta a coluna sem mexer no resto.
 alter table talhoes add column if not exists geometry jsonb
   check (geometry is null or jsonb_typeof(geometry) = 'array');
+alter table talhoes add column if not exists geometry_names jsonb
+  check (geometry_names is null or jsonb_typeof(geometry_names) = 'array');
 
 -- ---------- Areas mapeadas (partes voadas) ----------
 create table if not exists areas (

@@ -24,6 +24,8 @@ export interface Talhao {
   identifier?: string
   targetHectares: number | null
   geometry?: Geometria
+  // Nome de cada poligono do contorno (as "trilhas" do KML), na mesma ordem de geometry.
+  geometryNames?: string[]
   createdAt: string
 }
 

@@ -32,3 +32,6 @@ next-env.d.ts
 /.impeccable/questions/
 /.impeccable/decision/
 /.taste-skill/
+
+# copias de trabalho dos agentes
+/.claude/worktrees/

@@ -90,6 +90,28 @@ export function semRepetidos(lista: PoligonoKml[]): PoligonoKml[] {
   })
 }
 
+function dentro(pt: number[], anel: number[][]): boolean {
+  let r = false
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i]
+    const [xj, yj] = anel[j]
+    if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) r = !r
+  }
+  return r
+}
+
+// Para cada poligono, se ele fica inteiro dentro de outro maior da mesma lista
+// (sede, lago, APP desenhados dentro da area) — esses nao somam area por padrao.
+export function contidosEmOutro(lista: PoligonoKml[]): boolean[] {
+  return lista.map((a, i) =>
+    lista.some((b, j) => {
+      if (i === j || b.hectares <= a.hectares) return false
+      const pts = a.geometry[0][0]
+      return pts.filter((p) => dentro(p, b.geometry[0][0])).length >= pts.length * 0.9
+    }),
+  )
+}
+
 export function limites(gs: Geometria[]): [[number, number], [number, number]] | null {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
   for (const g of gs) for (const pol of g) for (const [x, y] of pol[0]) {

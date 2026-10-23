@@ -6,10 +6,10 @@ import type { Area, Talhao } from "@/lib/types"
 import type { Project } from "@/lib/types"
 import { effectiveCommissionRate, talhaoBadge, talhaoFlown, ungroupedAreas } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
-import { deleteArea, deleteTalhao } from "@/lib/storage"
+import { deleteArea, deleteTalhao, updateTalhao } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
-import { corDoAndamento } from "@/lib/geo"
+import { areaHa, corDoAndamento } from "@/lib/geo"
 import { GeoThumb } from "../geo-thumb"
 import { EmptyState, SectionTitle } from "../chrome"
 import { SecondaryButton, GhostButton } from "../buttons"
@@ -48,6 +48,12 @@ export function AreasTab({ project }: { project: Project }) {
         : "Remover esta matrícula?"
     if (!confirm(msg)) return
     await deleteTalhao(project.id, talhaoId)
+    refresh()
+  }
+
+  async function removeContorno(t: Talhao) {
+    if (!confirm(`Remover o contorno do KML de ${t.name}? Os hectares voados continuam; só o desenho sai do mapa.`)) return
+    await updateTalhao(project.id, { ...t, geometry: [], geometryNames: [] })
     refresh()
   }
 
@@ -136,6 +142,7 @@ export function AreasTab({ project }: { project: Project }) {
                         Excluir matrícula
                       </GhostButton>
                     </div>
+                    {t.geometry?.length ? <KmlAreas talhao={t} onRemove={() => removeContorno(t)} /> : null}
                   </div>
                 )}
               </div>
@@ -228,6 +235,40 @@ function Hatch({ pct, talhao }: { pct: number; talhao: Talhao }) {
     >
       <span className="bg-risco absolute inset-y-0 left-0" style={{ width: `${pct}%`, color: corDoAndamento(pct) }} />
     </span>
+  )
+}
+
+// As areas (trilhas) do KML guardadas dentro da matricula: so aparecem quando ela esta aberta
+function KmlAreas({ talhao, onRemove }: { talhao: Talhao; onRemove: () => void }) {
+  const [aberto, setAberto] = useState(false)
+  const g = talhao.geometry || []
+  const nomes = talhao.geometryNames || []
+  const total = areaHa(g)
+  return (
+    <div className="mt-1 border-t border-border pt-1">
+      <button onClick={() => setAberto((a) => !a)} aria-expanded={aberto} className="flex w-full items-center justify-between py-2 text-[13.5px] font-semibold text-muted-foreground">
+        <span>
+          Áreas do KML <span className="num font-normal text-faint">· {g.length} · {fmtHa(total)} ha</span>
+        </span>
+        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", aberto && "rotate-180")} />
+      </button>
+      {aberto && (
+        <>
+          <ul className="divide-y divide-border rounded-[12px] border border-border bg-card">
+            {g.map((pol, i) => (
+              <li key={i} className="flex items-center gap-3 px-3 py-2">
+                <GeoThumb formas={[{ geometry: [pol], pct: 0 }]} className="h-7 w-7 shrink-0 text-foreground" />
+                <span className="min-w-0 flex-1 truncate text-[13.5px]">{nomes[i] || `Área ${i + 1}`}</span>
+                <span className="num shrink-0 text-[13px] font-semibold">{fmtHa(areaHa([pol]))} ha</span>
+              </li>
+            ))}
+          </ul>
+          <GhostButton className="mt-1 px-0 text-[14px] text-muted-foreground" onClick={onRemove}>
+            Remover contorno do mapa
+          </GhostButton>
+        </>
+      )}
+    </div>
   )
 }
 
