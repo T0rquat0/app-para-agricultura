@@ -8,7 +8,7 @@ import { deleteInvestment, saveInvestment, totalInvested } from "@/lib/storage"
 import { fmtDate, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { Investment } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { TopBar, EmptyState, SectionTitle } from "../chrome"
+import { TopBar, EmptyState, SectionTitle, Dinheiro, corDoFluxo } from "../chrome"
 import { ModalSheet } from "../modal-sheet"
 import { Field, NumberInput, TextInput } from "../fields"
 import { SecondaryButton } from "../buttons"
@@ -95,25 +95,25 @@ export function InvestmentsScreen() {
           <p
             className={cn(
               "num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em] transition-opacity duration-200",
-              balance < 0 && "text-destructive",
+              corDoFluxo("saldo", balance),
               loading && "opacity-40",
             )}
           >
-            {fmtMoney(balance)}
+            {balance < 0 ? "− " : ""}
+            {fmtMoney(Math.abs(balance))}
           </p>
         </section>
 
         <dl className="mt-4 divide-y divide-border rounded-[18px] border border-border bg-card">
           {[
-            { label: "Faturado nos projetos", value: contract },
-            { label: "Custos de campo", value: -opex },
-            { label: "Investido", value: -invested },
+            { label: "Faturado nos projetos", value: contract, fluxo: "entrada" as const },
+            { label: "Custos de campo", value: opex, fluxo: "saida" as const },
+            { label: "Investido", value: invested, fluxo: "saida" as const },
           ].map((it) => (
             <div key={it.label} className="flex items-baseline justify-between gap-3 px-4 py-3">
               <dt className="text-[14px] text-muted-foreground">{it.label}</dt>
-              <dd className={cn("num text-[15px] font-bold", loading && "opacity-40")}>
-                {it.value < 0 ? "− " : ""}
-                {fmtMoney(Math.abs(it.value))}
+              <dd className={cn("text-[15px] font-bold", loading && "opacity-40")}>
+                <Dinheiro valor={it.value} fluxo={it.fluxo} />
               </dd>
             </div>
           ))}
@@ -163,7 +163,7 @@ export function InvestmentsScreen() {
                       {inv.note ? ` · ${inv.note}` : ""}
                     </div>
                   </div>
-                  <span className="num shrink-0 text-[15px] font-bold">{fmtMoney(inv.value)}</span>
+                  <Dinheiro valor={inv.value} fluxo="saida" className="shrink-0 text-[15px] font-bold" />
                 </button>
                 <button
                   onClick={() => setPendingDelete(inv)}
@@ -176,7 +176,7 @@ export function InvestmentsScreen() {
             ))}
             <div className="flex items-baseline justify-between px-4 py-3">
               <span className="text-[13px] text-muted-foreground">Total investido</span>
-              <span className="num text-[15px] font-bold">{fmtMoney(invested)}</span>
+              <Dinheiro valor={invested} fluxo="saida" className="text-[15px] font-bold" />
             </div>
           </div>
         )}

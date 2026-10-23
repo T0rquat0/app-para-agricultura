@@ -11,7 +11,7 @@ import type { Project, ProjectSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useNav } from "../nav-context"
 import { useAuth } from "../auth-gate"
-import { EmptyState, ProgressBar, SectionTitle } from "../chrome"
+import { EmptyState, ProgressBar, SectionTitle, Dinheiro } from "../chrome"
 import { ModalSheet } from "../modal-sheet"
 import { GhostButton } from "../buttons"
 import { SatThumb } from "../sat-thumb"
@@ -110,7 +110,7 @@ export function HomeScreen() {
       {!isLoading && index.length > 0 && (
         <button onClick={goInvestments} className="pressable mb-6 flex items-center justify-between gap-2 rounded-xl px-1 py-2 text-left text-[14px] text-muted-foreground">
           <span>
-            Saldo da operação <span className={cn("num font-semibold text-foreground", balance < 0 && "text-destructive")}>{fmtMoney(balance)}</span>
+            Saldo da operação <Dinheiro valor={balance} fluxo="saldo" className="font-semibold" />
           </span>
           <ChevronRight className="h-4 w-4 text-faint" />
         </button>

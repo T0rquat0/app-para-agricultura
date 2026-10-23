@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { fmtMoney } from "@/lib/format"
 import { IconButton } from "./buttons"
 
 // Cabecalho das telas internas: voltar, titulo e acoes, direto sobre o chao escuro.
@@ -64,18 +65,21 @@ export function StatCard({
   value,
   unit,
   accent = false,
+  valueClassName,
   className,
 }: {
   label: string
   value: string
   unit?: string
   accent?: boolean
+  // cor do numero (ex.: corDoFluxo para entrada/saida)
+  valueClassName?: string
   className?: string
 }) {
   return (
     <div className={cn("rounded-2xl border border-border bg-card px-3.5 py-3", className)}>
       <div className="text-[12px] text-muted-foreground">{label}</div>
-      <div className={cn("num mt-0.5 text-[19px] font-bold leading-tight", accent && "text-primary")}>{value}</div>
+      <div className={cn("num mt-0.5 text-[19px] font-bold leading-tight", accent && "text-primary", valueClassName)}>{value}</div>
       {unit && <div className="text-[12px] text-faint">{unit}</div>}
     </div>
   )
@@ -129,5 +133,26 @@ export function ProgressBar({
         style={{ width: `${pct}%`, ...(cor ? { background: cor } : {}) }}
       />
     </div>
+  )
+}
+
+// ---- Dinheiro com cor de fluxo ----
+// Entrada (faturado, comissao a receber) em verde; saida (gasto, investimento, desconto,
+// adiantamento) em vermelho com "−"; saldo/margem verde se positivo, vermelho se negativo.
+export type Fluxo = "entrada" | "saida" | "saldo"
+
+export function corDoFluxo(fluxo: Fluxo, valor: number): string {
+  if (fluxo === "entrada") return valor === 0 ? "" : "text-positive"
+  if (fluxo === "saida") return valor === 0 ? "" : "text-destructive"
+  return valor > 0 ? "text-positive" : valor < 0 ? "text-destructive" : ""
+}
+
+export function Dinheiro({ valor, fluxo, className }: { valor: number; fluxo: Fluxo; className?: string }) {
+  const negativo = fluxo === "saida" ? valor !== 0 : valor < 0
+  return (
+    <span className={cn("num whitespace-nowrap", corDoFluxo(fluxo, valor), className)}>
+      {negativo ? "− " : ""}
+      {fmtMoney(Math.abs(valor))}
+    </span>
   )
 }

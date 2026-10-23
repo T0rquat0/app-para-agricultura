@@ -8,7 +8,7 @@ import { fmtMoney, todayISO } from "@/lib/format"
 import { deleteService, updateProject, updateService } from "@/lib/storage"
 import { useRefresh } from "@/lib/hooks"
 import { cn } from "@/lib/utils"
-import { EmptyState, SectionTitle } from "../chrome"
+import { EmptyState, SectionTitle, Dinheiro } from "../chrome"
 import { Field, Hint, NumberInput, TextInput } from "../fields"
 import { SecondaryButton } from "../buttons"
 import { ModalSheet } from "../modal-sheet"
@@ -64,7 +64,7 @@ export function ServicesTab({ project }: { project: Project }) {
         <div className="mb-6 overflow-hidden rounded-[18px] border border-border bg-card">
           <div className="px-4 py-3.5">
             <div className="text-[13px] text-muted-foreground">Faturamento estimado</div>
-            <div className="num mt-0.5 text-[26px] font-extrabold leading-tight tracking-[-0.02em]">{fmtMoney(netRevenue)}</div>
+            <div className="mt-0.5 text-[26px] font-extrabold leading-tight tracking-[-0.02em]"><Dinheiro valor={netRevenue} fluxo="entrada" /></div>
             {discount > 0 && (
               <div className="num mt-0.5 text-[13px] text-muted-foreground">
                 {fmtMoney(revenue)} menos {fmtMoney(discount)} de desconto
@@ -83,7 +83,7 @@ export function ServicesTab({ project }: { project: Project }) {
               </div>
             </div>
             {discount > 0 ? (
-              <span className="num shrink-0 text-[15px] font-bold">− {fmtMoney(discount)}</span>
+              <Dinheiro valor={discount} fluxo="saida" className="shrink-0 text-[15px] font-bold" />
             ) : (
               <Plus className="h-4 w-4 shrink-0 text-faint" />
             )}

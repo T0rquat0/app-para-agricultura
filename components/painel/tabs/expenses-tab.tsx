@@ -7,7 +7,7 @@ import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
 import { fmtDate, fmtMoney } from "@/lib/format"
 import { deleteExpense } from "@/lib/storage"
 import { useRefresh, useVehicles } from "@/lib/hooks"
-import { EmptyState, SectionTitle, StatCard } from "../chrome"
+import { EmptyState, SectionTitle, StatCard, Dinheiro, corDoFluxo } from "../chrome"
 import { SecondaryButton } from "../buttons"
 import { ConfirmDeleteSheet, ExpenseModal } from "../modals"
 
@@ -33,13 +33,13 @@ export function ExpensesTab({ project }: { project: Project }) {
   return (
     <div>
       <div className="mb-6 grid grid-cols-2 gap-2.5">
-        <StatCard label="Total gasto" value={fmtMoney(total)} unit={`${rows.length} lançamento${rows.length === 1 ? "" : "s"}`} />
+        <StatCard label="Total gasto" value={(total > 0 ? "− " : "") + fmtMoney(total)} valueClassName={corDoFluxo("saida", total)} unit={`${rows.length} lançamento${rows.length === 1 ? "" : "s"}`} />
         {hasRevenue ? (
           <StatCard
             label="Margem estimada"
-            value={fmtMoney(margin)}
+            value={(margin < 0 ? "− " : "") + fmtMoney(Math.abs(margin))}
+            valueClassName={corDoFluxo("saldo", margin)}
             unit={`de ${fmtMoney(revenue)} faturados`}
-            className={margin < 0 ? "text-destructive" : undefined}
           />
         ) : (
           <StatCard label="Margem estimada" value="—" unit="Defina o preço dos serviços" />
@@ -61,7 +61,7 @@ export function ExpensesTab({ project }: { project: Project }) {
                   <div className="truncate text-[15px] font-semibold">{e.description || e.category}</div>
                   <div className="num truncate text-[13px] text-muted-foreground">{meta}</div>
                 </div>
-                <span className="num shrink-0 text-[15px] font-bold">{fmtMoney(e.value)}</span>
+                <Dinheiro valor={e.value} fluxo="saida" className="shrink-0 text-[15px] font-bold" />
                 <button
                   onClick={() => setPendingRemove(e)}
                   aria-label={`Remover gasto ${e.description || e.category}`}

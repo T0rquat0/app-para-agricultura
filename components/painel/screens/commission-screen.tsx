@@ -49,7 +49,7 @@ import {
 import { fmtDate, fmtHa, fmtMoney, genId, todayISO } from "@/lib/format"
 import type { CommissionEntry } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { TopBar, EmptyState, SectionTitle } from "../chrome"
+import { TopBar, EmptyState, SectionTitle, Dinheiro, corDoFluxo } from "../chrome"
 import { ModalSheet } from "../modal-sheet"
 import { Field, Hint, NumberInput, TextInput } from "../fields"
 import { IconButton, SecondaryButton } from "../buttons"
@@ -423,22 +423,24 @@ export function CommissionScreen() {
           <p
             className={cn(
               "num text-[44px] font-extrabold leading-[1.05] tracking-[-0.03em] transition-opacity duration-200",
+              corDoFluxo("saldo", total),
               entriesLoading && "opacity-40",
             )}
           >
-            {fmtMoney(total)}
+            {total < 0 ? "− " : ""}
+            {fmtMoney(Math.abs(total))}
           </p>
           <p className="num mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
-            <span className="whitespace-nowrap font-semibold text-foreground">{fmtMoney(variable)}</span> variável (
+            <Dinheiro valor={variable} fluxo="entrada" className="font-semibold" /> variável (
             {config.percent}% de <span className="whitespace-nowrap">{fmtMoney(discount > 0 ? base : revenue)}</span>) +{" "}
             <span className="whitespace-nowrap">
-              <span className="font-semibold text-foreground">{fmtMoney(config.fixedSalary)}</span> fixo
+              <Dinheiro valor={config.fixedSalary} fluxo="entrada" className="font-semibold" /> fixo
             </span>
             {employeeDeduction > 0 && (
               <>
                 {" "}−{" "}
                 <span className="whitespace-nowrap">
-                  <span className="font-semibold text-foreground">{fmtMoney(employeeDeduction)}</span> adiantamento
+                  <Dinheiro valor={employeeDeduction} fluxo="saida" className="font-semibold" /> adiantamento
                 </span>
               </>
             )}
@@ -509,13 +511,13 @@ export function CommissionScreen() {
                 <div className="mt-0.5 space-y-0.5">
                   {discount > 0 && (
                     <div className="num truncate text-[13px] text-muted-foreground">
-                      Ao cliente: <span className="font-semibold text-foreground">− {fmtMoney(discount)}</span>
+                      Ao cliente: <Dinheiro valor={discount} fluxo="saida" className="font-semibold" />
                       {adjustment?.note ? ` · ${adjustment.note}` : ""}
                     </div>
                   )}
                   {employeeDeduction > 0 && (
                     <div className="num truncate text-[13px] text-muted-foreground">
-                      Meu adiantamento: <span className="font-semibold text-foreground">− {fmtMoney(employeeDeduction)}</span>
+                      Meu adiantamento: <Dinheiro valor={employeeDeduction} fluxo="saida" className="font-semibold" />
                       {adjustment?.employeeNote ? ` · ${adjustment.employeeNote}` : ""}
                     </div>
                   )}
@@ -601,7 +603,7 @@ export function CommissionScreen() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <div className="num text-[15px] font-bold">{fmtMoney(group.revenue)}</div>
+                      <Dinheiro valor={group.revenue} fluxo="entrada" className="block text-[15px] font-bold" />
                       <ChevronDown
                         className={cn(
                           "h-4 w-4 text-faint transition-transform duration-200 ease-out",
@@ -647,7 +649,7 @@ export function CommissionScreen() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end">
-                              <div className="num pr-2 text-[15px] font-bold">{fmtMoney(entryRevenue(e))}</div>
+                              <Dinheiro valor={entryRevenue(e)} fluxo="entrada" className="block pr-2 text-[15px] font-bold" />
                               <div className="mt-auto flex items-center pt-1">
                               <button
                                 onClick={() => openEdit(e)}
