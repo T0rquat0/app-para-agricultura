@@ -4,7 +4,7 @@ import { useNav } from "../nav-context"
 import { useProject } from "@/lib/hooks"
 import { fmtDate, fmtMoney, slug } from "@/lib/format"
 import { projectNetRevenue, totalExpenses } from "@/lib/calculations"
-import { ReportShell, ReportHeader, ReportRow, ReportSection, ReportTotal } from "../report-shell"
+import { CellNote, DOC, ReportFigures, ReportHeader, ReportSection, ReportShell, ReportTable, ReportTotal } from "../report-shell"
 
 export function ReportExpensesScreen() {
   const { currentProjectId, goReport } = useNav()
@@ -13,7 +13,7 @@ export function ReportExpensesScreen() {
   if (!project) {
     return (
       <ReportShell title="Relatório de gastos" filename="gastos" onBack={() => goReport("project")}>
-        <p className="text-sm text-[#6b7280]">Projeto não encontrado.</p>
+        <p className="text-sm" style={{ color: DOC.muted }}>Projeto não encontrado.</p>
       </ReportShell>
     )
   }
@@ -33,55 +33,57 @@ export function ReportExpensesScreen() {
     <ReportShell
       title="Relatório de gastos"
       subtitle={project.clientName}
+      docType="Relatório de gastos"
       filename={`gastos_${slug(project.clientName)}`}
       onBack={() => goReport("project")}
       footerNote="Documento interno — uso gerencial."
     >
-      <ReportHeader
-        docType="Relatório de Gastos"
-        heading={project.clientName}
-        meta={project.fazenda || "Custos do projeto"}
-      />
-
-      <ReportSection title="Resumo">
-        <ReportRow label="Faturamento previsto" value={fmtMoney(revenue)} />
-        <ReportRow label="Custos operacionais" value={fmtMoney(opex)} />
-        <ReportRow label="Margem estimada" value={fmtMoney(margin)} strong accent />
-      </ReportSection>
+      <ReportHeader docType="Relatório de gastos" heading={project.clientName} meta={project.fazenda || "Custos do projeto"}>
+        <ReportFigures
+          items={[
+            { label: "Margem estimada", value: fmtMoney(margin), tone: margin < 0 ? "negative" : "signal" },
+            { label: "Faturamento previsto", value: fmtMoney(revenue) },
+            { label: "Custos operacionais", value: fmtMoney(opex) },
+          ]}
+        />
+      </ReportHeader>
 
       {byCategory.size > 0 && (
         <ReportSection title="Gastos por categoria">
-          {[...byCategory.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .map(([cat, v]) => (
-              <ReportRow key={cat} label={cat} value={fmtMoney(v)} />
-            ))}
+          <ReportTable
+            columns={[{ label: "Categoria" }, { label: "Total", align: "right", width: "170px" }]}
+            rows={[...byCategory.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .map(([cat, v]) => ({ key: cat, cells: [cat, <span key="v" className="font-semibold">{fmtMoney(v)}</span>] }))}
+            foot={["Total de gastos", fmtMoney(opex)]}
+          />
         </ReportSection>
       )}
 
-      <ReportSection title="Lançamentos">
+      <ReportSection title="Lançamentos" aside={expenses.length ? `${expenses.length} ${expenses.length === 1 ? "lançamento" : "lançamentos"}` : undefined}>
         {expenses.length === 0 ? (
-          <p className="py-2 text-[13px] text-[#6b7280]">Nenhum gasto lançado.</p>
+          <p className="py-3 text-[13px]" style={{ color: DOC.muted }}>Nenhum gasto lançado.</p>
         ) : (
-          expenses.map((e) => (
-            <div key={e.id} style={{ borderBottom: "1px solid #f1f1f1" }} className="py-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#1a1a1a]">
+          <ReportTable
+            columns={[
+              { label: "Data", width: "92px" },
+              { label: "Gasto" },
+              { label: "Valor", align: "right", width: "140px" },
+            ]}
+            rows={expenses.map((e) => ({
+              key: e.id,
+              cells: [
+                <span key="d" style={{ color: DOC.muted }}>{fmtDate(e.date)}</span>,
+                <span key="g" className="font-semibold">
                   {e.category}
-                  {e.vehicle ? ` · ${e.vehicle}` : ""}
-                </span>
-                <span className="text-[13px] font-bold tabular-nums text-[#1a1a1a]">{fmtMoney(e.value)}</span>
-              </div>
-              <div className="mt-0.5 flex items-center justify-between text-[11px] text-[#6b7280]">
-                <span>{e.description || "—"}</span>
-                <span>{fmtDate(e.date)}</span>
-              </div>
-            </div>
-          ))
+                  {e.vehicle ? <span className="font-normal" style={{ color: DOC.muted }}>{` · ${e.vehicle}`}</span> : null}
+                  {e.description && <CellNote>{e.description}</CellNote>}
+                </span>,
+                <span key="v" className="font-semibold">{fmtMoney(e.value)}</span>,
+              ],
+            }))}
+          />
         )}
-      </ReportSection>
-
-      <ReportSection title="Total">
         <ReportTotal label="Total de gastos" value={fmtMoney(opex)} />
       </ReportSection>
     </ReportShell>
