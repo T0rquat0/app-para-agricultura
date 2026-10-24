@@ -427,8 +427,9 @@ export function proposalSubtotal(p: Proposal): number {
   return (p.items || []).reduce((sum, i) => sum + proposalItemTotal(i), 0)
 }
 
+// Desconto entre zero e o subtotal (um valor negativo nao pode aumentar o total).
 export function proposalDiscount(p: Proposal): number {
-  return Math.min(Number(p.discount || 0), proposalSubtotal(p))
+  return Math.min(Math.max(0, Number(p.discount || 0)), proposalSubtotal(p))
 }
 
 export function proposalTotal(p: Proposal): number {
@@ -442,7 +443,9 @@ export function proposalItemPricingSummary(item: ProposalItem): string {
   }
   const unit = item.billingType === "metro" ? "m" : "ha"
   if (!item.rate || !item.quantity) return `Defina R$/${unit} e a quantidade`
-  const qtyLabel = item.billingType === "hectare" ? fmtHa(item.quantity) : item.quantity.toLocaleString("pt-BR")
+  // Quantidade como foi digitada (ate 2 casas): arredondar a 1 casa (fmtHa) mostraria uma conta
+  // que nao fecha com o total.
+  const qtyLabel = item.quantity.toLocaleString("pt-BR", { maximumFractionDigits: 2 })
   return `${fmtMoney(item.rate)}/${unit} × ${qtyLabel} ${unit} = ${fmtMoney(proposalItemTotal(item))}`
 }
 
@@ -450,6 +453,28 @@ export function proposalItemPricingSummary(item: ProposalItem): string {
 // solto, pra nao dessincronizar se o total da proposta mudar.
 export function paymentPhaseValue(total: number, phase: ProposalPaymentPhase): number {
   return Math.round(total * (Number(phase.percent || 0) / 100) * 100) / 100
+}
+
+// Valores em R$ de todas as parcelas. Cada uma e arredondada ao centavo; quando os
+// percentuais fecham 100%, a ultima parcela leva a diferenca do arredondamento, para a
+// soma das parcelas bater exatamente com o total da proposta.
+export function paymentScheduleValues(total: number, schedule: ProposalPaymentPhase[]): number[] {
+  const list = schedule || []
+  const values = list.map((ph) => paymentPhaseValue(total, ph))
+  if (list.length && Math.abs(paymentSchedulePercentTotal(list) - 100) < 1e-9) {
+    const rest = values.slice(0, -1).reduce((s, v) => s + v, 0)
+    values[values.length - 1] = Math.round((total - rest) * 100) / 100
+  }
+  return values
+}
+
+// Area do levantamento: o maior item cobrado por hectare. Os servicos da proposta costumam
+// cobrir a mesma area (levantamento + curva de nivel sobre os mesmos ha), entao somar
+// contaria a area duas vezes.
+export function proposalAreaHa(p: Proposal): number {
+  return (p.items || [])
+    .filter((i) => i.billingType === "hectare")
+    .reduce((m, i) => Math.max(m, Number(i.quantity || 0)), 0)
 }
 
 export function paymentSchedulePercentTotal(schedule: ProposalPaymentPhase[]): number {
