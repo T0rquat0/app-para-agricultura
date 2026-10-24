@@ -180,6 +180,41 @@ export function commissionTotal(
   return Math.max(0, gross - Number(employeeDeduction || 0))
 }
 
+// Resumo de um mes, numa fonte so para a tela e o relatorio (os numeros nao podem divergir).
+// Mesmas regras de commissionTotal: o desconto ao cliente fica limitado ao faturamento e o
+// adiantamento ao bruto (variavel + fixo), para que as linhas exibidas somem o total.
+export interface CommissionSummary {
+  revenue: number
+  discount: number
+  base: number
+  variable: number
+  fixedSalary: number
+  gross: number
+  employeeDeduction: number
+  total: number
+  hectares: number
+  count: number
+}
+
+export function commissionSummary(
+  entries: CommissionEntry[],
+  period: string,
+  config: CommissionConfig,
+  adjustment?: { discount?: number; employeeDeduction?: number } | null,
+): CommissionSummary {
+  const list = entriesForPeriod(entries, period)
+  const revenue = periodRevenue(entries, period)
+  const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
+  const base = commissionBase(entries, period, discount)
+  const variable = commissionVariable(entries, period, config, discount)
+  const fixedSalary = Number(config.fixedSalary || 0)
+  const gross = variable + fixedSalary
+  const employeeDeduction = Math.min(Math.max(0, gross), Math.max(0, Number(adjustment?.employeeDeduction || 0)))
+  const total = commissionTotal(entries, period, config, discount, employeeDeduction)
+  const hectares = list.reduce((s, e) => s + Number(e.hectares || 0), 0)
+  return { revenue, discount, base, variable, fixedSalary, gross, employeeDeduction, total, hectares, count: list.length }
+}
+
 // Lista de periodos (AAAA-MM) distintos presentes nos lancamentos, mais recente primeiro.
 export function availablePeriods(entries: CommissionEntry[]): string[] {
   const set = new Set((entries || []).map((e) => entryPeriod(e)).filter(Boolean))
@@ -271,6 +306,85 @@ export function pullCommissionDrafts(projects: Project[], startDate: string, end
     }
   }
   return Array.from(byKey.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+// Plano do "Puxar areas": compara o que foi voado (drafts) com o que ja esta lancado e
+// devolve so a diferenca. Antes, puxar apagava e recriava tudo do intervalo; agora:
+// - lancamento automatico igual ao voo fica como esta (mesmo id, mesmo mes escolhido);
+// - voo que mudou (area editada) atualiza o lancamento existente, mantendo o mes escolhido;
+// - voo novo vira lancamento novo; lancamento automatico sem voo (area apagada) sai;
+// - lancamento automatico ajustado a mao (auto=false, mas com sourceProjectId) e respeitado:
+//   o voo correspondente nao e recriado por cima.
+// O mesmo voo e identificado por projeto + matricula (id, ou o nome nos lancamentos antigos) + dia.
+export interface CommissionPullPlan {
+  add: CommissionDraft[]
+  update: { entry: CommissionEntry; draft: CommissionDraft }[]
+  // mesmo voo e mesmos valores; so completa o id da matricula nos lancamentos antigos
+  backfill: { entry: CommissionEntry; draft: CommissionDraft }[]
+  remove: CommissionEntry[]
+  unchanged: number
+  keptAdjusted: number
+}
+
+function sameFlight(e: CommissionEntry, d: CommissionDraft): boolean {
+  if ((e.sourceProjectId || "") !== d.projectId || e.date !== d.date) return false
+  if (e.talhaoId && d.talhaoId) return e.talhaoId === d.talhaoId
+  return (e.talhaoName || "") === (d.talhaoName || "")
+}
+
+const sameValues = (e: CommissionEntry, d: CommissionDraft) =>
+  Math.abs(Number(e.hectares || 0) - d.hectares) < 1e-6 && Math.abs(Number(e.rate || 0) - d.rate) < 1e-6
+
+export function planCommissionPull(
+  existing: CommissionEntry[],
+  drafts: CommissionDraft[],
+  startDate: string,
+  endDate: string,
+): CommissionPullPlan {
+  const inRange = (e: CommissionEntry) => !!e.date && e.date >= startDate && e.date <= endDate
+  const pool = (existing || []).filter((e) => e.auto && inRange(e))
+  const adjusted = (existing || []).filter((e) => !e.auto && e.sourceProjectId && inRange(e))
+  const used = new Set<string>()
+  const matched = new Map<number, CommissionEntry>()
+  // 1a passada: casa o voo com o lancamento identico (resolve matriculas de mesmo nome no mesmo dia)
+  drafts.forEach((d, i) => {
+    const e = pool.find((x) => !used.has(x.id) && sameFlight(x, d) && sameValues(x, d))
+    if (e) {
+      used.add(e.id)
+      matched.set(i, e)
+    }
+  })
+  // 2a passada: o que sobrou do mesmo voo, com valores diferentes
+  drafts.forEach((d, i) => {
+    if (matched.has(i)) return
+    const e = pool.find((x) => !used.has(x.id) && sameFlight(x, d))
+    if (e) {
+      used.add(e.id)
+      matched.set(i, e)
+    }
+  })
+  const usedAdjusted = new Set<string>()
+  const plan: CommissionPullPlan = { add: [], update: [], backfill: [], remove: [], unchanged: 0, keptAdjusted: 0 }
+  drafts.forEach((d, i) => {
+    const e = matched.get(i)
+    if (e) {
+      if (!sameValues(e, d)) plan.update.push({ entry: e, draft: d })
+      else {
+        plan.unchanged++
+        if ((e.talhaoId || undefined) !== (d.talhaoId || undefined)) plan.backfill.push({ entry: e, draft: d })
+      }
+      return
+    }
+    const adj = adjusted.find((x) => !usedAdjusted.has(x.id) && sameFlight(x, d))
+    if (adj) {
+      usedAdjusted.add(adj.id)
+      plan.keptAdjusted++
+      return
+    }
+    plan.add.push(d)
+  })
+  plan.remove = pool.filter((e) => !used.has(e.id))
+  return plan
 }
 
 // Clientes que tem areas lancadas no intervalo mas nenhum valor de comissao configurado.

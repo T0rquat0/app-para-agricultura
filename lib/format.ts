@@ -34,6 +34,19 @@ export function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
+// Le um numero digitado no celular. Com virgula, ela e o decimal e o ponto e milhar
+// ("30,50", "1.234,5"); sem virgula, o ponto e o decimal ("20.00"). Vazio ou invalido = NaN.
+export function parseNum(s?: string): number {
+  const t = String(s ?? "").replace(/\s/g, "")
+  if (!t) return NaN
+  return Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t)
+}
+
+// Numero salvo para o campo de texto, ja com virgula decimal.
+export function numInput(n?: number | null): string {
+  return n == null || Number.isNaN(Number(n)) ? "" : String(n).replace(".", ",")
+}
+
 export function slug(s?: string): string {
   return (
     String(s || "relatorio")
