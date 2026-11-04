@@ -1,0 +1,35 @@
+# Segunda trava para o Supabase gratis nao pausar (a primeira e o cron da Vercel em /api/keepalive).
+# Roda todo dia, chama a funcao keepalive() do banco e, se ela nao responder, o workflow falha
+# e o GitHub manda e-mail avisando. Assim um erro aparece em 1 dia, e nao so quando o banco pausa.
+name: Banco acordado
+
+on:
+  schedule:
+    - cron: "41 9 * * *" # todo dia, 05:41 em Boa Vista
+  workflow_dispatch: # botao "Run workflow" para testar na hora
+
+jobs:
+  acordar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Chamar keepalive() no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltam os segredos SUPABASE_URL e SUPABASE_ANON_KEY no GitHub"
+            exit 1
+          fi
+          for tentativa in 1 2 3; do
+            codigo=$(curl -s -m 30 -o resposta.txt -w "%{http_code}" -X POST \
+              "$SUPABASE_URL/rest/v1/rpc/keepalive" \
+              -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Content-Type: application/json" -d '{}' || true)
+            echo "Tentativa $tentativa: HTTP $codigo $(head -c 200 resposta.txt)"
+            [ "$codigo" = "200" ] && exit 0
+            sleep 30
+          done
+          echo "::error::O banco nao respondeu. Pode estar pausado: abra o Supabase e clique em Restore."
+          exit 1
