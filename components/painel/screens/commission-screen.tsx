@@ -33,9 +33,8 @@ import {
 } from "@/lib/storage"
 import {
   clientsMissingCommissionRate,
-  commissionBase,
+  commissionSummary,
   commissionTotal,
-  commissionVariable,
   currentPeriod,
   entriesForPeriod,
   entryPeriod,
@@ -43,10 +42,11 @@ import {
   periodLabel,
   periodOf,
   periodRange,
-  periodRevenue,
+  planCommissionPull,
   pullCommissionDrafts,
+  type CommissionDraft,
 } from "@/lib/calculations"
-import { fmtDate, fmtHa, fmtMoney, genId, todayISO } from "@/lib/format"
+import { fmtDate, fmtHa, fmtMoney, genId, numInput, parseNum, todayISO } from "@/lib/format"
 import type { CommissionEntry } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { TopBar, EmptyState, SectionTitle, Dinheiro, corDoFluxo } from "../chrome"
@@ -100,8 +100,8 @@ export function CommissionScreen() {
   const [pullOpen, setPullOpen] = useState(false)
   const [pullStart, setPullStart] = useState("")
   const [pullEnd, setPullEnd] = useState("")
-  const [pullMissing, setPullMissing] = useState<string[]>([])
-  const [pullResultMsg, setPullResultMsg] = useState<string | null>(null)
+  const [pullOtherRange, setPullOtherRange] = useState(false)
+  const [pullBusy, setPullBusy] = useState(false)
 
   const [collapsedClients, setCollapsedClients] = useState<Set<string>>(new Set())
 
@@ -123,19 +123,32 @@ export function CommissionScreen() {
     () => entriesForPeriod(entries, period).slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")),
     [entries, period],
   )
-  const revenue = periodRevenue(entries, period)
   const adjustment = adjustments[period]
-  const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
-  const base = commissionBase(entries, period, discount)
-  const variable = commissionVariable(entries, period, config, discount)
-  const grossBeforeDeduction = variable + Number(config.fixedSalary || 0)
-  const employeeDeduction = Math.min(
-    Math.max(0, grossBeforeDeduction),
-    Math.max(0, Number(adjustment?.employeeDeduction || 0)),
-  )
-  const total = commissionTotal(entries, period, config, discount, employeeDeduction)
-  const monthHectares = periodEntries.reduce((s, e) => s + Number(e.hectares || 0), 0)
+  const {
+    revenue,
+    discount,
+    base,
+    variable,
+    employeeDeduction,
+    total,
+    hectares: monthHectares,
+  } = commissionSummary(entries, period, config, adjustment)
   const autoCount = periodEntries.filter((e) => e.auto).length
+
+  // O "Puxar areas" mostra antes o que vai mudar; nada e apagado sem aparecer aqui.
+  const pullValid = !!pullStart && !!pullEnd && pullStart <= pullEnd
+  const pullPlan = useMemo(
+    () =>
+      pullOpen && pullValid
+        ? planCommissionPull(entries, pullCommissionDrafts(projects, pullStart, pullEnd), pullStart, pullEnd)
+        : null,
+    [pullOpen, pullValid, entries, projects, pullStart, pullEnd],
+  )
+  const pullMissing = useMemo(
+    () => (pullOpen && pullValid ? clientsMissingCommissionRate(projects, pullStart, pullEnd) : []),
+    [pullOpen, pullValid, projects, pullStart, pullEnd],
+  )
+  const pullChanges = pullPlan ? pullPlan.add.length + pullPlan.update.length + pullPlan.remove.length : 0
   const manualCount = periodEntries.length - autoCount
 
   // Agrupa os lancamentos do mes por cliente, mantendo a ordem por maior faturamento primeiro.
@@ -189,52 +202,41 @@ export function CommissionScreen() {
     const { start, end } = periodRange(period)
     setPullStart(start)
     setPullEnd(end)
-    setPullMissing([])
-    setPullResultMsg(null)
+    setPullOtherRange(false)
     setPullOpen(true)
   }
 
-  async function runPull() {
-    if (!pullStart || !pullEnd || pullStart > pullEnd) {
-      setPullResultMsg("Informe uma data de início e uma data de fim válidas.")
+  // Aplica so a diferenca calculada por planCommissionPull: o lancamento atualizado mantem
+  // o id e o mes escolhido (attributedPeriod), e o ajustado a mao nao e tocado.
+  async function applyPull() {
+    if (!pullPlan || pullChanges + pullPlan.backfill.length === 0) {
+      setPullOpen(false)
       return
     }
-    const missing = clientsMissingCommissionRate(projects, pullStart, pullEnd)
-    setPullMissing(missing)
-    const drafts = pullCommissionDrafts(projects, pullStart, pullEnd)
-    const list = await getCommissionEntries()
-    const replaced = (e: CommissionEntry) => e.auto && e.date >= pullStart && e.date <= pullEnd
-    // Os lancamentos automaticos do intervalo sao recriados; o mes escolhido manualmente
-    // (attributedPeriod) passa para o lancamento novo do mesmo projeto + talhao + dia,
-    // senao puxar de novo devolvia ao mes original o que o usuario tinha movido.
-    const pullKey = (projectId?: string, talhaoName?: string, date?: string) =>
-      `${projectId || ""}|${talhaoName || ""}|${date || ""}`
-    const movedPeriod = new Map<string, string>()
-    for (const e of list) {
-      if (replaced(e) && e.attributedPeriod) movedPeriod.set(pullKey(e.sourceProjectId, e.talhaoName, e.date), e.attributedPeriod)
-    }
-    const fresh: CommissionEntry[] = drafts.map((d) => ({
-      id: genId("com"),
+    setPullBusy(true)
+    const fromDraft = (d: CommissionDraft) => ({
       clientName: d.clientName,
       hectares: d.hectares,
       rate: d.rate,
       date: d.date,
-      note: AUTO_NOTE,
-      createdAt: new Date().toISOString(),
-      auto: true,
       sourceProjectId: d.projectId,
       talhaoName: d.talhaoName,
       talhaoId: d.talhaoId,
-      attributedPeriod: movedPeriod.get(pullKey(d.projectId, d.talhaoName, d.date)),
-    }))
-    await deleteCommissionEntries(list.filter(replaced).map((e) => e.id))
-    await saveCommissionEntries(fresh)
-    refresh()
-    setPullResultMsg(
-      drafts.length === 0
-        ? "Nenhuma área mapeada encontrada nesse período (com valor de comissão configurado)."
-        : `${drafts.length} lançamento${drafts.length === 1 ? "" : "s"} puxado${drafts.length === 1 ? "" : "s"} com sucesso.`,
-    )
+    })
+    const now = new Date().toISOString()
+    const toSave: CommissionEntry[] = [
+      ...pullPlan.add.map((d) => ({ id: genId("com"), ...fromDraft(d), note: AUTO_NOTE, createdAt: now, auto: true })),
+      ...pullPlan.update.map(({ entry, draft }) => ({ ...entry, ...fromDraft(draft) })),
+      ...pullPlan.backfill.map(({ entry, draft }) => ({ ...entry, talhaoId: draft.talhaoId })),
+    ]
+    try {
+      if (pullPlan.remove.length) await deleteCommissionEntries(pullPlan.remove.map((e) => e.id))
+      if (toSave.length) await saveCommissionEntries(toSave)
+      setPullOpen(false)
+    } finally {
+      setPullBusy(false)
+      refresh()
+    }
   }
 
   function openNew() {
@@ -251,8 +253,8 @@ export function CommissionScreen() {
   function openEdit(e: CommissionEntry) {
     setEditing(e)
     setClientName(e.clientName)
-    setHectares(String(e.hectares ?? ""))
-    setRate(String(e.rate ?? ""))
+    setHectares(numInput(e.hectares))
+    setRate(numInput(e.rate))
     setDate(e.date || todayISO())
     setNote(e.note || "")
     setFormError(null)
@@ -264,18 +266,30 @@ export function CommissionScreen() {
       setFormError("Informe o nome do cliente.")
       return
     }
-    if (!hectares || Number(hectares) <= 0) {
+    const ha = parseNum(hectares)
+    const rt = parseNum(rate)
+    if (!(ha > 0)) {
       setFormError("Informe os hectares levantados (maior que zero).")
       return
     }
-    if (!rate || Number(rate) <= 0) {
+    if (!(rt > 0)) {
       setFormError("Informe o valor por hectare (maior que zero).")
       return
     }
     setFormError(null)
-    const fields = { clientName: clientName.trim(), hectares: Number(hectares), rate: Number(rate), date, note: note.trim() }
+    const fields = { clientName: clientName.trim(), hectares: ha, rate: rt, date, note: note.trim() }
+    // Mexer num lancamento automatico o torna "ajustado a mao" (auto=false, mantem a origem):
+    // assim o proximo "Puxar areas" respeita a correcao em vez de recriar o original.
+    const changedAuto =
+      !!editing?.auto &&
+      (fields.clientName !== editing.clientName ||
+        ha !== Number(editing.hectares) ||
+        rt !== Number(editing.rate) ||
+        date !== editing.date)
     await saveCommissionEntries([
-      editing ? { ...editing, ...fields } : { id: genId("com"), ...fields, createdAt: new Date().toISOString() },
+      editing
+        ? { ...editing, ...fields, ...(changedAuto ? { auto: false } : {}) }
+        : { id: genId("com"), ...fields, createdAt: new Date().toISOString() },
     ])
     setOpen(false)
     refresh()
@@ -319,8 +333,8 @@ export function CommissionScreen() {
   }
 
   async function saveConfig() {
-    const percent = Number(percentInput)
-    const fixedSalary = Number(salaryInput)
+    const percent = parseNum(percentInput)
+    const fixedSalary = parseNum(salaryInput)
     if (percentInput.trim() === "" || salaryInput.trim() === "" || Number.isNaN(percent) || Number.isNaN(fixedSalary)) {
       setConfigError("Informe valores numéricos válidos.")
       return
@@ -336,17 +350,17 @@ export function CommissionScreen() {
   }
 
   function openDiscount() {
-    setDiscountInput(adjustment?.discount ? String(adjustment.discount) : "")
+    setDiscountInput(adjustment?.discount ? numInput(adjustment.discount) : "")
     setDiscountNoteInput(adjustment?.note || "")
-    setEmployeeDeductionInput(adjustment?.employeeDeduction ? String(adjustment.employeeDeduction) : "")
+    setEmployeeDeductionInput(adjustment?.employeeDeduction ? numInput(adjustment.employeeDeduction) : "")
     setEmployeeNoteInput(adjustment?.employeeNote || "")
     setDiscountOpen(true)
   }
 
   async function saveDiscount() {
-    const discountValue = Number(discountInput)
+    const discountValue = parseNum(discountInput)
     const safeDiscount = Number.isNaN(discountValue) || discountValue < 0 ? 0 : discountValue
-    const deductionValue = Number(employeeDeductionInput)
+    const deductionValue = parseNum(employeeDeductionInput)
     const safeDeduction = Number.isNaN(deductionValue) || deductionValue < 0 ? 0 : deductionValue
     const hasAny = safeDiscount > 0 || safeDeduction > 0
     await saveCommissionAdjustment(
@@ -371,8 +385,8 @@ export function CommissionScreen() {
       <TopBar title="Comissão" subtitle="Levantamentos faturados por mês">
         <IconButton
           onClick={() => {
-            setPercentInput(String(config.percent))
-            setSalaryInput(String(config.fixedSalary))
+            setPercentInput(numInput(config.percent))
+            setSalaryInput(numInput(config.fixedSalary))
             setConfigError(null)
             setConfigOpen(true)
           }}
@@ -640,6 +654,10 @@ export function CommissionScreen() {
                                   <Pill>
                                     <Zap className="h-3 w-3" /> Automático
                                   </Pill>
+                                ) : e.sourceProjectId ? (
+                                  <Pill>
+                                    <Pencil className="h-3 w-3" /> Ajustado à mão
+                                  </Pill>
                                 ) : (
                                   <Pill>Manual</Pill>
                                 )}
@@ -705,22 +723,27 @@ export function CommissionScreen() {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Hectares">
-              <NumberInput value={hectares} onChange={(e) => setHectares(e.target.value)} type="number" placeholder="605" />
+              <NumberInput value={hectares} onChange={(e) => setHectares(e.target.value)} placeholder="605,5" />
             </Field>
             <Field label="Valor por ha (R$)">
-              <NumberInput value={rate} onChange={(e) => setRate(e.target.value)} type="number" placeholder="20.00" />
+              <NumberInput value={rate} onChange={(e) => setRate(e.target.value)} placeholder="20,00" />
             </Field>
           </div>
+          {editing?.auto && (
+            <Hint className="-mt-1 mb-4">
+              Veio das áreas voadas. Se você mudar, ele fica como “Ajustado à mão” e o Puxar áreas não mexe mais nele.
+            </Hint>
+          )}
           <Field label="Data do levantamento" hint="Define em qual mês o lançamento entra na comissão.">
             <TextInput value={date} onChange={(e) => setDate(e.target.value)} type="date" className="num" />
           </Field>
           <Field label="Observação (opcional)">
             <TextInput value={note} onChange={(e) => setNote(e.target.value)} placeholder="Fazenda, matrícula, contrato…" />
           </Field>
-          {hectares && rate && !Number.isNaN(Number(hectares)) && !Number.isNaN(Number(rate)) && (
+          {parseNum(hectares) > 0 && parseNum(rate) > 0 && (
             <FormAlert tone="info" className="flex items-baseline justify-between gap-3">
               <span>Faturamento deste lançamento</span>
-              <span className="num shrink-0 whitespace-nowrap text-[17px] font-bold text-foreground">{fmtMoney(Number(hectares) * Number(rate))}</span>
+              <span className="num shrink-0 whitespace-nowrap text-[17px] font-bold text-foreground">{fmtMoney(parseNum(hectares) * parseNum(rate))}</span>
             </FormAlert>
           )}
           {formError && <FormAlert>{formError}</FormAlert>}
@@ -747,30 +770,67 @@ export function CommissionScreen() {
       )}
 
       {pullOpen && (
-        <ModalSheet
-          title="Puxar áreas voadas"
-          onClose={() => {
-            setPullOpen(false)
-            setPullResultMsg(null)
-          }}
-        >
-          <p className="mb-5 text-[15px] leading-relaxed text-muted-foreground text-pretty">
-            Busca as áreas mapeadas de todos os clientes no intervalo abaixo e calcula cada uma pelo valor por hectare do
-            projeto. Lançamentos automáticos do intervalo são refeitos.
+        <ModalSheet title="Puxar áreas voadas" onClose={() => setPullOpen(false)}>
+          <p className="mb-4 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+            Compara as áreas voadas
+            {pullOtherRange ? " no período abaixo" : <> em <strong className="font-semibold text-foreground">{periodLabel(period).toLowerCase()}</strong></>}{" "}
+            com o que já está lançado. Só muda o que for diferente, e você vê antes.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="De">
-              <TextInput value={pullStart} onChange={(e) => setPullStart(e.target.value)} type="date" className="num" />
-            </Field>
-            <Field label="Até">
-              <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" className="num" />
-            </Field>
-          </div>
 
-          {pullResultMsg && (
-            <FormAlert tone="info" className="font-semibold text-foreground">
-              <span role="status">{pullResultMsg}</span>
-            </FormAlert>
+          {pullOtherRange ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="De">
+                <TextInput value={pullStart} onChange={(e) => setPullStart(e.target.value)} type="date" className="num" />
+              </Field>
+              <Field label="Até">
+                <TextInput value={pullEnd} onChange={(e) => setPullEnd(e.target.value)} type="date" className="num" />
+              </Field>
+            </div>
+          ) : (
+            <button
+              onClick={() => setPullOtherRange(true)}
+              className="pressable -mt-1 mb-4 min-h-10 text-[14px] font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+            >
+              Escolher outro período
+            </button>
+          )}
+
+          {!pullValid ? (
+            <FormAlert>Informe uma data de início e uma data de fim válidas.</FormAlert>
+          ) : pullPlan && (
+            <div className="mb-4 overflow-hidden rounded-[14px] border border-border" role="status">
+              {pullChanges === 0 && pullPlan.backfill.length === 0 ? (
+                <div className="px-4 py-3 text-[15px] font-semibold">Tudo em dia: nada a mudar.</div>
+              ) : (
+                <ul className="divide-y divide-border text-[15px]">
+                  {pullPlan.add.length > 0 && (
+                    <li className="flex justify-between gap-3 px-4 py-2.5">
+                      <span>Novos</span>
+                      <span className="num font-bold text-positive">+{pullPlan.add.length}</span>
+                    </li>
+                  )}
+                  {pullPlan.update.length > 0 && (
+                    <li className="flex justify-between gap-3 px-4 py-2.5">
+                      <span>Atualizados (a área mudou)</span>
+                      <span className="num font-bold">{pullPlan.update.length}</span>
+                    </li>
+                  )}
+                  {pullPlan.remove.length > 0 && (
+                    <li className="flex justify-between gap-3 px-4 py-2.5">
+                      <span>Removidos (área apagada)</span>
+                      <span className="num font-bold text-destructive">−{pullPlan.remove.length}</span>
+                    </li>
+                  )}
+                </ul>
+              )}
+              {(pullPlan.unchanged > 0 || pullPlan.keptAdjusted > 0) && (
+                <div className="num border-t border-border bg-foreground/[0.03] px-4 py-2 text-[13px] text-muted-foreground">
+                  {pullPlan.unchanged > 0 && `${pullPlan.unchanged} já em dia`}
+                  {pullPlan.unchanged > 0 && pullPlan.keptAdjusted > 0 && " · "}
+                  {pullPlan.keptAdjusted > 0 && `${pullPlan.keptAdjusted} ajustado${pullPlan.keptAdjusted === 1 ? "" : "s"} à mão (mantido${pullPlan.keptAdjusted === 1 ? "" : "s"})`}
+                </div>
+              )}
+            </div>
           )}
 
           {pullMissing.length > 0 && (
@@ -784,13 +844,10 @@ export function CommissionScreen() {
           )}
 
           <SheetActions
-            label="Puxar lançamentos"
-            onConfirm={runPull}
-            cancelLabel="Fechar"
-            onCancel={() => {
-              setPullOpen(false)
-              setPullResultMsg(null)
-            }}
+            label={pullChanges > 0 ? `Aplicar ${pullChanges} mudança${pullChanges === 1 ? "" : "s"}` : "Fechar"}
+            onConfirm={applyPull}
+            disabled={pullBusy || !pullValid}
+            onCancel={() => setPullOpen(false)}
           />
         </ModalSheet>
       )}
@@ -798,10 +855,10 @@ export function CommissionScreen() {
       {configOpen && (
         <ModalSheet title="Configurar comissão" onClose={() => setConfigOpen(false)}>
           <Field label="Percentual de comissão (%)" hint="Aplicado sobre o faturamento dos levantamentos do mês.">
-            <NumberInput value={percentInput} onChange={(e) => setPercentInput(e.target.value)} type="number" placeholder="Ex.: 10" />
+            <NumberInput value={percentInput} onChange={(e) => setPercentInput(e.target.value)} placeholder="Ex.: 10" />
           </Field>
           <Field label="Salário fixo mensal (R$)" hint="Somado à comissão variável, independente do que foi levantado.">
-            <NumberInput value={salaryInput} onChange={(e) => setSalaryInput(e.target.value)} type="number" placeholder="Ex.: 2000" />
+            <NumberInput value={salaryInput} onChange={(e) => setSalaryInput(e.target.value)} placeholder="Ex.: 2000" />
           </Field>
           {configError && <FormAlert>{configError}</FormAlert>}
           <SheetActions label="Salvar configuração" onConfirm={saveConfig} onCancel={() => setConfigOpen(false)} />
@@ -839,7 +896,7 @@ export function CommissionScreen() {
           </p>
           <div className="grid grid-cols-[0.8fr_1fr] gap-3">
             <Field label="Valor (R$)">
-              <NumberInput value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} type="number" placeholder="6000" />
+              <NumberInput value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} placeholder="6000" />
             </Field>
             <Field label="Motivo (opcional)">
               <TextInput
@@ -862,7 +919,6 @@ export function CommissionScreen() {
               <NumberInput
                 value={employeeDeductionInput}
                 onChange={(e) => setEmployeeDeductionInput(e.target.value)}
-                type="number"
                 placeholder="641"
               />
             </Field>
@@ -877,8 +933,8 @@ export function CommissionScreen() {
           <Hint className="-mt-1 mb-4">Em branco ou 0 remove o valor.</Hint>
 
           {(() => {
-            const previewDiscount = Math.max(0, Number(discountInput) || 0)
-            const previewDeduction = Math.max(0, Number(employeeDeductionInput) || 0)
+            const previewDiscount = Math.max(0, parseNum(discountInput) || 0)
+            const previewDeduction = Math.max(0, parseNum(employeeDeductionInput) || 0)
             if (previewDiscount <= 0 && previewDeduction <= 0) return null
             const previewTotal = commissionTotal(entries, period, config, previewDiscount, previewDeduction)
             return (

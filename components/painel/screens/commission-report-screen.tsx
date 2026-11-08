@@ -3,14 +3,11 @@
 import { useNav } from "../nav-context"
 import { useCommissionAdjustments, useCommissionConfig, useCommissionEntries } from "@/lib/hooks"
 import {
-  commissionBase,
-  commissionTotal,
-  commissionVariable,
+  commissionSummary,
   currentPeriod,
   entriesForPeriod,
   entryRevenue,
   periodLabel,
-  periodRevenue,
 } from "@/lib/calculations"
 import { fmtDate, fmtHa, fmtMoney } from "@/lib/format"
 import {
@@ -35,18 +32,14 @@ export function CommissionReportScreen() {
   const list = entriesForPeriod(entries, period)
     .slice()
     .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
-  const revenue = periodRevenue(entries, period)
   const adjustment = adjustments[period]
-  const discount = Math.min(revenue, Math.max(0, Number(adjustment?.discount || 0)))
-  const base = commissionBase(entries, period, discount)
-  const variable = commissionVariable(entries, period, config, discount)
-  const grossBeforeDeduction = variable + Number(config.fixedSalary || 0)
-  const employeeDeduction = Math.min(
-    Math.max(0, grossBeforeDeduction),
-    Math.max(0, Number(adjustment?.employeeDeduction || 0)),
+  // Mesma fonte da tela de Comissao, para os numeros nunca divergirem.
+  const { revenue, discount, base, variable, employeeDeduction, total, hectares } = commissionSummary(
+    entries,
+    period,
+    config,
+    adjustment,
   )
-  const total = commissionTotal(entries, period, config, discount, employeeDeduction)
-  const hectares = list.reduce((s, e) => s + Number(e.hectares || 0), 0)
 
   // Agrupado por cliente, para o resumo por cliente do relatorio.
   const byClient = new Map<string, { hectares: number; revenue: number }>()

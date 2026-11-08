@@ -4,7 +4,8 @@ import { useNav } from "../nav-context"
 import { useProposal } from "@/lib/hooks"
 import { fmtHa, fmtMoney, slug } from "@/lib/format"
 import {
-  paymentPhaseValue,
+  paymentScheduleValues,
+  proposalAreaHa,
   paymentSchedulePercentTotal,
   proposalDiscount,
   proposalItemPricingSummary,
@@ -118,11 +119,10 @@ export function ProposalDocumentScreen() {
   const discount = proposalDiscount(proposal)
   const total = proposalTotal(proposal)
   const location = proposal.location || "Roraima, Brasil"
-  // Soma das quantidades dos itens cobrados por hectare (as mesmas da tabela do escopo).
-  const areaHa = proposal.items
-    .filter((i) => i.billingType === "hectare")
-    .reduce((s, i) => s + Number(i.quantity || 0), 0)
+  // Area = maior item por hectare (os servicos cobrem a mesma area; somar contaria duas vezes).
+  const areaHa = proposalAreaHa(proposal)
   const schedule = proposal.paymentSchedule || []
+  const scheduleValues = paymentScheduleValues(total, schedule)
   const deliverables = Object.entries(proposal.deliverables || {}).filter(([, v]) => v)
   const responsibilities = (proposal.clientResponsibilities || "").split("\n").filter(Boolean)
   const experience = (proposal.experienceNote || "").split("\n").filter(Boolean)
@@ -241,7 +241,7 @@ export function ProposalDocumentScreen() {
                   </span>,
                   `${Number(ph.percent || 0).toLocaleString("pt-BR")}%`,
                   <span key="v" className="font-semibold">
-                    {fmtMoney(paymentPhaseValue(total, ph))}
+                    {fmtMoney(scheduleValues[i] || 0)}
                   </span>,
                 ],
               }))}
@@ -249,7 +249,7 @@ export function ProposalDocumentScreen() {
                 "",
                 "Total",
                 `${paymentSchedulePercentTotal(schedule).toLocaleString("pt-BR")}%`,
-                fmtMoney(schedule.reduce((s, ph) => s + paymentPhaseValue(total, ph), 0)),
+                fmtMoney(scheduleValues.reduce((s, v) => s + v, 0)),
               ]}
             />
           )}
